@@ -1,0 +1,46 @@
+[
+  {
+    "id": "staff-rule-crowd-flow",
+    "role": "Crowd Flow Lead",
+    "team": "Operations",
+    "summary": "Owns ingress relief at gates, opens overflow paths, and confirms lane rebalancing with gate supervisors.",
+    "responseFocus": [
+      "Gate B crowding",
+      "overflow lane activation",
+      "queue redirection"
+    ]
+  },
+  {
+    "id": "staff-rule-facilities",
+    "role": "Facilities Engineer",
+    "team": "Facilities",
+    "summary": "Owns infrastructure outage diagnosis, restoration ETA updates, and facilities response coordination for guest-impacting assets.",
+    "responseFocus": [
+      "Elevator 4 outage",
+      "facilities response",
+      "restoration ETA"
+    ]
+  },
+  {
+    "id": "staff-rule-guest-services",
+    "role": "Guest Services Supervisor",
+    "team": "Guest Experience",
+    "summary": "Owns wheelchair dispatch, accessible route escort coordination, and guest handoff confirmation at seating sections.",
+    "responseFocus": [
+      "Section 112 wheelchair support",
+      "accessible route",
+      "guest services response"
+    ]
+  },
+  {
+    "id": "staff-rule-post-event",
+    "role": "Operations Lead",
+    "team": "Operations",
+    "summary": "Owns post-event reporting, final incident recap wording, and confirmation that approved actions were logged in the timeline.",
+    "responseFocus": [
+      "post-event reporting",
+      "timeline approval flow",
+      "after-action summary"
+    ]
+  }
+]

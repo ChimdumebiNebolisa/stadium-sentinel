@@ -1,0 +1,8 @@
+[
+  {
+    "id": "demo-main",
+    "name": "Command center demo",
+    "inputReport": "Gate B is backed up, Elevator 4 is down, and a guest near Section 112 needs wheelchair access.",
+    "expectedIncidentIds": ["incident-gate-b", "incident-elevator-4", "incident-section-112"]
+  }
+]

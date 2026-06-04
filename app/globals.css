@@ -1,0 +1,111 @@
+@import "tailwindcss";
+
+:root {
+  --background: #101418;
+  --foreground: #eef1f4;
+  --panel: #171c22;
+  --panel-border: rgba(128, 139, 151, 0.22);
+  --panel-muted: #131920;
+  --accent: #c89b3c;
+  --accent-soft: rgba(200, 155, 60, 0.12);
+  --success: #62b27c;
+  --danger: #d56b57;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-plex-sans);
+  --font-mono: var(--font-plex-mono);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: #101418;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-plex-sans), sans-serif;
+}
+
+button,
+textarea {
+  font: inherit;
+}
+
+button:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid rgba(200, 155, 60, 0.85);
+  outline-offset: 2px;
+}
+
+.ops-panel {
+  border: 1px solid var(--panel-border);
+  background: var(--panel);
+  border-radius: 6px;
+  padding: 1rem;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
+}
+
+.ops-subpanel {
+  border: 1px solid rgba(123, 138, 156, 0.18);
+  background: var(--panel-muted);
+  border-radius: 4px;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
+}
+
+.ops-panel p,
+.ops-panel li,
+.ops-panel h1,
+.ops-panel h2,
+.ops-panel h3 {
+  text-wrap: pretty;
+}
+
+.ops-panel h1,
+.ops-panel h2,
+.ops-panel h3 {
+  text-wrap: balance;
+}
+
+.ops-heading {
+  color: #f5f7fa;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.ops-subheading {
+  color: #9ca8b5;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.ops-label {
+  color: #9ca8b5;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.ops-value {
+  color: var(--foreground);
+  font-family: var(--font-plex-mono), monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (min-width: 768px) {
+  .ops-panel {
+    padding: 1.125rem;
+  }
+}

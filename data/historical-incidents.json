@@ -1,0 +1,29 @@
+[
+  {
+    "id": "hist-gate-b-01",
+    "title": "Playoff ingress overflow at Gate B",
+    "incidentType": "queue-congestion",
+    "locationId": "gate-b",
+    "priority": "High",
+    "summary": "Queue spillback was reduced after overflow lanes were opened and staffing was shifted.",
+    "resolution": "Resolved in 11 minutes after crowd-flow reassignment."
+  },
+  {
+    "id": "hist-elevator-4-01",
+    "title": "Elevator 4 door sensor fault",
+    "incidentType": "facility-outage",
+    "locationId": "elevator-4",
+    "priority": "High",
+    "summary": "Elevator outage impacted accessible routing on the concourse.",
+    "resolution": "Mitigated with alternate route staffing while engineering reset the lift."
+  },
+  {
+    "id": "hist-section-112-01",
+    "title": "Wheelchair escort request near Section 112",
+    "incidentType": "accessibility-assist",
+    "locationId": "section-112",
+    "priority": "Immediate",
+    "summary": "Guest services completed a wheelchair handoff and escorted the guest to seating.",
+    "resolution": "Closed after guest transfer confirmation."
+  }
+]

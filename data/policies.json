@@ -1,0 +1,41 @@
+[
+  {
+    "id": "policy-gate-congestion",
+    "title": "Entry Queue Congestion Threshold",
+    "category": "crowd-flow",
+    "summary": "Escalate when ingress queues obstruct circulation or exceed target wait times.",
+    "applicability": ["gate", "entry", "crowd-flow"],
+    "steps": [
+      "Dispatch crowd-flow staff to open overflow stanchions.",
+      "Shift one screening lane to Gate B if adjacent capacity is available.",
+      "Publish a guest-facing gate update on internal operations channels."
+    ],
+    "escalationNote": "Notify venue security supervisor if queue spillback reaches outer plaza."
+  },
+  {
+    "id": "policy-elevator-outage",
+    "title": "Accessibility Infrastructure Outage Response",
+    "category": "facility-outage",
+    "summary": "Mobility-impacting elevator failures require immediate dispatch and alternate route coverage.",
+    "applicability": ["elevator", "facility-outage", "accessibility"],
+    "steps": [
+      "Dispatch engineering to confirm elevator status and estimated restoration.",
+      "Station accessibility staff at the nearest alternate route.",
+      "Flag guest services to reroute impacted guests."
+    ],
+    "escalationNote": "Escalate to event operations lead if no restoration estimate is available within five minutes."
+  },
+  {
+    "id": "policy-wheelchair-assist",
+    "title": "Guest Mobility Assistance Standard",
+    "category": "guest-assistance",
+    "summary": "Guests requesting wheelchair access require direct acknowledgement and escorted support.",
+    "applicability": ["section", "guest-assistance", "accessibility"],
+    "steps": [
+      "Acknowledge the guest request immediately.",
+      "Dispatch guest services with a wheelchair-access kit.",
+      "Confirm the handoff and route to destination seating."
+    ],
+    "escalationNote": "Escalate to accessibility coordinator if response is delayed beyond three minutes."
+  }
+]

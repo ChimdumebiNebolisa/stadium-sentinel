@@ -1,0 +1,41 @@
+[
+  {
+    "id": "runbook-gate-b",
+    "title": "Ingress Queue Relief",
+    "incidentType": "queue-congestion",
+    "locationTypes": ["gate"],
+    "signals": ["backed up", "slow ingress", "screening delay"],
+    "recommendedActions": [
+      "Dispatch crowd-flow lead to Gate B.",
+      "Open the overflow queue path and rebalance screening lanes.",
+      "Post a five-minute ingress advisory to gate supervisors."
+    ],
+    "ownerRole": "Crowd Flow Lead"
+  },
+  {
+    "id": "runbook-elevator-4",
+    "title": "Vertical Transport Outage",
+    "incidentType": "facility-outage",
+    "locationTypes": ["elevator"],
+    "signals": ["down", "offline", "not working"],
+    "recommendedActions": [
+      "Send engineering to Elevator 4 for diagnosis.",
+      "Assign accessibility support to the alternate route.",
+      "Update operations with restoration ETA or outage confirmation."
+    ],
+    "ownerRole": "Facilities Engineer"
+  },
+  {
+    "id": "runbook-section-112",
+    "title": "Wheelchair Assistance Dispatch",
+    "incidentType": "accessibility-assist",
+    "locationTypes": ["section"],
+    "signals": ["wheelchair access", "mobility assist", "guest help"],
+    "recommendedActions": [
+      "Dispatch guest services to Section 112 with a wheelchair.",
+      "Coordinate the nearest accessible path from current position.",
+      "Confirm arrival and guest transfer over radio."
+    ],
+    "ownerRole": "Guest Services Supervisor"
+  }
+]

@@ -1,0 +1,29 @@
+[
+  {
+    "id": "gate-b",
+    "name": "Gate B",
+    "type": "gate",
+    "label": "Gate B",
+    "mapX": 16.4,
+    "mapY": 20.2,
+    "priorityZone": "entry"
+  },
+  {
+    "id": "elevator-4",
+    "name": "Elevator 4",
+    "type": "elevator",
+    "label": "Elevator 4",
+    "mapX": 84.6,
+    "mapY": 45.9,
+    "priorityZone": "concourse"
+  },
+  {
+    "id": "section-112",
+    "name": "Section 112",
+    "type": "section",
+    "label": "Section 112",
+    "mapX": 67.8,
+    "mapY": 65.7,
+    "priorityZone": "lower bowl"
+  }
+]

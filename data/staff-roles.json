@@ -1,0 +1,20 @@
+[
+  {
+    "id": "role-crowd-flow",
+    "role": "Crowd Flow Lead",
+    "team": "Operations",
+    "responsibilities": ["Ingress management", "Queue balancing", "Gate staffing"]
+  },
+  {
+    "id": "role-engineering",
+    "role": "Facilities Engineer",
+    "team": "Facilities",
+    "responsibilities": ["Elevator diagnostics", "Infrastructure recovery", "ETA updates"]
+  },
+  {
+    "id": "role-guest-services",
+    "role": "Guest Services Supervisor",
+    "team": "Guest Experience",
+    "responsibilities": ["Accessibility response", "Wheelchair dispatch", "Guest handoff confirmation"]
+  }
+]
