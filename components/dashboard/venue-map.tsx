@@ -1,5 +1,4 @@
-import Image from "next/image";
-
+import { VenueMapSchematic } from "@/components/dashboard/venue-map-schematic";
 import { locationRecords } from "@/lib/data";
 import type { IncidentPackage } from "@/lib/types";
 
@@ -24,13 +23,7 @@ export function VenueMap({
       </div>
       <div className="relative h-[35rem] w-full overflow-hidden border border-white/10 bg-[#0f141a] xl:h-[38rem]">
         <div className="relative h-full w-full">
-          <Image
-            src="/venue-map.svg"
-            alt="Riverside Stadium operations schematic showing the field, seating bowl, concourse, Gate B, Elevator 4, and Section 112"
-            fill
-            priority
-            className="object-contain object-top"
-          />
+          <VenueMapSchematic />
           {incidentPackages.map(({ incident }) => {
             const location = locationRecords.find(
               (item) => item.id === incident.locationId,
