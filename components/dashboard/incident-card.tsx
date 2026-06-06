@@ -48,12 +48,12 @@ export function IncidentCard({
       data-incident-id={incident.id}
       className={`w-full rounded-xl border px-4 py-5 text-left transition-colors ${
         isSelected
-          ? `${selectedBorder} bg-[#101a25]`
-          : "border-white/8 bg-[#0d1722] hover:border-white/14 hover:bg-[#101a25]"
+          ? `${selectedBorder} bg-[var(--panel-hover)]`
+          : "border-white/8 bg-[var(--panel-elevated)] hover:border-white/14 hover:bg-[var(--panel-hover)]"
       }`}
     >
       <div className="flex items-start gap-4">
-        <span className="ops-value inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-[#07111c] text-base text-slate-100">
+        <span className="ops-value inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-[var(--panel-inset)] text-base text-slate-100">
           {sequenceNumber}
         </span>
         <div className="min-w-0 flex-1">

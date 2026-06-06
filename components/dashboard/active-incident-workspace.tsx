@@ -159,7 +159,7 @@ function getChecklistStatus(approvedActionCount: number, index: number) {
       label: "Complete",
       badgeClass:
         "border-emerald-400/30 bg-emerald-400/12 text-emerald-100",
-      markerClass: "bg-emerald-400 text-[#07111c]",
+      markerClass: "bg-emerald-400 text-[var(--background)]",
     };
   }
 
@@ -174,7 +174,7 @@ function getChecklistStatus(approvedActionCount: number, index: number) {
   return {
     label: "Pending",
     badgeClass: "border-white/10 bg-white/[0.03] text-slate-300",
-    markerClass: "bg-[#2a3542] text-slate-200",
+    markerClass: "bg-[var(--panel-muted)] text-slate-200",
   };
 }
 
@@ -339,7 +339,7 @@ export function ActiveIncidentWorkspace({
                   className={`rounded-md border px-4 py-3 text-sm font-medium transition-colors ${
                     isApproved
                       ? "border-emerald-400/25 bg-emerald-400/10 text-emerald-100"
-                      : "border-white/10 bg-[#0a131d] text-slate-100 hover:border-white/20 hover:bg-[#101a25] disabled:cursor-not-allowed"
+                      : "border-white/10 bg-[var(--panel-inset)] text-slate-100 hover:border-white/20 hover:bg-[var(--panel-hover)] disabled:cursor-not-allowed"
                   }`}
                 >
                   {isApproved ? "Logged" : copy.actionLabels[actionIndex]}
