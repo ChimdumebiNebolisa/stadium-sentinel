@@ -28,6 +28,17 @@ To complete the hackathon model, you must use an external AI development environ
    
    If your external MCP host requires explicit URLs for operation mapping, point `stadium_incident_operations_esql` to the externally reachable `POST /api/esql` address of the production application.
 
+### Optional: Google Agent Platform ES|QL bridge (verified)
+
+For **Google Cloud Agent Platform**, a plain `function` tool schema does not execute HTTP to `/api/esql` on its own. An optional external MCP bridge is provided at `mcp/esql-bridge/`:
+
+- Exposes only `stadium_incident_operations_esql` (enum-only `operation` parameter).
+- Forwards `POST` requests to `{STADIUM_SENTINEL_BASE_URL}/api/esql`.
+- Rejects raw ES|QL; accepts only `count_by_priority`, `count_by_team`, `recent_by_location`.
+- Deploy separately to Cloud Run as `stadium-esql-mcp-bridge` and register `https://<bridge-service>/mcp` as an `mcp_server` tool.
+
+See `mcp/esql-bridge/README.md` for local run, deploy, and Agent Platform wiring steps.
+
 ## Verification Checklist
 
 Before claiming the implementation is active, verify the following manually:
