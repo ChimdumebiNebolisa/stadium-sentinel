@@ -45,27 +45,24 @@ export function IncidentCard({
       type="button"
       onClick={onSelect}
       data-testid="incident-card"
-      className={`w-full rounded-md border px-3 py-2.5 text-left transition-colors ${
+      className={`w-full rounded-xl border px-4 py-5 text-left transition-colors ${
         isSelected
-          ? `${selectedBorder} bg-[#171f27]`
-          : "border-white/8 bg-[#121820] hover:border-white/14 hover:bg-[#151c24]"
+          ? `${selectedBorder} bg-[#101a25]`
+          : "border-white/8 bg-[#0d1722] hover:border-white/14 hover:bg-[#101a25]"
       }`}
     >
-      <div className="flex items-start gap-3">
-        <span className="ops-value inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-white/10 bg-[#0f151c] text-xs text-slate-200">
+      <div className="flex items-start gap-4">
+        <span className="ops-value inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-[#07111c] text-base text-slate-100">
           {sequenceNumber}
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">
-            <h3 className="text-[14px] font-semibold leading-[1.2] text-white">
+            <h3 className="text-[1.05rem] font-semibold leading-[1.25] tracking-tight text-white">
               {getQueueTitle(incident)}
             </h3>
             <PriorityBadge level={incident.priority} />
           </div>
-          <p className="mt-1.5 text-sm text-slate-300">
-            {location?.name ?? incident.locationLabel}
-          </p>
-          <p className="mt-1 text-[12px] font-medium text-slate-500">
+          <p className="mt-3 text-[0.98rem] font-medium text-slate-300">
             {leadTeam || "Operations"}
           </p>
         </div>

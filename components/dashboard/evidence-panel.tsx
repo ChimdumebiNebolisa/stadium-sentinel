@@ -15,7 +15,7 @@ export function EvidencePanel({
         {getPrioritySummary(incident)}
       </p>
 
-      <div className="ops-flat-section">
+      <div className="mt-5 border-t border-white/8 pt-4">
         <p className="ops-label">Operational evidence</p>
         <div className="mt-2 divide-y divide-white/8">
           {evidence.map((item) => (
@@ -39,7 +39,7 @@ export function EvidencePanel({
       </div>
 
       {incident.assumptions.length > 0 ? (
-        <div className="ops-flat-section">
+        <div className="mt-5 border-t border-white/8 pt-4">
           <p className="ops-label">Reported context</p>
           <p className="mt-2 text-xs leading-5 text-slate-500">
             {incident.assumptions.join(" ")}

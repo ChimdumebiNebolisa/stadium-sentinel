@@ -2,16 +2,14 @@
 
 import { useState } from "react";
 
-import { ActionPlanPanel } from "@/components/dashboard/action-plan-panel";
+import { ActiveIncidentWorkspace } from "@/components/dashboard/active-incident-workspace";
 import { CommandHeader } from "@/components/dashboard/command-header";
 import { EvidencePanel } from "@/components/dashboard/evidence-panel";
-import { IncidentDetailPanel } from "@/components/dashboard/incident-detail-panel";
 import { IncidentList } from "@/components/dashboard/incident-list";
 import { PostEventReportPanel } from "@/components/dashboard/post-event-report-panel";
 import { ReportInput } from "@/components/dashboard/report-input";
 import { StaffUpdatePanel } from "@/components/dashboard/staff-update-panel";
 import { TimelinePanel } from "@/components/dashboard/timeline-panel";
-import { VenueMap } from "@/components/dashboard/venue-map";
 import { buildDemoState } from "@/lib/demo";
 import { buildPostEventReport } from "@/lib/report";
 import type {
@@ -24,28 +22,37 @@ import type {
 const initialDemoState = buildDemoState();
 type WorkspaceView = "evidence" | "staff" | "timeline" | "report";
 
-function getLatestDrawerText(message?: string): string {
-  if (!message) {
-    return "Latest: Gate B crowd lead assigned";
+function getLatestDrawerText(
+  incidentId?: string,
+  latestEntry?: TimelineEntry,
+): string {
+  if (!incidentId) {
+    return "Latest: Awaiting incident updates.";
   }
 
-  if (message.includes("Elevator 4")) {
-    return "Latest: Elevator 4 diagnosis requested";
+  if (latestEntry?.type === "approved") {
+    switch (incidentId) {
+      case "incident-section-112":
+        return "Latest: Guest Services notified via radio.";
+      case "incident-elevator-4":
+        return "Latest: Facilities dispatched to Elevator 4.";
+      case "incident-gate-b":
+        return "Latest: Security routed to Gate B.";
+      default:
+        return "Latest: Dispatch approved.";
+    }
   }
 
-  if (message.includes("Section 112")) {
-    return "Latest: Guest Services to Section 112";
+  switch (incidentId) {
+    case "incident-section-112":
+      return "Latest: Guest Services assignment confirmed.";
+    case "incident-elevator-4":
+      return "Latest: Facilities assessing Elevator 4.";
+    case "incident-gate-b":
+      return "Latest: Security monitoring Gate B flow.";
+    default:
+      return "Latest: Operational review in progress.";
   }
-
-  if (message.includes("Gate B") || message.includes("Crowd Flow Lead")) {
-    return "Latest: Gate B crowd lead assigned";
-  }
-
-  const trimmed = message.replace(/\.$/, "");
-  const shortText =
-    trimmed.length > 40 ? `${trimmed.slice(0, 37).trimEnd()}...` : trimmed;
-
-  return `Latest: ${shortText}`;
 }
 
 function updateIncidentPackages(
@@ -163,13 +170,18 @@ export function CommandCenter() {
     { id: "timeline", label: "Timeline", inputId: "workspace-timeline" },
     { id: "report", label: "Report", inputId: "workspace-report" },
   ];
-  const latestEntry = timeline[timeline.length - 1];
+  const latestEntry = selectedIncidentPackage
+    ? [...timeline]
+        .reverse()
+        .find((entry) => entry.incidentId === selectedIncidentPackage.incident.id)
+    : undefined;
   const latestSummary = getLatestDrawerText(
-    latestEntry?.message ?? selectedIncidentPackage?.incident.recommendedActions[0],
+    selectedIncidentPackage?.incident.id,
+    latestEntry,
   );
 
   function openWorkspace(view: WorkspaceView) {
-    setActiveWorkspace(view);
+    setActiveWorkspace((current) => (current === view ? null : view));
   }
 
   return (
@@ -190,41 +202,31 @@ export function CommandCenter() {
           </div>
 
           <div className="board-column min-h-0">
-            <VenueMap
-              incidentPackages={incidentPackages}
-              selectedIncidentId={selectedIncidentId}
-              onSelect={setSelectedIncidentId}
-            />
-          </div>
-
-          <div className="board-column min-h-0">
-            <section className="ops-panel flex h-full min-h-0 flex-col overflow-hidden">
-              <div className="command-brief-scroll min-h-0 flex-1">
-                {selectedIncidentPackage ? (
-                  <>
-                    <IncidentDetailPanel incidentPackage={selectedIncidentPackage} />
-                    <ActionPlanPanel
-                      incidentPackage={selectedIncidentPackage}
-                      onApprove={handleApprove}
-                    />
-                  </>
-                ) : (
-                  <>
-                    <h2 className="ops-heading text-lg">
-                      No incidents matched the current report
-                    </h2>
-                    <p className="mt-2 max-w-[60ch] text-sm leading-6 text-slate-300">
-                      Use the demo scenario text to restore the active queue, map
-                      markers, evidence, and approval workflow.
-                    </p>
-                  </>
-                )}
-              </div>
-            </section>
+            {selectedIncidentPackage ? (
+              <ActiveIncidentWorkspace
+                incidentPackage={selectedIncidentPackage}
+                timeline={timeline}
+                onApprove={handleApprove}
+              />
+            ) : (
+              <section className="ops-panel flex h-full min-h-0 flex-col overflow-hidden">
+                <h2 className="ops-heading text-lg">
+                  No incidents matched the current report
+                </h2>
+                <p className="mt-2 max-w-[60ch] text-sm leading-6 text-slate-300">
+                  Use the demo scenario text to restore the dispatch queue,
+                  active incident workspace, and utility drawer workflow.
+                </p>
+              </section>
+            )}
           </div>
         </section>
 
-        <section className="utility-drawer" data-state={activeWorkspace ? "open" : "closed"}>
+        <section
+          className="utility-drawer"
+          data-state={activeWorkspace ? "open" : "closed"}
+          data-testid="utility-drawer"
+        >
           <div className="utility-drawer-body min-h-0 overflow-hidden px-4 py-3">
             <div
               id="workspace-panel-evidence"
@@ -304,7 +306,11 @@ export function CommandCenter() {
               })}
             </div>
 
-            <p className="utility-latest" title={latestSummary}>
+            <p
+              className="utility-latest"
+              title={latestSummary}
+              data-testid="utility-latest-update"
+            >
               {latestSummary}
             </p>
 

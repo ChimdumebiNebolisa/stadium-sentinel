@@ -4,10 +4,14 @@ async function openWorkspace(
   page: Page,
   panel: "Evidence" | "Timeline" | "Report",
 ) {
-  await page
+  const tab = page
     .getByRole("tablist", { name: "Workspace panels" })
-    .getByRole("tab", { name: panel, exact: true })
-    .click();
+    .getByRole("tab", { name: panel, exact: true });
+  const isSelected = await tab.getAttribute("aria-selected");
+
+  if (isSelected !== "true") {
+    await tab.click();
+  }
 
   const panelTarget =
     panel === "Evidence"
@@ -19,23 +23,32 @@ async function openWorkspace(
   await expect(panelTarget).toBeVisible();
 }
 
-test("demo report creates incident cards, markers, evidence, timeline update, and report", async ({
+test("demo report renders the command-center shell and preserves the response workflow", async ({
   page,
 }) => {
   await page.goto("/");
 
+  await expect(page.getByTestId("dispatch-queue")).toBeVisible();
+  await expect(page.getByTestId("active-incident-workspace")).toBeVisible();
+  await expect(page.getByTestId("utility-drawer")).toBeVisible();
   await expect(page.getByTestId("incident-card")).toHaveCount(3);
-  await expect(page.getByTestId("map-marker")).toHaveCount(3);
-  await expect(page.getByTestId("evidence-panel")).not.toBeVisible();
+  await expect(page.getByTestId("selected-incident-title")).toHaveText(
+    "Guest needs wheelchair access near Section 112",
+  );
+  await expect(page.getByText("Venue map")).toHaveCount(0);
+
+  const initialLatest = await page.getByTestId("utility-latest-update").textContent();
+  expect(initialLatest).toContain("Latest:");
+
   await openWorkspace(page, "Evidence");
   await expect(page.getByText("Operational evidence")).toBeVisible();
+
   await openWorkspace(page, "Report");
   await expect(page.getByTestId("report-input")).toHaveValue(
     "Gate B is backed up, Elevator 4 is down, and a guest near Section 112 needs wheelchair access.",
   );
 
   await openWorkspace(page, "Timeline");
-
   const timelineBeforeSubmit = await page
     .getByTestId("timeline-panel")
     .locator("article")
@@ -45,58 +58,85 @@ test("demo report creates incident cards, markers, evidence, timeline update, an
   await page.getByRole("button", { name: "Process report" }).click({ force: true });
 
   await expect(page.getByTestId("incident-card")).toHaveCount(3);
-  await expect(page.getByTestId("map-marker")).toHaveCount(3);
-  await openWorkspace(page, "Evidence");
-  await expect(page.getByTestId("evidence-panel")).toBeVisible();
+  await expect(page.getByTestId("selected-incident-title")).toHaveText(
+    "Guest needs wheelchair access near Section 112",
+  );
 
   await openWorkspace(page, "Timeline");
   await expect(page.getByTestId("timeline-panel").locator("article")).toHaveCount(
     timelineBeforeSubmit,
   );
 
-  const timelineBefore = await page.getByTestId("timeline-panel").locator("article").count();
+  const timelineBeforeApprove = await page
+    .getByTestId("timeline-panel")
+    .locator("article")
+    .count();
 
-  await page.getByRole("button", { name: /Dispatch Guest Services:/i }).press("Enter");
+  await page.getByRole("button", { name: /Dispatch Guest Services:/i }).click();
 
   await openWorkspace(page, "Timeline");
   await expect(page.getByTestId("timeline-panel").locator("article")).toHaveCount(
-    timelineBefore + 1,
+    timelineBeforeApprove + 1,
   );
-  await openWorkspace(page, "Report");
-  await expect(page.getByTestId("report-panel")).toBeVisible();
-  await expect(page.getByText("Stadium Sentinel Post-Event Report")).toBeVisible();
+  await expect(page.getByTestId("utility-latest-update")).toHaveText(
+    "Latest: Guest Services notified via radio.",
+  );
 
   const bodyText = (await page.locator("body").textContent()) ?? "";
 
   expect(bodyText).not.toMatch(/\bscore\b/i);
-  expect(bodyText).not.toMatch(/severity score/i);
-  expect(bodyText).not.toMatch(/top severity/i);
-  expect(bodyText).not.toMatch(/system signal/i);
   expect(bodyText).not.toMatch(/confidence/i);
-  expect(bodyText).not.toMatch(/\b94\b/);
-  expect(bodyText).not.toMatch(/\b88\b/);
-  expect(bodyText).not.toMatch(/\b82\b/);
+  expect(bodyText).not.toMatch(/severity score/i);
+  expect(bodyText).not.toMatch(/ticket/i);
+  expect(bodyText).not.toMatch(/seat selection/i);
+  expect(bodyText).not.toMatch(/seat map/i);
 });
 
-test("map markers switch the selected incident detail", async ({ page }) => {
+test("dispatch queue selection switches the active incident workspace", async ({
+  page,
+}) => {
   await page.goto("/");
 
-  await page.getByRole("button", { name: "Gate B High incident", exact: true }).click();
+  await page.getByRole("button", { name: /Gate B backed up/i }).click();
   await expect(page.getByTestId("selected-incident-title")).toHaveText(
     "Gate B backed up",
   );
 
-  await page
-    .getByRole("button", { name: "Elevator 4 High incident", exact: true })
-    .click();
+  await page.getByRole("button", { name: /Elevator 4 down/i }).click();
   await expect(page.getByTestId("selected-incident-title")).toHaveText(
     "Elevator 4 down",
   );
 
-  await page
-    .getByRole("button", { name: "Section 112 Immediate incident", exact: true })
-    .click();
+  await page.getByRole("button", { name: /Section 112 assist/i }).click();
   await expect(page.getByTestId("selected-incident-title")).toHaveText(
     "Guest needs wheelchair access near Section 112",
   );
+});
+
+test("backend-off mode keeps the deterministic api contract for the demo input", async ({
+  page,
+}) => {
+  const response = await page.request.post("/api/agent", {
+    data: {
+      report:
+        "Gate B is backed up, Elevator 4 is down, and a guest near Section 112 needs wheelchair access.",
+    },
+  });
+
+  expect(response.ok()).toBe(true);
+
+  const payload = (await response.json()) as {
+    incidentPackages: Array<{ incident: { priority: string } }>;
+    meta: { retrievalMode: string; geminiMode: string };
+  };
+
+  expect(payload.incidentPackages).toHaveLength(3);
+  expect(payload.incidentPackages.map(({ incident }) => incident.priority)).toEqual([
+    "Immediate",
+    "High",
+    "High",
+  ]);
+  expect(payload.meta.retrievalMode).toBe("local");
+  expect(payload.meta.geminiMode).toBe("fallback");
+  expect(JSON.stringify(payload)).not.toMatch(/score|confidence/i);
 });

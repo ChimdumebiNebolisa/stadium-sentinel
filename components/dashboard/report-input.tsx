@@ -36,7 +36,7 @@ export function ReportInput({
         className="h-40 w-full rounded-md border border-white/10 bg-[#101418] px-4 py-3 text-sm leading-7 text-slate-100 placeholder:text-slate-500"
       />
       <p className="mt-3 text-xs leading-5 text-slate-500">
-        The board will re-sort incidents, refresh map markers, and reset the approval log to match the latest report.
+        The queue, workspace, and utility drawer will refresh to match the latest report.
       </p>
     </section>
   );

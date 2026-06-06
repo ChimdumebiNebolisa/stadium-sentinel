@@ -1,12 +1,11 @@
 # Stadium Sentinel
 
-Priority-based Next.js soccer stadium command-center app for live stadium operations.
+Stadium Sentinel is a Next.js incident operations command center for live soccer stadium response workflows.
 
 ## Commands
 
 ```bash
 npm run dev
-npm run lint
 npm run build
 npm test
 npm run test:e2e
@@ -18,47 +17,69 @@ npm run test:e2e
 Gate B is backed up, Elevator 4 is down, and a guest near Section 112 needs wheelchair access.
 ```
 
+## Product Direction
+
+- Stadium Sentinel is a soccer stadium incident operations product.
+- The primary desktop layout is a 2-section command center:
+  - left dispatch queue
+  - right active incident workspace
+  - bottom utility drawer
+- The main value is operational response workflow, not venue visualization.
+- The product is not a map product, seat-map product, ticketing product, or CRM-style admin dashboard.
+
 ## Current Scope
 
 - Deterministic parsing into exactly three incidents
 - Scoreless priority-based incident queue
-- Custom inline soccer-stadium operational schematic with seeded markers
+- Active incident workspace with response checklist, team assignment, timeline summary, and evidence feed
+- Drawer-based supporting artifacts: sourced evidence, staff update, full timeline, and report workspace
 - Seeded operational evidence spanning policies, runbooks, historical incidents, locations, and staff response rules
-- Recommended actions and staff update draft
 - Approval-driven timeline entries
 - Post-event report preview
 
-## Venue Direction
+## Binding Constraints
 
-- Stadium Sentinel models a soccer or football stadium command center, not a generic arena dashboard.
-- The venue topology uses four operational layers: Perimeter, Concourse, Bowl or Stands, and Restricted.
-- The map is a custom inline SVG operational schematic. No full seat-map package or seat-level interaction is part of this project.
-- Ticketing, seat selection, seating-chart editing, and seat-map libraries are out of scope.
-- The UI remains scoreless and category-based: Immediate, High, Moderate, Monitor.
-
-## Shot 1 Status
-
-- The app now uses a code-based Gemini + Elastic retrieval path for the working demo.
-- The Elastic Agent Builder MCP endpoint is configured and was verified locally outside the app path.
-- Google low-code Agent Designer direct MCP connection remains blocked because authenticated MCP servers are not supported there.
-- The UI remains scoreless and category-based: Immediate, High, Moderate, Monitor.
+- No full seat-map package
+- No seat-map libraries
+- No seat selection
+- No ticketing UI or ticket purchase flows
+- No seat chart editor
+- No numeric score, confidence score, or severity score UI
 
 ## Working Retrieval Path
 
 - `POST /api/agent` runs the code-based orchestration path.
-- The orchestrator keeps the deterministic three-incident split for the demo report.
-- Evidence retrieval prefers live Elastic search when the environment is configured and the index contains the seeded operational documents.
-- If Elastic is unavailable or the index is empty, the app falls back to seeded local retrieval so tests and the demo flow still work without cloud credentials.
-- Gemini refinement is optional. If `GEMINI_API_KEY` is present, the app can refine action wording and report wording through a code-based Gemini call. If not, the app uses deterministic local generation.
+- The orchestrator always parses and builds the deterministic baseline first.
+- If `AGENT_BACKEND_ENABLED=true`, the backend retrieves context from Elastic, calls Gemini on Vertex AI, validates the strict JSON response, and applies only validated enrichments.
+- If Elastic is unavailable or sparse, the backend merges in local context from the seeded data.
+- If Gemini or validation fails, the app falls back to the deterministic local response so the demo and tests still run.
+- If `AGENT_BACKEND_ENABLED=false`, the current mock-first behavior remains unchanged.
 
-## Elastic Notes
+## Environment
 
-- Elastic-backed retrieval in the app currently uses Elasticsearch search APIs directly.
-- Elastic MCP-backed retrieval is configured and verified locally as an endpoint capability, but the app does not call the MCP endpoint directly in this pass.
-- The low-code Google Agent Designer MCP connection is not complete and should not be described as working.
+Set these server-side only:
 
-## Indexing Seed Data
+- `AGENT_BACKEND_ENABLED`
+- `ELASTICSEARCH_URL`
+- `ELASTICSEARCH_API_KEY`
+- `ELASTICSEARCH_PLAYBOOKS_INDEX`
+- `ELASTICSEARCH_LOCATIONS_INDEX`
+- `ELASTICSEARCH_INCIDENT_EXAMPLES_INDEX`
+- `ELASTICSEARCH_EVIDENCE_INDEX`
+- `GOOGLE_CLOUD_PROJECT`
+- `GOOGLE_CLOUD_LOCATION`
+- `VERTEX_MODEL`
+- `GOOGLE_APPLICATION_CREDENTIALS`
 
-- Seeded operational documents live in `data/operational-knowledge.json`.
+Compatibility aliases still work for now:
+
+- `ELASTIC_API_KEY`
+- `GEMINI_MODEL`
+
+Do not expose any of these to the client. For deployed environments, move secrets to GCP Secret Manager instead of committing them to the repo.
+
+## Seed Data
+
+- Deterministic local operational documents live in `data/operational-knowledge.json`.
+- Elastic seed sets live in `data/elastic/`.
 - The indexing script is `npm run index:elastic`.
-- The current read-only Elastic API key can search but cannot create mappings or bulk index documents, so live indexing requires a write-capable Elastic key or a manual Kibana indexing step.

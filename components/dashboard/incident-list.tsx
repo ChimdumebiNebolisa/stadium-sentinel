@@ -13,14 +13,17 @@ export function IncidentList({
   onSelect,
 }: IncidentListProps) {
   return (
-    <section className="ops-panel flex h-full min-h-0 flex-col">
-      <div className="mb-3 flex items-center justify-between gap-3 border-b border-white/8 pb-3">
+    <section
+      className="ops-panel flex h-full min-h-0 flex-col"
+      data-testid="dispatch-queue"
+    >
+      <div className="mb-4 flex items-center justify-between gap-3 border-b border-white/8 pb-4">
         <h2 className="ops-heading">Dispatch queue</h2>
-        <span className="inline-flex h-7 min-w-7 items-center justify-center rounded-full bg-[#1a232c] px-2 text-xs font-semibold text-slate-300">
+        <span className="inline-flex h-9 min-w-9 items-center justify-center rounded-full bg-[#162231] px-2 text-sm font-semibold text-slate-200">
           {incidentPackages.length}
         </span>
       </div>
-      <div className="queue-scroll min-h-0 flex-1 space-y-2 overflow-y-auto pr-0.5">
+      <div className="queue-scroll min-h-0 flex-1 space-y-3 overflow-y-auto pr-0.5">
         {incidentPackages.map((incidentPackage, index) => (
           <IncidentCard
             key={incidentPackage.incident.id}

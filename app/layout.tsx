@@ -16,7 +16,7 @@ const plexMono = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
   title: "Stadium Sentinel",
-  description: "Mock-first live event operations command center for stadium staff.",
+  description: "Incident operations command center for live soccer stadium response workflows.",
 };
 
 export default function RootLayout({
