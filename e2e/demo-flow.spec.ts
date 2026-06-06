@@ -6,12 +6,18 @@ async function openWorkspace(
 ) {
   const tab = page
     .getByRole("tablist", { name: "Workspace panels" })
-    .getByRole("tab", { name: panel, exact: true });
+    .getByRole("tab", { name: panel, exact: true })
+    .first();
   const isSelected = await tab.getAttribute("aria-selected");
 
   if (isSelected !== "true") {
     await tab.click();
   }
+
+  await expect(page.getByTestId("utility-drawer")).toHaveAttribute(
+    "data-state",
+    "expanded",
+  );
 
   const panelTarget =
     panel === "Evidence"
@@ -26,7 +32,7 @@ async function openWorkspace(
 test("demo report renders the command-center shell and preserves the response workflow", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/command");
 
   await expect(page.getByTestId("dispatch-queue")).toBeVisible();
   await expect(page.getByTestId("active-incident-workspace")).toBeVisible();
@@ -95,7 +101,7 @@ test("demo report renders the command-center shell and preserves the response wo
 test("dispatch queue selection switches the active incident workspace", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/command");
 
   await page.getByRole("button", { name: /Gate B backed up/i }).click();
   await expect(page.getByTestId("selected-incident-title")).toHaveText(
@@ -113,6 +119,25 @@ test("dispatch queue selection switches the active incident workspace", async ({
   );
 });
 
+test("bottom drawer expands upward from the collapsed handle", async ({ page }) => {
+  await page.goto("/command");
+
+  await expect(page.getByTestId("utility-drawer")).toHaveAttribute(
+    "data-state",
+    "collapsed",
+  );
+  await expect(page.getByTestId("incident-drawer-handle")).toBeVisible();
+  await expect(page.getByText("Pull up incident files")).toBeVisible();
+
+  await page.getByTestId("incident-drawer-handle").click();
+
+  await expect(page.getByTestId("utility-drawer")).toHaveAttribute(
+    "data-state",
+    "expanded",
+  );
+  await expect(page.getByTestId("evidence-panel")).toBeVisible();
+});
+
 test("backend-off mode keeps the deterministic api contract for the demo input", async ({
   page,
 }) => {
@@ -126,11 +151,16 @@ test("backend-off mode keeps the deterministic api contract for the demo input",
   expect(response.ok()).toBe(true);
 
   const payload = (await response.json()) as {
-    incidentPackages: Array<{ incident: { priority: string } }>;
+    incidentPackages: Array<{ incident: { id: string; priority: string } }>;
     meta: { retrievalMode: string; geminiMode: string };
   };
 
   expect(payload.incidentPackages).toHaveLength(3);
+  expect(payload.incidentPackages.map(({ incident }) => incident.id)).toEqual([
+    "incident-section-112",
+    "incident-elevator-4",
+    "incident-gate-b",
+  ]);
   expect(payload.incidentPackages.map(({ incident }) => incident.priority)).toEqual([
     "Immediate",
     "High",

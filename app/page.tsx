@@ -1,5 +1,5 @@
-import { CommandCenter } from "@/components/dashboard/command-center";
+import { LandingPage } from "@/components/landing/landing-page";
 
 export default function Home() {
-  return <CommandCenter />;
+  return <LandingPage />;
 }

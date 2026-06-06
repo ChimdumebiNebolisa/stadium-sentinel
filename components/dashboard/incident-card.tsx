@@ -45,6 +45,7 @@ export function IncidentCard({
       type="button"
       onClick={onSelect}
       data-testid="incident-card"
+      data-incident-id={incident.id}
       className={`w-full rounded-xl border px-4 py-5 text-left transition-colors ${
         isSelected
           ? `${selectedBorder} bg-[#101a25]`

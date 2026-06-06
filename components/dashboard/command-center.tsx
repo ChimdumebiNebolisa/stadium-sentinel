@@ -5,7 +5,9 @@ import { useState } from "react";
 import { ActiveIncidentWorkspace } from "@/components/dashboard/active-incident-workspace";
 import { CommandHeader } from "@/components/dashboard/command-header";
 import { EvidencePanel } from "@/components/dashboard/evidence-panel";
+import { IncidentDrawer } from "@/components/dashboard/incident-drawer";
 import { IncidentList } from "@/components/dashboard/incident-list";
+import { IntakeContextBar } from "@/components/dashboard/intake-context-bar";
 import { PostEventReportPanel } from "@/components/dashboard/post-event-report-panel";
 import { ReportInput } from "@/components/dashboard/report-input";
 import { StaffUpdatePanel } from "@/components/dashboard/staff-update-panel";
@@ -164,12 +166,6 @@ export function CommandCenter() {
   }
 
   const topPriority = incidentPackages[0]?.incident.priority ?? "Monitor";
-  const workspaceTabs: Array<{ id: WorkspaceView; label: string; inputId: string }> = [
-    { id: "evidence", label: "Evidence", inputId: "workspace-evidence" },
-    { id: "staff", label: "Staff Update", inputId: "workspace-staff" },
-    { id: "timeline", label: "Timeline", inputId: "workspace-timeline" },
-    { id: "report", label: "Report", inputId: "workspace-report" },
-  ];
   const latestEntry = selectedIncidentPackage
     ? [...timeline]
         .reverse()
@@ -181,7 +177,11 @@ export function CommandCenter() {
   );
 
   function openWorkspace(view: WorkspaceView) {
-    setActiveWorkspace((current) => (current === view ? null : view));
+    setActiveWorkspace(view);
+  }
+
+  function toggleExpanded() {
+    setActiveWorkspace((current) => (current ? null : "evidence"));
   }
 
   return (
@@ -191,6 +191,8 @@ export function CommandCenter() {
           incidentCount={incidentPackages.length}
           topPriority={topPriority}
         />
+
+        <IntakeContextBar />
 
         <section className="board-grid">
           <div className="board-column min-h-0">
@@ -222,53 +224,32 @@ export function CommandCenter() {
           </div>
         </section>
 
-        <section
-          className="utility-drawer"
-          data-state={activeWorkspace ? "open" : "closed"}
-          data-testid="utility-drawer"
-        >
-          <div className="utility-drawer-body min-h-0 overflow-hidden px-4 py-3">
-            <div
-              id="workspace-panel-evidence"
-              data-state={activeWorkspace === "evidence" ? "open" : "closed"}
-              className="utility-drawer-panel h-full overflow-y-auto"
-            >
-              {selectedIncidentPackage ? (
-                <EvidencePanel incidentPackage={selectedIncidentPackage} />
-              ) : (
-                <div className="text-sm text-slate-400">
-                  Evidence appears when an incident is selected.
-                </div>
-              )}
-            </div>
-
-            <div
-              id="workspace-panel-staff"
-              data-state={activeWorkspace === "staff" ? "open" : "closed"}
-              className="utility-drawer-panel h-full overflow-y-auto"
-            >
-              {selectedIncidentPackage ? (
-                <StaffUpdatePanel staffUpdate={selectedIncidentPackage.staffUpdate} />
-              ) : (
-                <div className="text-sm text-slate-400">
-                  Staff update appears when an incident is selected.
-                </div>
-              )}
-            </div>
-
-            <div
-              id="workspace-panel-timeline"
-              data-state={activeWorkspace === "timeline" ? "open" : "closed"}
-              className="utility-drawer-panel h-full overflow-y-auto"
-            >
-              <TimelinePanel timeline={timeline} />
-            </div>
-
-            <div
-              id="workspace-panel-report"
-              data-state={activeWorkspace === "report" ? "open" : "closed"}
-              className="utility-drawer-grid h-full gap-4 overflow-y-auto xl:grid-cols-[24rem_minmax(0,1fr)]"
-            >
+        <IncidentDrawer
+          activeWorkspace={activeWorkspace}
+          latestSummary={latestSummary}
+          onOpenWorkspace={openWorkspace}
+          onToggleExpanded={toggleExpanded}
+          evidencePanel={
+            selectedIncidentPackage ? (
+              <EvidencePanel incidentPackage={selectedIncidentPackage} />
+            ) : (
+              <div className="text-sm text-slate-400">
+                Evidence appears when an incident is selected.
+              </div>
+            )
+          }
+          staffPanel={
+            selectedIncidentPackage ? (
+              <StaffUpdatePanel staffUpdate={selectedIncidentPackage.staffUpdate} />
+            ) : (
+              <div className="text-sm text-slate-400">
+                Staff update appears when an incident is selected.
+              </div>
+            )
+          }
+          timelinePanel={<TimelinePanel timeline={timeline} />}
+          reportPanel={
+            <>
               <ReportInput
                 report={report}
                 isSubmitting={isSubmitting}
@@ -276,57 +257,9 @@ export function CommandCenter() {
                 onSubmit={handleSubmit}
               />
               <PostEventReportPanel reportSummary={reportSummary} />
-            </div>
-          </div>
-
-          <div className="utility-drawer-bar">
-            <div
-              className="flex min-w-0 items-center gap-2"
-              aria-label="Workspace panels"
-              role="tablist"
-            >
-              {workspaceTabs.map((tab) => {
-                const isActive = activeWorkspace === tab.id;
-
-                return (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    role="tab"
-                    aria-selected={isActive}
-                    aria-controls={`workspace-panel-${tab.id}`}
-                    onClick={() => openWorkspace(tab.id)}
-                    className={`utility-tab ${
-                      isActive ? "utility-tab-active" : "utility-tab-idle"
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                );
-              })}
-            </div>
-
-            <p
-              className="utility-latest"
-              title={latestSummary}
-              data-testid="utility-latest-update"
-            >
-              {latestSummary}
-            </p>
-
-            <div className="utility-drawer-controls">
-              {activeWorkspace ? (
-                <button
-                  type="button"
-                  onClick={() => setActiveWorkspace(null)}
-                  className="rounded-md border border-white/10 px-2.5 py-1 text-xs font-medium text-slate-300 transition-colors hover:border-white/18 hover:text-white"
-                >
-                  Collapse
-                </button>
-              ) : null}
-            </div>
-          </div>
-        </section>
+            </>
+          }
+        />
       </main>
     </div>
   );
