@@ -55,6 +55,15 @@ Gate B is backed up, Elevator 4 is down, and a guest near Section 112 needs whee
 - If Gemini or validation fails, the app falls back to the deterministic local response so the demo and tests still run.
 - If `AGENT_BACKEND_ENABLED=false`, the current mock-first behavior remains unchanged.
 
+## Hackathon Alignment
+
+- Elastic is the current context, retrieval, and memory layer in the app path.
+- Elasticsearch indexes hold operational playbooks, locations, incident examples, and evidence.
+- Vertex AI / Gemini is the reasoning and enrichment layer that refines the deterministic incident packages.
+- The deterministic parser and fallback path remain the safety rail for count, ids, and recovery behavior.
+- The current implementation uses direct Elasticsearch retrieval from the app backend.
+- Elastic Agent Builder, MCP-served tools, ES|QL-backed tools, and Elastic workflows are valid future extensions for this project, but they are not implemented in the current app path and should not be described as shipped behavior.
+
 ## Environment
 
 Set these server-side only:
@@ -83,3 +92,9 @@ Do not expose any of these to the client. For deployed environments, move secret
 - Deterministic local operational documents live in `data/operational-knowledge.json`.
 - Elastic seed sets live in `data/elastic/`.
 - The indexing script is `npm run index:elastic`.
+
+## Partner Track Notes
+
+- The project is aligned with the Rapid Agent Hackathon resource framing around context retrieval, memory, MCP tools, ES|QL tools, and workflow-based extensions.
+- What is implemented now: direct Elasticsearch retrieval plus Vertex/Gemini enrichment with deterministic fallback.
+- What is not implemented now: Elastic Agent Builder in the app path, Elastic MCP server tool calls in the app path, or ES|QL-backed callable tools.
