@@ -1,0 +1,35 @@
+[
+  {
+    "id": "gate-b",
+    "label": "Gate B",
+    "aliases": ["gate b", "north entry", "entry gate b", "north gate b"],
+    "zoneLayer": "Perimeter",
+    "defaultTeams": ["Security", "Guest Services", "Traffic Operations"],
+    "operationalRisks": ["queue spillback", "screening bypass", "vehicle-pedestrian crossover"],
+    "accessibilityCritical": true,
+    "crowdFlowCritical": true,
+    "searchText": "gate b north entry perimeter security guest services queue spillback screening bypass"
+  },
+  {
+    "id": "elevator-4",
+    "label": "Elevator 4",
+    "aliases": ["elevator 4", "lift 4", "west concourse", "west elevator 4"],
+    "zoneLayer": "Concourse",
+    "defaultTeams": ["Facilities", "Guest Services", "Accessibility"],
+    "operationalRisks": ["accessible route failure", "vertical circulation loss", "guest reroute delay"],
+    "accessibilityCritical": true,
+    "crowdFlowCritical": true,
+    "searchText": "elevator 4 lift 4 concourse facilities accessibility accessible route failure reroute delay"
+  },
+  {
+    "id": "section-112",
+    "label": "Section 112",
+    "aliases": ["section 112", "sec 112", "112", "lower bowl 112"],
+    "zoneLayer": "Stands",
+    "defaultTeams": ["Guest Services", "Security", "Accessibility"],
+    "operationalRisks": ["stair obstruction", "escort delay", "localized crowd compression"],
+    "accessibilityCritical": true,
+    "crowdFlowCritical": true,
+    "searchText": "section 112 sec 112 stands guest services accessibility lower bowl escort delay crowd compression"
+  }
+]

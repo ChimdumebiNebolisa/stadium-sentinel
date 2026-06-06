@@ -1,74 +1,63 @@
-import { buildDeterministicPackage } from "@/lib/action-plan";
-import { maybeRefineIncidentPackage, maybeRefineReportSummary } from "@/lib/agent/gemini";
-import { demoScenario, locationRecords } from "@/lib/data";
-import { retrieveOperationalEvidenceWithContext } from "@/lib/evidence";
-import { parseIncidentReport } from "@/lib/incident-parser";
+import { buildDeterministicAgentState } from "@/lib/agent/deterministic";
+import { maybeGenerateAgentRefinement } from "@/lib/agent/gemini";
+import { demoScenario } from "@/lib/data";
+import { retrieveAgentContext } from "@/lib/evidence";
 import { buildPostEventReport, buildTimelineSeed } from "@/lib/report";
-import type { AgentRunResult, IncidentPackage } from "@/lib/types";
+import type { AgentRunResult } from "@/lib/types";
 
-async function buildIncidentPackages(report: string): Promise<{
-  incidentPackages: IncidentPackage[];
-  retrievalMode: "elastic" | "local";
-  geminiMode: "live" | "fallback";
-}> {
-  const incidents = parseIncidentReport(report, locationRecords);
-  const incidentPackages: IncidentPackage[] = [];
-  let retrievalMode: "elastic" | "local" = "local";
-  let geminiMode: "live" | "fallback" = "fallback";
-
-  for (const incident of incidents) {
-    const retrieval = await retrieveOperationalEvidenceWithContext({
-      incidentTitle: incident.title,
-      incidentCategory: incident.category,
-      locationName: incident.locationLabel,
-      priority: incident.priority,
-      reportText: report,
-    });
-    const deterministicPackage = buildDeterministicPackage(
-      incident,
-      retrieval.evidence,
-    );
-    const refined = await maybeRefineIncidentPackage(deterministicPackage);
-
-    if (retrieval.mode === "elastic") {
-      retrievalMode = "elastic";
-    }
-
-    if (refined.mode === "live") {
-      geminiMode = "live";
-    }
-
-    incidentPackages.push(refined.incidentPackage);
-  }
-
-  return {
-    incidentPackages,
-    retrievalMode,
-    geminiMode,
-  };
+function isAgentBackendEnabled(): boolean {
+  return process.env.AGENT_BACKEND_ENABLED === "true";
 }
 
 export async function runStadiumAgent(
   report: string = demoScenario.inputReport,
 ): Promise<AgentRunResult> {
-  const normalizedReport = report.trim() || demoScenario.inputReport;
-  const { incidentPackages, retrievalMode, geminiMode } =
-    await buildIncidentPackages(normalizedReport);
-  const timeline = buildTimelineSeed(incidentPackages);
-  const initialReportSummary = buildPostEventReport(incidentPackages, timeline);
-  const refinedReport = await maybeRefineReportSummary(
-    initialReportSummary,
-    incidentPackages,
+  const baselineState = buildDeterministicAgentState(report);
+
+  if (
+    !isAgentBackendEnabled() ||
+    baselineState.incidentPackages.length === 0
+  ) {
+    return {
+      ...baselineState,
+      meta: {
+        retrievalMode: "local",
+        geminiMode: "fallback",
+        elasticMcpMode: "unused",
+      },
+    };
+  }
+
+  const retrieval = await retrieveAgentContext({
+    report: baselineState.report,
+    incidents: baselineState.incidentPackages.map(({ incident }) => ({
+      id: incident.id,
+      title: incident.title,
+      category: incident.category,
+      locationId: incident.locationId,
+      locationLabel: incident.locationLabel,
+      priority: incident.priority,
+    })),
+  });
+  const refinement = await maybeGenerateAgentRefinement({
+    incidentPackages: baselineState.incidentPackages,
+    report: baselineState.report,
+    retrieval,
+  });
+  const timeline = buildTimelineSeed(refinement.incidentPackages);
+  const reportSummary = buildPostEventReport(
+    refinement.incidentPackages,
+    timeline,
   );
 
   return {
-    report: normalizedReport,
-    incidentPackages,
+    report: baselineState.report,
+    incidentPackages: refinement.incidentPackages,
     timeline,
-    reportSummary: refinedReport.reportSummary,
+    reportSummary,
     meta: {
-      retrievalMode,
-      geminiMode: refinedReport.mode === "live" ? "live" : geminiMode,
+      retrievalMode: retrieval.mode,
+      geminiMode: refinement.mode,
       elasticMcpMode: "unused",
     },
   };

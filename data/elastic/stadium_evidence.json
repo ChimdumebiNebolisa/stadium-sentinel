@@ -1,0 +1,47 @@
+[
+  {
+    "id": "evidence-gate-b-radio-1",
+    "sourceType": "radio_log",
+    "locationIds": ["gate-b"],
+    "incidentHints": ["queue-congestion", "crowd-flow"],
+    "excerpt": "Radio: Gate B queue has extended into the plaza stanchions and screening is losing pace.",
+    "body": "Operations radio noted that Gate B queue pressure was spreading into the shared plaza lane, with supervisors asking for overflow routing before congestion affected adjacent gates.",
+    "searchText": "gate b radio queue extended plaza stanchions screening losing pace overflow routing"
+  },
+  {
+    "id": "evidence-gate-b-staff-note-1",
+    "sourceType": "staff_note",
+    "locationIds": ["gate-b"],
+    "incidentHints": ["queue-congestion"],
+    "excerpt": "Staff note: overflow path can be opened on the north side without disrupting adjacent ingress.",
+    "body": "Gate supervisors documented that the north-side overflow path is ready for relief routing and lane rebalance if the crowd-flow lead authorizes the change.",
+    "searchText": "gate b staff note overflow path north side ingress lane rebalance crowd flow"
+  },
+  {
+    "id": "evidence-elevator-4-cctv-1",
+    "sourceType": "cctv_note",
+    "locationIds": ["elevator-4"],
+    "incidentHints": ["facility-outage", "accessibility"],
+    "excerpt": "CCTV note: guests are pausing at Elevator 4 while staff begin redirecting toward the alternate route.",
+    "body": "Camera review shows intermittent crowding near Elevator 4 as guests reach the inoperative lift and need assistance to the alternate accessible path.",
+    "searchText": "elevator 4 cctv guests pausing alternate route inaccessible lift redirecting"
+  },
+  {
+    "id": "evidence-elevator-4-radio-1",
+    "sourceType": "radio_log",
+    "locationIds": ["elevator-4"],
+    "incidentHints": ["facility-outage"],
+    "excerpt": "Radio: Facilities requested immediate access to Elevator 4 and an accessibility handoff on the detour route.",
+    "body": "Facilities and guest services coordinated a detour handoff over radio so impacted guests would not lose route continuity while the elevator was diagnosed.",
+    "searchText": "elevator 4 facilities radio immediate access detour route accessibility handoff"
+  },
+  {
+    "id": "evidence-section-112-guest-report-1",
+    "sourceType": "guest_report",
+    "locationIds": ["section-112"],
+    "incidentHints": ["accessibility-assist", "guest-assistance"],
+    "excerpt": "Guest report: a wheelchair assist is needed near Section 112 and the host is collecting details now.",
+    "body": "The host confirmed the guest location near Section 112 and requested a mobility assist team with an accessible escort through the lower-bowl path.",
+    "searchText": "section 112 guest report wheelchair assist host collecting details lower bowl accessible escort"
+  }
+]

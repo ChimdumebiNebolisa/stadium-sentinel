@@ -1,4 +1,7 @@
 import historicalIncidents from "@/data/historical-incidents.json";
+import stadiumEvidence from "@/data/elastic/stadium_evidence.json";
+import stadiumIncidentExamples from "@/data/elastic/stadium_incident_examples.json";
+import stadiumPlaybooks from "@/data/elastic/stadium_playbooks.json";
 import locations from "@/data/locations.json";
 import policies from "@/data/policies.json";
 import runbooks from "@/data/runbooks.json";
@@ -13,6 +16,9 @@ import type {
   PolicyRecord,
   RunbookRecord,
   ScenarioRecord,
+  StadiumEvidenceMemoryDocument,
+  StadiumIncidentExampleDocument,
+  StadiumPlaybookDocument,
   StaffResponseRuleRecord,
   StaffRoleRecord,
 } from "@/lib/types";
@@ -27,6 +33,12 @@ export const staffResponseRuleRecords =
 export const operationalKnowledgeRecords =
   operationalKnowledge as OperationalKnowledgeDocument[];
 export const scenarioRecords = scenarios as ScenarioRecord[];
+export const stadiumPlaybookRecords =
+  stadiumPlaybooks as StadiumPlaybookDocument[];
+export const stadiumIncidentExampleRecords =
+  stadiumIncidentExamples as StadiumIncidentExampleDocument[];
+export const stadiumEvidenceRecords =
+  stadiumEvidence as StadiumEvidenceMemoryDocument[];
 
 export const demoScenario = scenarioRecords[0];
 

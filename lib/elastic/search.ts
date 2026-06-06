@@ -3,11 +3,62 @@ import {
   type IndexedOperationalDocument,
 } from "@/lib/elastic/documents";
 import { elasticFetch, getElasticConfig } from "@/lib/elastic/client";
-import type { EvidenceResult, RetrievalInput } from "@/lib/types";
+import {
+  locationRecords,
+  stadiumEvidenceRecords,
+  stadiumIncidentExampleRecords,
+  stadiumPlaybookRecords,
+} from "@/lib/data";
+import type {
+  AgentContextSearchInput,
+  AgentRetrievalBundle,
+  EvidenceResult,
+  IncidentCategory,
+  RetrievalInput,
+  StadiumEvidenceMemoryDocument,
+  StadiumIncidentExampleDocument,
+  StadiumLocationMemoryDocument,
+  StadiumPlaybookDocument,
+} from "@/lib/types";
 
-type ElasticSearchHit = {
-  _source?: IndexedOperationalDocument;
+type ElasticSearchHit<TDocument> = {
+  _source?: TDocument;
 };
+
+type ElasticIndexSearchOptions = {
+  fields: string[];
+  filters?: Array<Record<string, string | string[]>>;
+  indexName: string;
+  size: number;
+};
+
+function buildLocationMemoryDocuments(): StadiumLocationMemoryDocument[] {
+  return locationRecords.map((location) => ({
+    id: location.id,
+    label: location.name,
+    aliases: location.aliases,
+    zoneLayer:
+      location.zoneLayer === "bowl"
+        ? "Stands"
+        : location.zoneLayer.charAt(0).toUpperCase() + location.zoneLayer.slice(1),
+    defaultTeams: location.defaultTeams,
+    operationalRisks: location.operationalRisks,
+    accessibilityCritical: location.accessibilityCritical,
+    crowdFlowCritical: location.crowdFlowCritical,
+    searchText: [
+      location.name,
+      location.displayName,
+      location.description,
+      location.aliases.join(" "),
+      location.defaultTeams.join(" "),
+      location.operationalRisks.join(" "),
+    ]
+      .filter(Boolean)
+      .join(" "),
+  }));
+}
+
+const localLocationMemoryDocuments = buildLocationMemoryDocuments();
 
 function toEvidenceResult(document: IndexedOperationalDocument): EvidenceResult {
   return {
@@ -19,55 +70,57 @@ function toEvidenceResult(document: IndexedOperationalDocument): EvidenceResult 
   };
 }
 
-export async function searchElasticOperationalEvidence(
-  input: RetrievalInput,
-): Promise<EvidenceResult[]> {
-  const config = getElasticConfig();
+function toIncidentExampleEvidence(
+  document: StadiumIncidentExampleDocument,
+): EvidenceResult {
+  return {
+    title: document.expectedTitles[0] || document.id,
+    sourceType: "historical_incident",
+    excerpt: document.messyReport,
+    rationale: `Expected actions: ${document.expectedActions.join(" | ")}`,
+    sourceId: document.id,
+  };
+}
 
-  if (!config) {
-    throw new Error("Elastic configuration is incomplete.");
-  }
+function toPlaybookEvidence(document: StadiumPlaybookDocument): EvidenceResult {
+  return {
+    title: document.title,
+    sourceType: "runbook",
+    excerpt: document.excerpt,
+    rationale: document.body,
+    sourceId: document.id,
+  };
+}
 
-  const queryText = [
-    input.incidentTitle,
-    input.incidentCategory,
-    input.locationName,
-    input.priority,
-    input.reportText,
-  ]
-    .filter(Boolean)
-    .join(" ");
+function toLocationEvidence(document: StadiumLocationMemoryDocument): EvidenceResult {
+  return {
+    title: document.label,
+    sourceType: "location",
+    excerpt: document.operationalRisks.join(", "),
+    rationale: `${document.zoneLayer} coverage with ${document.defaultTeams.join(", ")} defaults.`,
+    sourceId: document.id,
+  };
+}
 
-  const response = await elasticFetch(`/${config.indexName}/_search`, {
+async function searchElasticIndex<TDocument>(
+  queryText: string,
+  options: ElasticIndexSearchOptions,
+): Promise<TDocument[]> {
+  const response = await elasticFetch(`/${options.indexName}/_search`, {
     method: "POST",
     body: JSON.stringify({
-      size: 5,
-      _source: [
-        "id",
-        "sourceType",
-        "title",
-        "excerpt",
-        "body",
-        "rationale",
-        "incidentTypes",
-        "categories",
-        "locationIds",
-        "locationNames",
-        "priorityLevels",
-        "terms",
-      ],
+      size: options.size,
+      _source: true,
       query: {
         bool: {
           should: [
             {
               multi_match: {
                 query: queryText,
-                fields: ["title^4", "excerpt^3", "body^2", "content^4", "terms^3"],
+                fields: options.fields,
               },
             },
-            { term: { locationNames: input.locationName } },
-            { term: { categories: input.incidentCategory } },
-            { term: { priorityLevels: input.priority } },
+            ...(options.filters ?? []).map((filter) => ({ term: filter })),
           ],
           minimum_should_match: 1,
         },
@@ -80,28 +133,191 @@ export async function searchElasticOperationalEvidence(
   }
 
   const payload = (await response.json()) as {
-    hits?: { hits?: ElasticSearchHit[] };
+    hits?: { hits?: Array<ElasticSearchHit<TDocument>> };
   };
 
   return (payload.hits?.hits ?? [])
     .map((hit) => hit._source)
-    .filter((document): document is IndexedOperationalDocument => Boolean(document))
-    .map(toEvidenceResult);
+    .filter((document): document is TDocument => Boolean(document));
 }
 
-export function getLocalOperationalEvidence(input: RetrievalInput): EvidenceResult[] {
-  const queryTerms = normalizeTerms([
+function getQueryTermsFromIncidentInput(input: RetrievalInput): string[] {
+  return normalizeTerms([
     input.incidentTitle,
     input.incidentCategory,
     input.locationName,
     input.priority,
     input.reportText,
   ]);
+}
+
+function getQueryTermsFromAgentInput(input: AgentContextSearchInput): string[] {
+  return normalizeTerms([
+    input.report,
+    ...input.incidents.flatMap((incident) => [
+      incident.id,
+      incident.title,
+      incident.category,
+      incident.locationId,
+      incident.locationLabel,
+      incident.priority,
+    ]),
+  ]);
+}
+
+function buildAgentQueryText(input: AgentContextSearchInput): string {
+  return [
+    input.report,
+    ...input.incidents.flatMap((incident) => [
+      incident.title,
+      incident.category,
+      incident.locationId,
+      incident.locationLabel,
+      incident.priority,
+    ]),
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
+function dedupeById<TDocument extends { id: string }>(
+  documents: TDocument[],
+): TDocument[] {
+  const seen = new Set<string>();
+
+  return documents.filter((document) => {
+    if (seen.has(document.id)) {
+      return false;
+    }
+
+    seen.add(document.id);
+    return true;
+  });
+}
+
+function rankLocalDocuments<TDocument extends { id: string; searchText: string }>(
+  documents: TDocument[],
+  terms: string[],
+  size: number,
+): TDocument[] {
+  return documents
+    .map((document) => ({
+      document,
+      score: scoreText(document.searchText, terms),
+    }))
+    .filter(({ score }) => score > 0)
+    .sort((left, right) => {
+      if (right.score !== left.score) {
+        return right.score - left.score;
+      }
+
+      return left.document.id.localeCompare(right.document.id);
+    })
+    .slice(0, size)
+    .map(({ document }) => document);
+}
+
+export async function searchElasticAgentContext(
+  input: AgentContextSearchInput,
+): Promise<AgentRetrievalBundle> {
+  const config = getElasticConfig();
+
+  if (!config) {
+    throw new Error("Elastic configuration is incomplete.");
+  }
+
+  const queryText = buildAgentQueryText(input);
+  const locationIds = input.incidents.map((incident) => incident.locationId);
+  const locationLabels = input.incidents.map((incident) => incident.locationLabel);
+
+  const [playbooks, locations, incidentExamples, evidence] = await Promise.all([
+    searchElasticIndex<StadiumPlaybookDocument>(queryText, {
+      fields: ["title^4", "excerpt^3", "body^2", "searchText^4", "teams^2", "riskTags^2"],
+      filters: locationIds.map((locationId) => ({ locationIds: locationId })),
+      indexName: config.playbooksIndex,
+      size: 4,
+    }),
+    searchElasticIndex<StadiumLocationMemoryDocument>(queryText, {
+      fields: ["label^4", "aliases^4", "searchText^3", "defaultTeams^2", "operationalRisks^2"],
+      filters: [
+        ...locationIds.map((locationId) => ({ id: locationId })),
+        ...locationLabels.map((label) => ({ label })),
+      ],
+      indexName: config.locationsIndex,
+      size: 4,
+    }),
+    searchElasticIndex<StadiumIncidentExampleDocument>(queryText, {
+      fields: ["messyReport^4", "expectedTitles^3", "expectedActions^2", "searchText^4"],
+      indexName: config.incidentExamplesIndex,
+      size: 3,
+    }),
+    searchElasticIndex<StadiumEvidenceMemoryDocument>(queryText, {
+      fields: ["excerpt^3", "body^2", "incidentHints^2", "searchText^4"],
+      filters: locationIds.map((locationId) => ({ locationIds: locationId })),
+      indexName: config.evidenceIndex,
+      size: 5,
+    }),
+  ]);
+
+  return {
+    playbooks: dedupeById(playbooks),
+    locations: dedupeById(locations),
+    incidentExamples: dedupeById(incidentExamples),
+    evidence: dedupeById(evidence),
+  };
+}
+
+export function getLocalAgentContext(
+  input: AgentContextSearchInput,
+): AgentRetrievalBundle {
+  const terms = getQueryTermsFromAgentInput(input);
+
+  return {
+    playbooks: dedupeById(rankLocalDocuments(stadiumPlaybookRecords, terms, 4)),
+    locations: dedupeById(rankLocalDocuments(localLocationMemoryDocuments, terms, 4)),
+    incidentExamples: dedupeById(
+      rankLocalDocuments(stadiumIncidentExampleRecords, terms, 3),
+    ),
+    evidence: dedupeById(rankLocalDocuments(stadiumEvidenceRecords, terms, 5)),
+  };
+}
+
+export async function searchElasticOperationalEvidence(
+  input: RetrievalInput,
+): Promise<EvidenceResult[]> {
+  const matchedLocation =
+    locationRecords.find((location) => location.name === input.locationName) ??
+    locationRecords.find((location) =>
+      location.aliases.some((alias) => alias.toLowerCase() === input.locationName.toLowerCase()),
+    );
+  const bundle = await searchElasticAgentContext({
+    report: input.reportText,
+    incidents: [
+      {
+        id: input.incidentTitle,
+        title: input.incidentTitle,
+        category: input.incidentCategory as IncidentCategory,
+        locationId: matchedLocation?.id ?? input.locationName,
+        locationLabel: input.locationName,
+        priority: input.priority,
+      },
+    ],
+  });
+
+  return dedupeEvidence([
+    ...bundle.playbooks.map(toPlaybookEvidence),
+    ...bundle.locations.map(toLocationEvidence),
+    ...bundle.incidentExamples.map(toIncidentExampleEvidence),
+  ]).slice(0, 5);
+}
+
+export function getLocalOperationalEvidence(input: RetrievalInput): EvidenceResult[] {
+  const queryTerms = getQueryTermsFromIncidentInput(input);
 
   const rankedDocuments = getOperationalKnowledgeDocuments()
     .map((document) => ({
       document,
-      matchCount: scoreDocument(document, queryTerms),
+      matchCount: scoreOperationalDocument(document, queryTerms),
     }))
     .filter(({ matchCount }) => matchCount > 0)
     .sort((left, right) => {
@@ -141,6 +357,19 @@ export function getLocalOperationalEvidence(input: RetrievalInput): EvidenceResu
   return selected.map(toEvidenceResult);
 }
 
+function dedupeEvidence(evidence: EvidenceResult[]): EvidenceResult[] {
+  const seen = new Set<string>();
+
+  return evidence.filter((item) => {
+    if (seen.has(item.sourceId)) {
+      return false;
+    }
+
+    seen.add(item.sourceId);
+    return true;
+  });
+}
+
 function normalizeTerms(parts: string[]): string[] {
   return parts
     .join(" ")
@@ -150,7 +379,15 @@ function normalizeTerms(parts: string[]): string[] {
     .filter((term) => term.length > 2);
 }
 
-function scoreDocument(
+function scoreText(searchText: string, terms: string[]): number {
+  const haystack = searchText.toLowerCase();
+
+  return terms.reduce((score, term) => {
+    return haystack.includes(term) ? score + 1 : score;
+  }, 0);
+}
+
+function scoreOperationalDocument(
   document: IndexedOperationalDocument,
   terms: string[],
 ): number {

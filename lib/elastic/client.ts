@@ -1,8 +1,10 @@
 type ElasticConfig = {
   apiKey: string;
-  cloudId: string;
-  indexName: string;
+  evidenceIndex: string;
+  locationsIndex: string;
+  playbooksIndex: string;
   url: string;
+  incidentExamplesIndex: string;
 };
 
 function getEnvValue(name: string): string {
@@ -11,19 +13,28 @@ function getEnvValue(name: string): string {
 
 export function getElasticConfig(): ElasticConfig | null {
   const url = getEnvValue("ELASTICSEARCH_URL");
-  const apiKey = getEnvValue("ELASTIC_API_KEY");
-  const cloudId = getEnvValue("ELASTIC_CLOUD_ID");
-  const indexName =
-    getEnvValue("ELASTIC_INDEX_NAME") || "stadium-sentinel-knowledge";
+  const apiKey =
+    getEnvValue("ELASTICSEARCH_API_KEY") || getEnvValue("ELASTIC_API_KEY");
+  const playbooksIndex =
+    getEnvValue("ELASTICSEARCH_PLAYBOOKS_INDEX") || "stadium_playbooks";
+  const locationsIndex =
+    getEnvValue("ELASTICSEARCH_LOCATIONS_INDEX") || "stadium_locations";
+  const incidentExamplesIndex =
+    getEnvValue("ELASTICSEARCH_INCIDENT_EXAMPLES_INDEX") ||
+    "stadium_incident_examples";
+  const evidenceIndex =
+    getEnvValue("ELASTICSEARCH_EVIDENCE_INDEX") || "stadium_evidence";
 
-  if (!url || !apiKey || !indexName) {
+  if (!url || !apiKey) {
     return null;
   }
 
   return {
     apiKey,
-    cloudId,
-    indexName,
+    evidenceIndex,
+    incidentExamplesIndex,
+    locationsIndex,
+    playbooksIndex,
     url: url.replace(/\/+$/, ""),
   };
 }

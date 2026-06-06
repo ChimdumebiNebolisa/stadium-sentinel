@@ -198,3 +198,100 @@ export type AgentRunResult = {
   reportSummary: ReportSummary;
   meta: AgentRunMeta;
 };
+
+export type StadiumPlaybookDocument = {
+  id: string;
+  title: string;
+  procedureType: string;
+  incidentTypes: IncidentType[];
+  locationIds: string[];
+  teams: string[];
+  riskTags: string[];
+  excerpt: string;
+  body: string;
+  searchText: string;
+};
+
+export type StadiumLocationMemoryDocument = {
+  id: string;
+  label: string;
+  aliases: string[];
+  zoneLayer: string;
+  defaultTeams: string[];
+  operationalRisks: string[];
+  accessibilityCritical: boolean;
+  crowdFlowCritical: boolean;
+  searchText: string;
+};
+
+export type StadiumIncidentExampleDocument = {
+  id: string;
+  messyReport: string;
+  expectedIncidentIds: string[];
+  expectedSeverities: PriorityLevel[];
+  expectedActions: string[];
+  expectedTitles: string[];
+  searchText: string;
+};
+
+export type StadiumEvidenceMemoryDocument = {
+  id: string;
+  sourceType: string;
+  locationIds: string[];
+  incidentHints: string[];
+  excerpt: string;
+  body: string;
+  searchText: string;
+};
+
+export type AgentContextSearchInput = {
+  report: string;
+  incidents: Array<
+    Pick<
+      Incident,
+      "id" | "title" | "category" | "locationId" | "locationLabel" | "priority"
+    >
+  >;
+};
+
+export type AgentRetrievalBundle = {
+  playbooks: StadiumPlaybookDocument[];
+  locations: StadiumLocationMemoryDocument[];
+  incidentExamples: StadiumIncidentExampleDocument[];
+  evidence: StadiumEvidenceMemoryDocument[];
+};
+
+export type AgentRetrievalResult = AgentRetrievalBundle & {
+  mode: "elastic" | "local";
+};
+
+export type AgentJsonIncident = {
+  id: string;
+  title: string;
+  queueTitle: string;
+  severity: PriorityLevel;
+  locationId: string;
+  locationLabel: string;
+  venueLayer: string;
+  team: string;
+  riskTags: string[];
+  recommendedActions: string[];
+  priorityRationale: string;
+  evidence: string[];
+};
+
+export type AgentJsonResponse = {
+  incidents: AgentJsonIncident[];
+  latestUpdate: string;
+  reportSummary: string;
+};
+
+export type ValidatedAgentIncident = AgentJsonIncident & {
+  normalizedTeam: string;
+};
+
+export type ValidatedAgentResponse = {
+  incidents: ValidatedAgentIncident[];
+  latestUpdate: string;
+  reportSummary: string;
+};

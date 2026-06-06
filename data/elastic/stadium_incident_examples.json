@@ -1,0 +1,45 @@
+[
+  {
+    "id": "example-main-demo-report",
+    "messyReport": "Gate B is backed up, Elevator 4 is down, and a guest near Section 112 needs wheelchair access.",
+    "expectedIncidentIds": ["incident-section-112", "incident-elevator-4", "incident-gate-b"],
+    "expectedSeverities": ["Immediate", "High", "High"],
+    "expectedActions": [
+      "Dispatch Guest Services to Section 112 with wheelchair support.",
+      "Send Facilities to Elevator 4 for diagnosis.",
+      "Dispatch Crowd Flow Lead to Gate B."
+    ],
+    "expectedTitles": [
+      "Guest needs wheelchair access near Section 112",
+      "Elevator 4 down",
+      "Gate B backed up"
+    ],
+    "searchText": "gate b backed up elevator 4 down section 112 wheelchair access three incident split immediate high high"
+  },
+  {
+    "id": "example-wheelchair-assist-report",
+    "messyReport": "Host at Section 112 says a guest needs wheelchair help and needs the aisle kept clear.",
+    "expectedIncidentIds": ["incident-section-112"],
+    "expectedSeverities": ["Immediate"],
+    "expectedActions": [
+      "Dispatch Guest Services to Section 112 with wheelchair support."
+    ],
+    "expectedTitles": [
+      "Guest needs wheelchair access near Section 112"
+    ],
+    "searchText": "section 112 wheelchair help guest services immediate aisle clear mobility assist"
+  },
+  {
+    "id": "example-elevator-outage-report",
+    "messyReport": "Lift 4 is offline on the west concourse and accessibility needs a reroute now.",
+    "expectedIncidentIds": ["incident-elevator-4"],
+    "expectedSeverities": ["High"],
+    "expectedActions": [
+      "Send Facilities to Elevator 4 for diagnosis."
+    ],
+    "expectedTitles": [
+      "Elevator 4 down"
+    ],
+    "searchText": "lift 4 offline west concourse accessibility reroute elevator 4 high facilities"
+  }
+]

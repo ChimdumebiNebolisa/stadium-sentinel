@@ -1,0 +1,38 @@
+[
+  {
+    "id": "playbook-gate-b-crowd-flow",
+    "title": "Gate B crowd-flow relief",
+    "procedureType": "crowd-flow-procedure",
+    "incidentTypes": ["queue-congestion"],
+    "locationIds": ["gate-b"],
+    "teams": ["Security", "Operations", "Crowd Flow Lead"],
+    "riskTags": ["Crowd-flow risk", "Ingress delay"],
+    "excerpt": "Open overflow queue routing, rebalance screening, and confirm gate supervision coverage before plaza spillback grows.",
+    "body": "When Gate B is backed up, dispatch the crowd-flow lead immediately, open the overflow path, rebalance screening lanes, and post an ingress advisory so queue pressure does not spread into shared circulation.",
+    "searchText": "gate b crowd flow queue congestion overflow queue screening delay ingress advisory gate supervisors"
+  },
+  {
+    "id": "playbook-elevator-4-accessibility",
+    "title": "Elevator 4 accessibility outage response",
+    "procedureType": "facilities-procedure",
+    "incidentTypes": ["facility-outage"],
+    "locationIds": ["elevator-4"],
+    "teams": ["Facilities", "Guest Services", "Accessibility"],
+    "riskTags": ["Accessibility critical", "Vertical access risk"],
+    "excerpt": "Dispatch Facilities, hold an alternate accessible route, and communicate the restoration ETA or outage confirmation.",
+    "body": "If Elevator 4 is down, facilities diagnose the fault while guest services holds the alternate accessible route and operations keeps the detour staffed until service returns or the outage is confirmed for the event window.",
+    "searchText": "elevator 4 outage accessible route facilities engineer restoration eta accessibility detour"
+  },
+  {
+    "id": "playbook-section-112-wheelchair",
+    "title": "Section 112 wheelchair assist dispatch",
+    "procedureType": "accessibility-procedure",
+    "incidentTypes": ["accessibility-assist"],
+    "locationIds": ["section-112"],
+    "teams": ["Guest Services", "Security", "Accessibility"],
+    "riskTags": ["Accessibility critical", "Crowd-flow risk"],
+    "excerpt": "Acknowledge immediately, dispatch mobility support, confirm the accessible path, and close the handoff over radio.",
+    "body": "For a wheelchair support request near Section 112, dispatch guest services with the correct mobility support, route through the accessible lower-bowl path, and confirm arrival and guest handoff before marking the assist in motion.",
+    "searchText": "section 112 wheelchair access guest services mobility assist accessible path handoff radio"
+  }
+]
