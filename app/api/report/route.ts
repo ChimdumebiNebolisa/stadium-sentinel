@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 
 import { runStadiumAgent } from "@/lib/agent/stadium-agent";
 import { buildPostEventReport } from "@/lib/report";
-import type { IncidentPackage, TimelineEntry } from "@/lib/types";
+import { appendIncidentMemory } from "@/lib/elastic/memory";
+import type { IncidentPackage, StadiumIncidentMemoryDocument, TimelineEntry } from "@/lib/types";
 
 function applyApprovals(
   incidentPackages: IncidentPackage[],
@@ -49,9 +50,27 @@ export async function POST(request: Request) {
   const agentState = await runStadiumAgent(report);
   const incidentPackages = applyApprovals(agentState.incidentPackages, body.approvals);
   const timeline = body.timeline ?? agentState.timeline;
+  const reportSummary = buildPostEventReport(incidentPackages, timeline);
+
+  const memoryDocs: StadiumIncidentMemoryDocument[] = incidentPackages.map((pkg) => ({
+    timestamp: new Date().toISOString(),
+    incidentId: pkg.incident.id,
+    title: pkg.incident.title,
+    locationId: pkg.incident.locationId,
+    locationLabel: pkg.incident.locationLabel,
+    team: pkg.incident.assignedRole,
+    priority: pkg.incident.priority,
+    status: pkg.incident.status,
+    summary: pkg.incident.rawText,
+    approvedActionIds: pkg.incident.approvedActionIds || [],
+    evidenceRefs: pkg.evidence.map((e) => e.sourceId),
+    source: "api_report_route",
+  }));
+
+  await appendIncidentMemory(memoryDocs);
 
   return NextResponse.json({
     meta: agentState.meta,
-    report: buildPostEventReport(incidentPackages, timeline),
+    report: reportSummary,
   });
 }

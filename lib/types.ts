@@ -295,3 +295,24 @@ export type ValidatedAgentResponse = {
   latestUpdate: string;
   reportSummary: string;
 };
+
+
+export type StadiumIncidentMemoryDocument = {
+  timestamp: string;
+  incidentId: string;
+  title: string;
+  locationId: string;
+  locationLabel: string;
+  team: string;
+  priority: string;
+  status: string;
+  summary: string;
+  approvedActionIds: string[];
+  evidenceRefs: string[];
+  source: string;
+};
+
+export type BoundedEsqlOperation = 
+  | "count_by_priority"
+  | "count_by_team"
+  | "recent_by_location";

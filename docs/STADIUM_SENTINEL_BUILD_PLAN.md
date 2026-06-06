@@ -75,21 +75,25 @@ The drawer is collapsed by default and acts as a supporting artifact surface, no
 ## Retrieval And Reasoning Alignment
 
 - Elastic is the project's current retrieval and memory layer.
-- The live Elasticsearch indexes are:
+- The live Elasticsearch indices are:
   - operational playbooks
   - locations
   - incident examples
   - evidence
+- The backend supports an append-only incident memory index named stadium_incident_memory.
 - The current app path queries Elasticsearch directly from the backend.
 - Vertex AI / Gemini is the reasoning and enrichment layer that operates on top of the deterministic baseline.
 - The deterministic parser and fallback behavior remain the safety path when Elastic or Gemini is unavailable, sparse, invalid, or misconfigured.
+- Bounded ES|QL operations are exposed by the server `/api/esql` to allow safe, validated historical insights.
 
 ## Rapid Agent Resource Positioning
 
 - The Rapid Agent hackathon resources frame Elastic around contextual retrieval, memory, MCP tools, ES|QL tools, and workflows.
-- Stadium Sentinel currently implements only the direct Elasticsearch retrieval portion of that model.
-- Elastic Agent Builder, Elastic MCP server integration, ES|QL-backed tools, and workflow tools are future extension options for this repo, not current shipped functionality.
-- Docs and submission materials should describe the present implementation accurately and should not claim that Elastic Agent Builder or MCP tooling is already wired into the app unless that work is actually added later.
+- Stadium Sentinel natively provides:
+  - Bounded memory write-back (`app/api/report/route.ts`).
+  - Pre-defined ES|QL data queries (`app/api/esql/route.ts`).
+  - JSON schemas to drop into MCP/Agent builder environments (`lib/elastic/tools.ts`).
+- Elastic Agent Builder and live MCP Server proxy routing are *not* implemented inside this repo automatically. Instead, this repo acts as the API backend that a user can map *into* Agent Builder by following the setup steps in `docs/ELASTIC_BUILDER_MCP_SETUP.md`.
 
 ## Verification
 

@@ -5,6 +5,7 @@ type ElasticConfig = {
   playbooksIndex: string;
   url: string;
   incidentExamplesIndex: string;
+  incidentMemoryIndex: string;
 };
 
 function getEnvValue(name: string): string {
@@ -24,6 +25,8 @@ export function getElasticConfig(): ElasticConfig | null {
     "stadium_incident_examples";
   const evidenceIndex =
     getEnvValue("ELASTICSEARCH_EVIDENCE_INDEX") || "stadium_evidence";
+  const incidentMemoryIndex =
+    getEnvValue("ELASTICSEARCH_INCIDENT_MEMORY_INDEX") || "stadium_incident_memory";
 
   if (!url || !apiKey) {
     return null;
@@ -33,6 +36,7 @@ export function getElasticConfig(): ElasticConfig | null {
     apiKey,
     evidenceIndex,
     incidentExamplesIndex,
+    incidentMemoryIndex,
     locationsIndex,
     playbooksIndex,
     url: url.replace(/\/+$/, ""),
