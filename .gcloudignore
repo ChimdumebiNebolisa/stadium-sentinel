@@ -1,0 +1,9 @@
+.agents/
+artifacts/
+test-results/
+.env
+.env.local
+.gcp-secret-tmp-*
+*.local
+.next/
+node_modules/
