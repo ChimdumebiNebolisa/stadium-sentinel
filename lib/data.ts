@@ -29,3 +29,7 @@ export const operationalKnowledgeRecords =
 export const scenarioRecords = scenarios as ScenarioRecord[];
 
 export const demoScenario = scenarioRecords[0];
+
+export function getLocationRecord(locationId: string): LocationRecord | undefined {
+  return locationRecords.find((location) => location.id === locationId);
+}

@@ -13,18 +13,19 @@ export function IncidentList({
   onSelect,
 }: IncidentListProps) {
   return (
-    <section className="ops-panel h-full">
-      <div className="mb-3">
-        <h2 className="ops-heading">Dispatch order</h2>
-        <p className="mt-1 text-sm leading-6 text-slate-300">
-          Immediate incidents stay at the top so staff can move from location to next action without re-sorting the queue.
-        </p>
+    <section className="ops-panel flex h-full min-h-0 flex-col">
+      <div className="mb-3 flex items-center justify-between gap-3 border-b border-white/8 pb-3">
+        <h2 className="ops-heading">Dispatch queue</h2>
+        <span className="inline-flex h-7 min-w-7 items-center justify-center rounded-full bg-[#1a232c] px-2 text-xs font-semibold text-slate-300">
+          {incidentPackages.length}
+        </span>
       </div>
-      <div className="space-y-2.5">
-        {incidentPackages.map((incidentPackage) => (
+      <div className="queue-scroll min-h-0 flex-1 space-y-2 overflow-y-auto pr-0.5">
+        {incidentPackages.map((incidentPackage, index) => (
           <IncidentCard
             key={incidentPackage.incident.id}
             incidentPackage={incidentPackage}
+            sequenceNumber={index + 1}
             isSelected={incidentPackage.incident.id === selectedIncidentId}
             onSelect={() => onSelect(incidentPackage.incident.id)}
           />

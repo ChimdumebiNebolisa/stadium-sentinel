@@ -10,6 +10,14 @@ Venue operations staff working live events in a stadium command-center context. 
 ## Product Purpose
 Stadium Sentinel turns a raw event report into a compact operations view: prioritized incidents, mapped locations, supporting evidence, recommended actions, staff updates, timeline entries, and a post-event report. Success means staff can answer three questions quickly on every screen: what is happening, why the system thinks that, and what should happen next.
 
+## Binding Direction
+- Stadium Sentinel is a soccer or football stadium command center, not a generic arena dashboard.
+- The venue model is a custom operational stadium topology with four layers: Perimeter, Concourse, Bowl or Stands, and Restricted.
+- The map surface is a custom inline SVG operational schematic grouped by named zone layers.
+- Full seat-map packages are out of scope and will not be added.
+- Ticketing, seat-level selection, seating-chart editing, and seat-map product flows are out of scope and will not be added.
+- Soccer stadium terminology and visuals are the binding default for all future UI work.
+
 ## Brand Personality
 Focused, credible, operational. The tone should feel calm under pressure, explicit rather than clever, and dense without becoming noisy.
 

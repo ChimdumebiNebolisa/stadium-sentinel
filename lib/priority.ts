@@ -2,6 +2,7 @@ import type {
   Incident,
   IncidentCategory,
   IncidentType,
+  LocationRecord,
   PriorityLevel,
   TimelineEntryType,
 } from "@/lib/types";
@@ -9,7 +10,14 @@ import type {
 type PriorityInput = {
   incidentType: IncidentType;
   category: IncidentCategory;
-  locationType: string;
+  location: Pick<
+    LocationRecord,
+    | "type"
+    | "zoneLayer"
+    | "accessibilityCritical"
+    | "crowdFlowCritical"
+    | "restrictedAccess"
+  >;
 };
 
 export const PRIORITY_ORDER = [
@@ -35,25 +43,45 @@ function getOrderIndex<T extends string>(
 }
 
 export function derivePriority(input: PriorityInput): PriorityLevel {
-  switch (input.incidentType) {
-    case "accessibility-assist":
-      return "Immediate";
-    case "facility-outage":
-      return input.locationType === "elevator" ? "High" : "Moderate";
-    case "queue-congestion":
-      return "High";
-    default:
-      switch (input.category) {
-        case "guest-assistance":
-          return "Immediate";
-        case "crowd-flow":
-          return "High";
-        case "facility-outage":
-          return "Moderate";
-        default:
-          return "Monitor";
-      }
+  if (
+    input.location.restrictedAccess &&
+    (input.incidentType === "queue-congestion" ||
+      input.incidentType === "accessibility-assist")
+  ) {
+    return "Immediate";
   }
+
+  if (
+    input.incidentType === "accessibility-assist" ||
+    input.category === "guest-assistance"
+  ) {
+    return "Immediate";
+  }
+
+  if (
+    input.incidentType === "facility-outage" &&
+    input.location.accessibilityCritical
+  ) {
+    return "High";
+  }
+
+  if (
+    input.incidentType === "queue-congestion" &&
+    input.location.zoneLayer === "perimeter"
+  ) {
+    return "High";
+  }
+
+  if (
+    input.location.zoneLayer === "bowl" &&
+    !input.location.accessibilityCritical &&
+    !input.location.crowdFlowCritical &&
+    !input.location.restrictedAccess
+  ) {
+    return "Monitor";
+  }
+
+  return "Moderate";
 }
 
 export function comparePriority(
@@ -82,11 +110,11 @@ export function getPriorityLevel(incident: Incident): PriorityLevel {
 export function getPriorityRationale(incident: Incident): string {
   switch (incident.incidentType) {
     case "facility-outage":
-      return "Infrastructure outage blocking the accessible route. Dispatch now.";
+      return "Infrastructure outage at a critical movement point. Preserve access and reroute now.";
     case "accessibility-assist":
-      return "Guest needs accessible support. Acknowledge and escort.";
+      return "Guest assistance is tied to a critical access point. Acknowledge and escort now.";
     case "queue-congestion":
-      return "Ingress backup risks crowd-flow safety. Respond before it spreads.";
+      return "Crowd pressure is building in a circulation-critical zone. Contain it before it cascades.";
     default:
       return "Operational issue flagged for response.";
   }
@@ -95,11 +123,11 @@ export function getPriorityRationale(incident: Incident): string {
 export function getPrioritySummary(incident: Incident): string {
   switch (incident.incidentType) {
     case "facility-outage":
-      return "Accessible route blocked. Dispatch Facilities now.";
+      return "Critical access is degraded. Dispatch Facilities and hold the reroute path.";
     case "accessibility-assist":
-      return "Guest needs escorted support. Guest Services should respond now.";
+      return "Guest needs escorted support through a sensitive venue path. Guest Services should respond now.";
     case "queue-congestion":
-      return "Crowd-flow risk building at entry. Open the lane and redirect guests.";
+      return "Crowd-flow risk is rising in the perimeter ingress lane. Open capacity and redirect guests.";
     default:
       return "Operational issue requires response.";
   }

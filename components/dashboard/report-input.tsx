@@ -12,17 +12,19 @@ export function ReportInput({
   onSubmit,
 }: ReportInputProps) {
   return (
-    <section className="ops-panel h-full">
+    <section className="h-full pr-2">
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
           <h2 className="ops-heading">Event report</h2>
-          <p className="mt-1 text-sm text-slate-300">Paste the incoming call or report, then refresh the operations board.</p>
+          <p className="mt-1 text-sm text-slate-300">
+            Paste the incoming call or report, then refresh the operations board.
+          </p>
         </div>
         <button
           type="button"
           disabled={isSubmitting}
           onClick={onSubmit}
-          className="shrink-0 rounded-md border border-amber-500/35 bg-amber-500/8 px-4 py-2 text-xs font-medium text-amber-100 transition-colors hover:bg-amber-500/14 disabled:cursor-not-allowed disabled:opacity-70"
+          className="shrink-0 rounded-md border border-amber-500/35 bg-amber-500/8 px-3 py-1.5 text-xs font-medium text-amber-100 transition-colors hover:bg-amber-500/14 disabled:cursor-not-allowed disabled:opacity-70"
         >
           {isSubmitting ? "Refreshing board..." : "Process report"}
         </button>
@@ -31,7 +33,7 @@ export function ReportInput({
         data-testid="report-input"
         value={report}
         onChange={(event) => onChange(event.target.value)}
-        className="h-32 w-full border border-white/10 bg-[#101418] px-4 py-4 text-sm leading-7 text-slate-100 placeholder:text-slate-500"
+        className="h-40 w-full rounded-md border border-white/10 bg-[#101418] px-4 py-3 text-sm leading-7 text-slate-100 placeholder:text-slate-500"
       />
       <p className="mt-3 text-xs leading-5 text-slate-500">
         The board will re-sort incidents, refresh map markers, and reset the approval log to match the latest report.

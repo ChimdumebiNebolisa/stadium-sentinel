@@ -1,6 +1,6 @@
 # Stadium Sentinel
 
-Priority-based Next.js command-center app for live event operations.
+Priority-based Next.js soccer stadium command-center app for live stadium operations.
 
 ## Commands
 
@@ -22,11 +22,19 @@ Gate B is backed up, Elevator 4 is down, and a guest near Section 112 needs whee
 
 - Deterministic parsing into exactly three incidents
 - Scoreless priority-based incident queue
-- Static venue map with seeded markers
+- Custom inline soccer-stadium operational schematic with seeded markers
 - Seeded operational evidence spanning policies, runbooks, historical incidents, locations, and staff response rules
 - Recommended actions and staff update draft
 - Approval-driven timeline entries
 - Post-event report preview
+
+## Venue Direction
+
+- Stadium Sentinel models a soccer or football stadium command center, not a generic arena dashboard.
+- The venue topology uses four operational layers: Perimeter, Concourse, Bowl or Stands, and Restricted.
+- The map is a custom inline SVG operational schematic. No full seat-map package or seat-level interaction is part of this project.
+- Ticketing, seat selection, seating-chart editing, and seat-map libraries are out of scope.
+- The UI remains scoreless and category-based: Immediate, High, Moderate, Monitor.
 
 ## Shot 1 Status
 

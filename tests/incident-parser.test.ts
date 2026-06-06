@@ -38,4 +38,17 @@ describe("parseIncidentReport", () => {
       "title",
     ]);
   });
+
+  it("matches incident locations through topology aliases", () => {
+    const incidents = parseIncidentReport(
+      "Entry Gate B is backed up, Lift 4 is down, and a guest near Sec 112 needs wheelchair access.",
+      locationRecords,
+    );
+
+    expect(incidents.map((incident) => incident.locationLabel)).toEqual([
+      "Section 112",
+      "Elevator 4",
+      "Gate B",
+    ]);
+  });
 });

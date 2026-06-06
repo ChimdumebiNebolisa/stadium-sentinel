@@ -2,11 +2,11 @@
 
 ## Product Summary
 
-Stadium Sentinel is a live event operations command tool for venue staff. It converts messy event reports into prioritized incident cards, map markers, evidence-backed action plans, staff updates, timeline entries, and post-event reports. It is not a chatbot. The product must answer three questions on every screen: what is happening, why the agent thinks that, and what staff should do next.
+Stadium Sentinel is a soccer stadium operations command tool for venue staff. It converts messy event reports into prioritized incident cards, map markers, evidence-backed action plans, staff updates, timeline entries, and post-event reports. It is not a chatbot. The product must answer three questions on every screen: what is happening, why the agent thinks that, and what staff should do next.
 
 ## Current Baseline UI Scope
 
-The current baseline UI is a Next.js, TypeScript, and Tailwind command-center dashboard. It must support the core demo scenario:
+The current baseline UI is a Next.js, TypeScript, and Tailwind command-center dashboard for a soccer stadium operations floor. It must support the core demo scenario:
 
 > "Gate B is backed up, Elevator 4 is down, and a guest near Section 112 needs wheelchair access."
 
@@ -100,6 +100,8 @@ No extra polish loop unless Shot 2 reveals a blocking submission issue.
 ## Non-Goals
 
 - No real dispatch, surveillance, ticketing, or messaging integrations.
+- No full seat-map package, seat-level selection, or seating-chart editing.
+- No ticketing product direction or ticket purchase workflow.
 - No mobile app.
 - No chatbot-style conversational UI.
 - No marketing landing page.
@@ -112,7 +114,7 @@ No extra polish loop unless Shot 2 reveals a blocking submission issue.
 - Server surface: Next.js route handlers for local mock orchestration.
 - Data source: local JSON seed files only.
 - State model: client-side dashboard state seeded from JSON and report parsing output.
-- Map layer: static SVG or image-backed venue map with positioned markers.
+- Map layer: custom inline SVG soccer-stadium operational schematic with positioned markers.
 
 ### Logical modules
 
@@ -125,7 +127,7 @@ No extra polish loop unless Shot 2 reveals a blocking submission issue.
    - Build recommended action plans.
    - Draft staff update text.
 3. `ops-visualization`
-   - Render command-center dashboard, map, incident queue, evidence, timeline, and report.
+   - Render command-center dashboard, soccer-stadium map, incident queue, evidence, timeline, and report.
 4. `mock-data-layer`
    - Policies, runbooks, historical incidents, location metadata, staff roles, demo scenarios.
 
@@ -397,7 +399,7 @@ The current route contract can stay stable while Shot 1 replaces local evidence 
 
 ## Risks and Blockers
 
-- The biggest UX risk is building a screen that looks like generic SaaS software instead of event operations tooling.
+- The biggest UX risk is building a screen that looks like generic SaaS software or a ticketing seat-map product instead of soccer stadium operations tooling.
 - The biggest delivery risk is integrating Elastic and Gemini / Agent Builder without breaking the existing demo flow.
 - A weak venue map will reduce the demo impact even if the logic works.
 - If parsing becomes too open-ended during Shot 1, the demo flow may become brittle. Keep the main scenario stable while improving retrieval.

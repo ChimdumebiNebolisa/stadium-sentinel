@@ -14,14 +14,41 @@ export type IncidentStatus = "new" | "ready" | "actioned";
 
 export type TimelineEntryType = "reported" | "suggested" | "approved";
 
+export type ZoneLayer = "perimeter" | "concourse" | "bowl" | "restricted";
+
 export type LocationRecord = {
   id: string;
   name: string;
-  type: "gate" | "section" | "elevator" | "restroom" | "desk";
-  label: string;
+  displayName: string;
+  description: string;
+  type:
+    | "gate"
+    | "screening"
+    | "loading-dock"
+    | "vip-entry"
+    | "circulation"
+    | "elevator"
+    | "restroom"
+    | "first-aid"
+    | "amenity"
+    | "section"
+    | "club"
+    | "suite"
+    | "press-box"
+    | "field"
+    | "tunnel"
+    | "locker-room"
+    | "pitch-perimeter";
+  zoneLayer: ZoneLayer;
+  priorityZone: string;
   mapX: number;
   mapY: number;
-  priorityZone: string;
+  aliases: string[];
+  operationalRisks: string[];
+  defaultTeams: string[];
+  accessibilityCritical: boolean;
+  crowdFlowCritical: boolean;
+  restrictedAccess: boolean;
 };
 
 export type PolicyRecord = {

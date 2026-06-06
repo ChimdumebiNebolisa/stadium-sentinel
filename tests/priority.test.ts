@@ -8,22 +8,72 @@ describe("priority routing", () => {
     const elevator = derivePriority({
       incidentType: "facility-outage",
       category: "facility-outage",
-      locationType: "elevator",
+      location: {
+        type: "elevator",
+        zoneLayer: "concourse",
+        accessibilityCritical: true,
+        crowdFlowCritical: true,
+        restrictedAccess: false,
+      },
     });
     const accessibility = derivePriority({
       incidentType: "accessibility-assist",
       category: "guest-assistance",
-      locationType: "section",
+      location: {
+        type: "section",
+        zoneLayer: "bowl",
+        accessibilityCritical: true,
+        crowdFlowCritical: true,
+        restrictedAccess: false,
+      },
     });
     const queue = derivePriority({
       incidentType: "queue-congestion",
       category: "crowd-flow",
-      locationType: "gate",
+      location: {
+        type: "gate",
+        zoneLayer: "perimeter",
+        accessibilityCritical: true,
+        crowdFlowCritical: true,
+        restrictedAccess: false,
+      },
     });
 
     expect(accessibility).toBe("Immediate");
     expect(elevator).toBe("High");
     expect(queue).toBe("High");
+  });
+
+  it("assigns monitor to a non-urgent bowl issue", () => {
+    const bowlIssue = derivePriority({
+      incidentType: "facility-outage",
+      category: "facility-outage",
+      location: {
+        type: "suite",
+        zoneLayer: "bowl",
+        accessibilityCritical: false,
+        crowdFlowCritical: false,
+        restrictedAccess: false,
+      },
+    });
+
+    expect(bowlIssue).toBe("Monitor");
+  });
+
+  it("defaults to moderate when no higher operational rule applies", () => {
+    const fallback = derivePriority({
+      incidentType: "facility-outage",
+      category: "facility-outage",
+      location: {
+        type: "amenity",
+        zoneLayer: "concourse",
+        accessibilityCritical: false,
+        crowdFlowCritical: false,
+        restrictedAccess: false,
+      },
+    });
+
+    expect(fallback).toBe("Moderate");
   });
 
   it("sorts by operational priority and stable incident precedence", () => {

@@ -1,295 +1,217 @@
 export function VenueMapSchematic() {
   return (
     <svg
-      viewBox="0 0 1000 660"
+      viewBox="0 0 100 100"
+      preserveAspectRatio="none"
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden="true"
-      className="h-full w-full"
+      className="pointer-events-none h-full w-full"
     >
-      <rect width="1000" height="660" fill="#0f141a" />
+      <rect width="100" height="100" fill="#091018" />
       <rect
-        x="34"
-        y="28"
-        width="932"
-        height="604"
-        rx="20"
-        fill="#111821"
-        stroke="#263443"
-        strokeWidth="2"
+        x="1.5"
+        y="1.5"
+        width="97"
+        height="97"
+        rx="3"
+        fill="#0b1219"
+        stroke="#1d2a36"
+        strokeWidth="0.35"
       />
 
-      <path
-        d="M168 108C212 72 311 52 500 52C689 52 788 72 832 108C880 146 912 238 912 332C912 426 880 518 832 556C788 592 689 612 500 612C311 612 212 592 168 556C120 518 88 426 88 332C88 238 120 146 168 108Z"
-        fill="#151d27"
-        stroke="#314456"
-        strokeWidth="2"
-      />
-      <path
-        d="M220 146C256 116 338 100 500 100C662 100 744 116 780 146C819 178 844 246 844 332C844 418 819 486 780 518C744 548 662 564 500 564C338 564 256 548 220 518C181 486 156 418 156 332C156 246 181 178 220 146Z"
-        fill="#121922"
-        stroke="#34485d"
-        strokeWidth="2"
-      />
-      <path
-        d="M272 188C301 164 367 151 500 151C633 151 699 164 728 188C759 214 780 267 780 332C780 397 759 450 728 476C699 500 633 513 500 513C367 513 301 500 272 476C241 450 220 397 220 332C220 267 241 214 272 188Z"
-        fill="#0f161f"
-        stroke="#2f4255"
-        strokeWidth="2"
-      />
+      <g opacity="0.08" stroke="#9fb0bf" strokeWidth="0.15">
+        {Array.from({ length: 18 }).map((_, index) => {
+          const coordinate = 5 + index * 5;
 
-      <g
-        fill="#1c2734"
-        stroke="#39506a"
-        strokeWidth="1.5"
-        opacity="0.96"
-      >
-        <g aria-label="North seating">
-          <rect x="300" y="172" width="66" height="42" rx="4" />
-          <rect x="377" y="172" width="66" height="42" rx="4" />
-          <rect x="454" y="172" width="92" height="42" rx="4" />
-          <rect x="557" y="172" width="66" height="42" rx="4" />
-          <rect x="634" y="172" width="66" height="42" rx="4" />
-        </g>
-        <g aria-label="West seating">
-          <rect x="257" y="242" width="42" height="64" rx="4" />
-          <rect x="257" y="316" width="42" height="64" rx="4" />
-          <rect x="257" y="390" width="42" height="64" rx="4" />
-        </g>
-        <g aria-label="East seating">
-          <rect x="701" y="242" width="42" height="64" rx="4" />
-          <rect x="701" y="316" width="42" height="64" rx="4" />
-          <rect x="701" y="390" width="42" height="64" rx="4" />
-        </g>
-        <g aria-label="South seating">
-          <rect x="300" y="450" width="66" height="42" rx="4" />
-          <rect x="377" y="450" width="66" height="42" rx="4" />
-          <rect x="454" y="450" width="66" height="42" rx="4" />
-          <rect x="531" y="450" width="66" height="42" rx="4" />
-        </g>
+          return (
+            <g key={coordinate}>
+              <line x1={coordinate} y1="2" x2={coordinate} y2="98" />
+              <line x1="2" y1={coordinate} x2="98" y2={coordinate} />
+            </g>
+          );
+        })}
       </g>
 
-      <rect
-        x="608"
-        y="450"
-        width="92"
-        height="42"
-        rx="4"
-        fill="rgba(200,155,60,0.12)"
-        stroke="#c89b3c"
-        strokeWidth="2"
-      />
+      <g id="zone-perimeter" data-zone-layer="perimeter">
+        <rect
+          x="8"
+          y="7"
+          width="84"
+          height="86"
+          rx="15"
+          fill="#101821"
+          stroke="#5a6f84"
+          strokeWidth="0.5"
+        />
+        <rect
+          x="13"
+          y="12"
+          width="74"
+          height="76"
+          rx="12"
+          fill="none"
+          stroke="#6b8095"
+          strokeWidth="0.26"
+          strokeDasharray="1.2 1.3"
+          opacity="0.6"
+        />
+        <text
+          x="12.5"
+          y="22"
+          fill="#c3cfdb"
+          fontSize="1.7"
+          fontWeight="600"
+          fontFamily="Arial, Helvetica, sans-serif"
+        >
+          Gate B
+        </text>
+      </g>
 
-      <path
-        d="M236 210C278 198 362 189 500 189C638 189 722 198 764 210"
-        fill="none"
-        stroke="#243140"
-        strokeWidth="14"
-        strokeLinecap="round"
-      />
-      <path
-        d="M236 454C278 466 362 475 500 475C638 475 722 466 764 454"
-        fill="none"
-        stroke="#243140"
-        strokeWidth="14"
-        strokeLinecap="round"
-      />
-      <path
-        d="M244 228C228 262 220 296 220 332C220 368 228 402 244 436"
-        fill="none"
-        stroke="#243140"
-        strokeWidth="14"
-        strokeLinecap="round"
-      />
-      <path
-        d="M756 228C772 262 780 296 780 332C780 368 772 402 756 436"
-        fill="none"
-        stroke="#243140"
-        strokeWidth="14"
-        strokeLinecap="round"
-      />
+      <g id="zone-concourse" data-zone-layer="concourse">
+        <rect
+          x="18.5"
+          y="20"
+          width="63"
+          height="60"
+          rx="10"
+          fill="#13202a"
+          stroke="#5a748d"
+          strokeWidth="0.4"
+        />
+        <rect
+          x="23"
+          y="24"
+          width="54"
+          height="52"
+          rx="8"
+          fill="none"
+          stroke="#849aaf"
+          strokeWidth="0.22"
+          strokeDasharray="1 1.4"
+          opacity="0.45"
+        />
+        <text
+          x="78"
+          y="46"
+          fill="#c3cfdb"
+          fontSize="1.7"
+          fontWeight="600"
+          textAnchor="end"
+          fontFamily="Arial, Helvetica, sans-serif"
+        >
+          Elevator 4
+        </text>
+        <text
+          x="73.5"
+          y="68"
+          fill="#c3cfdb"
+          fontSize="1.8"
+          fontWeight="600"
+          textAnchor="end"
+          fontFamily="Arial, Helvetica, sans-serif"
+        >
+          West Concourse
+        </text>
+      </g>
 
-      <rect
-        x="358"
-        y="232"
-        width="284"
-        height="200"
-        rx="14"
-        fill="#102018"
-        stroke="#2d4636"
-        strokeWidth="2"
-      />
-      <line
-        x1="500"
-        y1="232"
-        x2="500"
-        y2="432"
-        stroke="#2d4636"
-        strokeWidth="1.5"
-      />
-      <circle
-        cx="500"
-        cy="332"
-        r="28"
-        fill="none"
-        stroke="#2d4636"
-        strokeWidth="1.5"
-      />
-      <rect
-        x="358"
-        y="290"
-        width="22"
-        height="84"
-        rx="2"
-        fill="none"
-        stroke="#2d4636"
-        strokeWidth="1.5"
-      />
-      <rect
-        x="620"
-        y="290"
-        width="22"
-        height="84"
-        rx="2"
-        fill="none"
-        stroke="#2d4636"
-        strokeWidth="1.5"
-      />
+      <g id="zone-bowl" data-zone-layer="bowl">
+        <path
+          d="M29 28C33 24 40 22 50 22C60 22 67 24 71 28L76 34C78 37 79 40 79 44V59C79 63 78 66 76 69L71 74C67 78 60 80 50 80C40 80 33 78 29 74L24 69C22 66 21 63 21 59V44C21 40 22 37 24 34Z"
+          fill="#17232e"
+          stroke="#60778f"
+          strokeWidth="0.42"
+        />
+        <path
+          d="M33 31C36 27.5 42 26 50 26C58 26 64 27.5 67 31L71 36C72.5 38 73 40.5 73 44.5V58.5C73 62.5 72.5 65 71 67L67 71C64 74.5 58 76 50 76C42 76 36 74.5 33 71L29 67C27.5 65 27 62.5 27 58.5V44.5C27 40.5 27.5 38 29 36Z"
+          fill="none"
+          stroke="#879bb0"
+          strokeWidth="0.22"
+          strokeDasharray="0.8 1.2"
+          opacity="0.5"
+        />
+        <text
+          x="50"
+          y="31"
+          fill="#d1dceb"
+          fontSize="2"
+          fontWeight="700"
+          textAnchor="middle"
+          fontFamily="Arial, Helvetica, sans-serif"
+        >
+          North Stand
+        </text>
+        <text
+          x="50"
+          y="73.5"
+          fill="#d1dceb"
+          fontSize="2"
+          fontWeight="700"
+          textAnchor="middle"
+          fontFamily="Arial, Helvetica, sans-serif"
+        >
+          South Stand
+        </text>
+        <text
+          x="78.5"
+          y="56"
+          fill="#d1dceb"
+          fontSize="1.8"
+          fontWeight="700"
+          textAnchor="middle"
+          transform="rotate(90 78.5 56)"
+          fontFamily="Arial, Helvetica, sans-serif"
+        >
+          East Stand
+        </text>
+        <text
+          x="72"
+          y="66.5"
+          fill="#d1dceb"
+          fontSize="1.8"
+          fontWeight="600"
+          fontFamily="Arial, Helvetica, sans-serif"
+        >
+          Section 112
+        </text>
+      </g>
 
-      <rect
-        x="126"
-        y="132"
-        width="56"
-        height="22"
-        rx="3"
-        fill="#1c2734"
-        stroke="#607892"
-        strokeWidth="2"
-      />
-      <line x1="140" y1="132" x2="140" y2="154" stroke="#607892" strokeWidth="1.5" />
-      <line x1="154" y1="132" x2="154" y2="154" stroke="#607892" strokeWidth="1.5" />
-      <line x1="168" y1="132" x2="168" y2="154" stroke="#607892" strokeWidth="1.5" />
+      <g id="zone-restricted" data-zone-layer="restricted">
+        <rect
+          x="32"
+          y="33"
+          width="36"
+          height="32"
+          rx="2.5"
+          fill="#143321"
+          stroke="#6ca06d"
+          strokeWidth="0.4"
+        />
+        <line x1="50" y1="33" x2="50" y2="65" stroke="#dbe7d7" strokeWidth="0.26" opacity="0.82" />
+        <circle cx="50" cy="49" r="3.4" fill="none" stroke="#dbe7d7" strokeWidth="0.26" opacity="0.82" />
+        <rect x="32.8" y="41.2" width="6.2" height="15.4" fill="none" stroke="#dbe7d7" strokeWidth="0.24" opacity="0.82" />
+        <rect x="61" y="41.2" width="6.2" height="15.4" fill="none" stroke="#dbe7d7" strokeWidth="0.24" opacity="0.82" />
+        <rect x="32.8" y="45.2" width="1.8" height="7.4" fill="none" stroke="#dbe7d7" strokeWidth="0.22" opacity="0.82" />
+        <rect x="65.4" y="45.2" width="1.8" height="7.4" fill="none" stroke="#dbe7d7" strokeWidth="0.22" opacity="0.82" />
+        <rect x="31.3" y="46.2" width="1.5" height="5.4" fill="none" stroke="#dbe7d7" strokeWidth="0.2" opacity="0.82" />
+        <rect x="67.2" y="46.2" width="1.5" height="5.4" fill="none" stroke="#dbe7d7" strokeWidth="0.2" opacity="0.82" />
+        <line x1="31.5" y1="49" x2="32.8" y2="49" stroke="#dbe7d7" strokeWidth="0.26" opacity="0.82" />
+        <line x1="67.2" y1="49" x2="68.5" y2="49" stroke="#dbe7d7" strokeWidth="0.26" opacity="0.82" />
+        <text
+          x="50"
+          y="49.8"
+          fill="#d5f1d5"
+          fontSize="2.1"
+          fontWeight="700"
+          textAnchor="middle"
+          fontFamily="Arial, Helvetica, sans-serif"
+        >
+          Pitch
+        </text>
+      </g>
 
-      <rect
-        x="828"
-        y="255"
-        width="46"
-        height="82"
-        rx="4"
-        fill="#1c2734"
-        stroke="#607892"
-        strokeWidth="2"
-      />
-      <path d="M851 275 l-8 10 h16 z" fill="#95a9bf" />
-      <path d="M851 317 l-8 -10 h16 z" fill="#95a9bf" />
-
-      <rect
-        x="772"
-        y="365"
-        width="126"
-        height="54"
-        rx="6"
-        fill="#171f29"
-        stroke="#3b4f65"
-        strokeWidth="1.5"
-      />
-
-      <path
-        d="M154 143C236 130 334 124 500 124C661 124 761 131 818 146C845 179 863 219 872 260"
-        stroke="#c89b3c"
-        strokeWidth="3"
-        strokeLinecap="round"
-        strokeDasharray="2 11"
-        opacity="0.85"
-      />
-      <path
-        d="M872 260C878 287 879 312 876 337C869 393 854 433 823 462C770 479 735 487 686 497"
-        stroke="#c89b3c"
-        strokeWidth="3"
-        strokeLinecap="round"
-        strokeDasharray="2 11"
-        opacity="0.85"
-      />
-
-      <text
-        x="500"
-        y="338"
-        fill="#6f8aa6"
-        fontSize="22"
-        textAnchor="middle"
-        fontFamily="Arial, Helvetica, sans-serif"
-      >
-        Field / Floor
-      </text>
-      <text
-        x="205"
-        y="146"
-        fill="#d3deea"
-        fontSize="22"
-        fontWeight="700"
-        fontFamily="Arial, Helvetica, sans-serif"
-      >
-        Gate B
-      </text>
-      <text
-        x="811"
-        y="309"
-        fill="#d3deea"
-        fontSize="22"
-        fontWeight="700"
-        textAnchor="end"
-        fontFamily="Arial, Helvetica, sans-serif"
-      >
-        Elevator 4
-      </text>
-      <text
-        x="835"
-        y="399"
-        fill="#97abc0"
-        fontSize="16"
-        textAnchor="middle"
-        fontFamily="Arial, Helvetica, sans-serif"
-      >
-        Facilities service
-      </text>
-      <text
-        x="654"
-        y="528"
-        fill="#e0bd72"
-        fontSize="22"
-        fontWeight="700"
-        textAnchor="middle"
-        fontFamily="Arial, Helvetica, sans-serif"
-      >
-        Section 112
-      </text>
-      <text
-        x="170"
-        y="570"
-        fill="#6f8aa6"
-        fontSize="18"
-        fontFamily="Arial, Helvetica, sans-serif"
-      >
-        Concourse
-      </text>
-      <line
-        x1="170"
-        y1="592"
-        x2="206"
-        y2="592"
-        stroke="#c89b3c"
-        strokeWidth="3"
-        strokeDasharray="2 9"
-        opacity="0.85"
-      />
-      <text
-        x="216"
-        y="597"
-        fill="#9aacc2"
-        fontSize="16"
-        fontFamily="Arial, Helvetica, sans-serif"
-      >
-        Accessible route
-      </text>
+      <g opacity="0.42" stroke="#2d3c4d" strokeWidth="0.5">
+        <line x1="18.5" y1="50" x2="81.5" y2="50" />
+      </g>
     </svg>
   );
 }
