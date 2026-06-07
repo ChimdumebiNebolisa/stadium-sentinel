@@ -4,6 +4,7 @@ import { SentinelInline } from "@/components/dashboard/sentinel-inline";
 import { VenueOrientationPanel } from "@/components/dashboard/venue-orientation-panel";
 import { WorkflowCues } from "@/components/dashboard/workflow-cues";
 import { getLocationRecord } from "@/lib/data";
+import { isVenueOrientationEnabled } from "@/lib/feature-flags";
 import type { CommandState } from "@/lib/sentinel-command-agent";
 import type { IncidentPackage, TimelineEntry } from "@/lib/types";
 
@@ -388,10 +389,12 @@ export function ActiveIncidentWorkspace({
           </dl>
         </article>
 
-        <VenueOrientationPanel
-          selectedLocationId={incident.locationId}
-          activeLocationIds={activeLocationIds}
-        />
+        {isVenueOrientationEnabled() ? (
+          <VenueOrientationPanel
+            selectedLocationId={incident.locationId}
+            activeLocationIds={activeLocationIds}
+          />
+        ) : null}
 
         <p
           className="text-xs text-slate-500"
