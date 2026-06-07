@@ -8,17 +8,17 @@ test("landing page loads with hero and CTAs", async ({ page }) => {
   expect(response?.status()).toBe(200);
   await expect(
     page.getByRole("heading", {
-      name: "Turn messy stadium reports into dispatch-ready incidents.",
+      name: "Make every stadium report easy to understand and act on.",
     }),
   ).toBeVisible();
-  await expect(page.getByTestId("cta-intake-demo")).toBeVisible();
-  await expect(page.getByTestId("cta-command-center")).toBeVisible();
+  await expect(page.getByTestId("hero-cta-intake-demo")).toBeVisible();
+  await expect(page.getByTestId("hero-cta-command-center")).toBeVisible();
   await expect(page.getByTestId("landing-expected-incidents")).toBeVisible();
 });
 
-test("Run live intake demo opens the mock intake flow", async ({ page }) => {
+test("Run intake demo opens the mock intake flow", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("link", { name: "Run live intake demo" }).click();
+  await page.getByTestId("hero-cta-intake-demo").click();
   await page.waitForURL("**/demo/intake");
 
   await expect(page.getByRole("heading", { name: "Simulated intake demo" })).toBeVisible();
@@ -67,7 +67,7 @@ test("command center shows the three expected incident ids", async ({ page }) =>
 
 test("full demo journey from landing through dispatch and drawer", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("link", { name: "Run live intake demo" }).click();
+  await page.getByTestId("hero-cta-intake-demo").click();
   await page.waitForURL("**/demo/intake");
 
   for (const sourceId of DEMO_SOURCE_IDS) {
