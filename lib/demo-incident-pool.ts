@@ -287,6 +287,15 @@ export function saveDemoIncidentBatch(batch: DemoIncidentBatch): void {
   }
 }
 
+export function clearDemoIncidentBatch(): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(DEMO_INCIDENTS_KEY);
+  } catch {
+    // fail silently
+  }
+}
+
 function isValidStoredIncident(value: unknown): value is DemoStoredIncident {
   if (typeof value !== "object" || value === null) return false;
   const v = value as Record<string, unknown>;

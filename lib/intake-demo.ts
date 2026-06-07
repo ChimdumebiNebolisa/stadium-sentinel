@@ -122,3 +122,8 @@ export function clearOperationsConnected(): void {
     // fail silently
   }
 }
+
+/** Clears real-demo connection flag only. Does not clear demo incident batches. */
+export function resetRealDemoConnectionState(): void {
+  clearOperationsConnected();
+}

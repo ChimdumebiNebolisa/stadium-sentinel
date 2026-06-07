@@ -11,7 +11,7 @@ const baseUrl = process.env.STADIUM_SENTINEL_BASE_URL?.trim() || "http://localho
 const requiredDocs = [
   "docs/real-demo-script.md",
   "docs/devpost-talking-points.md",
-  "docs/demo-recording-checklist.md",
+  "docs/INGESTION_DEPLOY_CHECKLIST.md",
 ];
 
 const requiredRoutes = [
@@ -48,142 +48,184 @@ async function verifyRepoArtifacts() {
     throw new Error(`Missing required real-demo artifacts: ${missing.join(", ")}`);
   }
 
-  log("✓ Required real-demo docs and API routes are present.");
+  log("OK repo artifacts present for Cloud Run real-demo path.");
 }
 
 async function fetchJson(url, init) {
   const response = await fetch(url, init);
   const text = await response.text();
-  let body;
 
   try {
-    body = text ? JSON.parse(text) : null;
+    return {
+      response,
+      body: text ? JSON.parse(text) : null,
+    };
   } catch {
-    body = text;
+    return { response, body: text };
   }
+}
 
-  return { response, body };
+async function canReachServer() {
+  try {
+    const response = await fetch(`${baseUrl}/api/ingest/status`, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(2000),
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
 }
 
 async function verifyFallbackApiChecks() {
-  try {
-    const status = await fetchJson(`${baseUrl}/api/ingest/status`);
-    if (!status.response.ok) {
-      throw new Error(`ingest status returned ${status.response.status}`);
-    }
-    if (status.body?.demoFallbackAvailable !== true) {
-      throw new Error("ingest status did not report demo fallback availability.");
-    }
-    log("✓ GET /api/ingest/status reports demo fallback availability.");
-
-    const bootstrap = await fetchJson(`${baseUrl}/api/ingest/bootstrap`, {
-      method: "POST",
-    });
-    if (!bootstrap.response.ok) {
-      throw new Error(`ingest bootstrap returned ${bootstrap.response.status}`);
-    }
-    if (!bootstrap.body?.outcome) {
-      throw new Error("ingest bootstrap response missing outcome.");
-    }
-    log(`✓ POST /api/ingest/bootstrap returned outcome=${bootstrap.body.outcome}.`);
-
-    const pull = await fetchJson(`${baseUrl}/api/ingest/pull`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ includeTimeline: true }),
-    });
-    if (!pull.response.ok) {
-      throw new Error(`ingest pull returned ${pull.response.status}`);
-    }
-    if (!Array.isArray(pull.body?.incidentPackages)) {
-      throw new Error("ingest pull response missing incidentPackages.");
-    }
-    log(`✓ POST /api/ingest/pull returned ${pull.body.outcome} (${pull.body.sourceMode}).`);
-
-    const demo = pull.body.incidentPackages[0];
-    if (!demo?.incident?.id) {
-      throw new Error("ingest pull fallback packages missing incident id.");
-    }
-
-    const sentinel = await fetchJson(`${baseUrl}/api/sentinel`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        question: "What should I do first?",
-        incidentId: demo.incident.id,
-        context: {
-          incidentPackage: demo,
-          timeline: pull.body.timeline ?? [],
-          queueTitles: pull.body.incidentPackages.map((item) => item.incident.title),
-          sourceMode: pull.body.sourceMode,
-          pullStatus: null,
-        },
-      }),
-    });
-    if (!sentinel.response.ok) {
-      throw new Error(`sentinel route returned ${sentinel.response.status}`);
-    }
-    if (!sentinel.body?.answer) {
-      throw new Error("sentinel route did not return an answer.");
-    }
-    log(`✓ POST /api/sentinel answered with meta.geminiMode=${sentinel.body.meta?.geminiMode}.`);
-
-    const write = await fetchJson(`${baseUrl}/api/timeline/write`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        incidentId: demo.incident.id,
-        actionIndex: 0,
-        actionLabel: demo.incident.recommendedActions?.[0] ?? "Dispatch team",
-        incidentPackage: {
-          ...demo,
-          incident: {
-            ...demo.incident,
-            approvedActionIds: [`${demo.incident.id}-action-0`],
-            status: "actioned",
-          },
-        },
-      }),
-    });
-    if (!write.response.ok) {
-      throw new Error(`timeline write returned ${write.response.status}`);
-    }
-    if (!write.body?.timelineEntry?.id) {
-      throw new Error("timeline write response missing timelineEntry.");
-    }
-    log(`✓ POST /api/timeline/write returned elasticWritten=${write.body.elasticWritten}.`);
-  } catch (error) {
-    if (error instanceof Error && error.message.includes("fetch failed")) {
-      log(`! Server not reachable at ${baseUrl}; skipped live API checks.`);
-      log("  Start the app with npm run dev, then rerun this script for live verification.");
-      return;
-    }
-
-    throw error;
+  if (!(await canReachServer())) {
+    log(`SKIP live API checks: server not reachable at ${baseUrl}.`);
+    log("Run `npm run dev` or `npm run start`, then rerun this script for route checks.");
+    return null;
   }
+
+  const status = await fetchJson(`${baseUrl}/api/ingest/status`);
+  if (!status.response.ok) {
+    throw new Error(`GET /api/ingest/status returned ${status.response.status}.`);
+  }
+  if (status.body?.demoFallbackAvailable !== true) {
+    throw new Error("GET /api/ingest/status did not confirm fallback availability.");
+  }
+  log(`OK GET /api/ingest/status -> ${status.body.activePath}.`);
+
+  const bootstrap = await fetchJson(`${baseUrl}/api/ingest/bootstrap`, {
+    method: "POST",
+  });
+  if (!bootstrap.response.ok) {
+    throw new Error(`POST /api/ingest/bootstrap returned ${bootstrap.response.status}.`);
+  }
+  if (!bootstrap.body?.outcome) {
+    throw new Error("POST /api/ingest/bootstrap response missing outcome.");
+  }
+  log(`OK POST /api/ingest/bootstrap -> ${bootstrap.body.outcome}.`);
+
+  const pull = await fetchJson(`${baseUrl}/api/ingest/pull`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ includeTimeline: true }),
+  });
+  if (!pull.response.ok) {
+    throw new Error(`POST /api/ingest/pull returned ${pull.response.status}.`);
+  }
+  if (!Array.isArray(pull.body?.incidentPackages)) {
+    throw new Error("POST /api/ingest/pull response missing incidentPackages.");
+  }
+  log(`OK POST /api/ingest/pull -> ${pull.body.sourceMode}/${pull.body.outcome}.`);
+
+  const demo = pull.body.incidentPackages[0];
+  if (!demo?.incident?.id) {
+    throw new Error("Pull response did not include a usable incident package.");
+  }
+
+  const sentinel = await fetchJson(`${baseUrl}/api/sentinel`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      question: "What should I do first?",
+      incidentId: demo.incident.id,
+      context: {
+        incidentPackage: demo,
+        timeline: pull.body.timeline ?? [],
+        queueTitles: pull.body.incidentPackages.map((item) => item.incident.title),
+        sourceMode: pull.body.sourceMode,
+        pullStatus: null,
+      },
+    }),
+  });
+  if (!sentinel.response.ok) {
+    throw new Error(`POST /api/sentinel returned ${sentinel.response.status}.`);
+  }
+  if (!sentinel.body?.answer) {
+    throw new Error("POST /api/sentinel did not return an answer.");
+  }
+  log(`OK POST /api/sentinel -> geminiMode=${sentinel.body.meta?.geminiMode ?? "unknown"}.`);
+
+  const write = await fetchJson(`${baseUrl}/api/timeline/write`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      incidentId: demo.incident.id,
+      actionIndex: 0,
+      actionLabel: demo.incident.recommendedActions?.[0] ?? "Dispatch team",
+      incidentPackage: {
+        ...demo,
+        incident: {
+          ...demo.incident,
+          approvedActionIds: [`${demo.incident.id}-action-0`],
+          status: "actioned",
+        },
+      },
+    }),
+  });
+  if (!write.response.ok) {
+    throw new Error(`POST /api/timeline/write returned ${write.response.status}.`);
+  }
+  if (!write.body?.timelineEntry?.id) {
+    throw new Error("POST /api/timeline/write response missing timelineEntry.");
+  }
+  log(`OK POST /api/timeline/write -> elasticWritten=${write.body.elasticWritten}.`);
+
+  return {
+    bootstrap,
+    pull,
+    sentinel,
+    write,
+  };
 }
 
-async function verifyOptionalElasticConfigured() {
+function getElasticCredentialState() {
   const elasticUrl = process.env.ELASTICSEARCH_URL?.trim();
   const elasticKey =
     process.env.ELASTICSEARCH_API_KEY?.trim() || process.env.ELASTIC_API_KEY?.trim();
 
-  if (!elasticUrl || !elasticKey) {
-    log("• Elastic credentials not set; live Elastic checks skipped.");
-    return;
+  return Boolean(elasticUrl && elasticKey);
+}
+
+function getVertexCredentialState() {
+  const project = process.env.GOOGLE_CLOUD_PROJECT?.trim();
+  const location = process.env.GOOGLE_CLOUD_LOCATION?.trim();
+  const model = process.env.VERTEX_MODEL?.trim() || process.env.GEMINI_MODEL?.trim();
+  const backendEnabled = process.env.AGENT_BACKEND_ENABLED?.trim() === "true";
+
+  return Boolean(project && location && model && backendEnabled);
+}
+
+function reportCredentialedChecks(liveChecks) {
+  const elasticConfigured = getElasticCredentialState();
+  const vertexConfigured = getVertexCredentialState();
+
+  if (!elasticConfigured) {
+    log("SKIP credentialed Elastic checks: Elastic env vars not set.");
+  } else if (liveChecks) {
+    log(
+      `INFO credentialed Elastic path observed sourceMode=${liveChecks.pull.body?.sourceMode ?? "unknown"}.`,
+    );
   }
 
-  log("• Elastic credentials detected.");
-  log("  Local dev: npm run index:elastic before recording.");
-  log("  Google Cloud Run demo: use Connect operations data (POST /api/ingest/bootstrap) — no terminal seed required.");
+  if (!vertexConfigured) {
+    log("SKIP credentialed Sentinel checks: Vertex env vars or backend toggle not set.");
+  } else if (liveChecks) {
+    log(
+      `INFO credentialed Sentinel path observed geminiMode=${liveChecks.sentinel.body?.meta?.geminiMode ?? "unknown"}.`,
+    );
+  }
+
+  if (!elasticConfigured && !vertexConfigured) {
+    log("Fallback-only verification completed. No secrets were required.");
+  }
 }
 
 async function main() {
   log("Stadium Sentinel real-demo verification");
   await verifyRepoArtifacts();
-  await verifyFallbackApiChecks();
-  await verifyOptionalElasticConfigured();
-  log("Real-demo verification complete.");
+  const liveChecks = await verifyFallbackApiChecks();
+  reportCredentialedChecks(liveChecks);
+  log("Verification complete.");
 }
 
 main().catch((error) => {

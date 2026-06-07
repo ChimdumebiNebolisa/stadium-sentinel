@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { ActiveIncidentWorkspace } from "@/components/dashboard/active-incident-workspace";
 import { CommandHeader } from "@/components/dashboard/command-header";
@@ -16,6 +16,7 @@ import { StaffUpdatePanel } from "@/components/dashboard/staff-update-panel";
 import { TimelinePanel } from "@/components/dashboard/timeline-panel";
 import {
   checkRateLimit,
+  clearDemoIncidentBatch,
   generateDemoIncidentBatch,
   getPoolIncidentById,
   loadDemoIncidentBatch,
@@ -29,7 +30,12 @@ import {
   buildIncidentMemorySummary,
   type ChangeSummary,
 } from "@/lib/demo-agent-workflow";
-import { buildEmptyCommandState } from "@/lib/command-empty-state";
+import {
+  buildEmptyCommandState,
+  getRealDemoQueueEmptyMessage,
+  getRealDemoWorkspaceEmptyBody,
+  getRealDemoWorkspaceEmptyTitle,
+} from "@/lib/command-empty-state";
 import { buildDemoState } from "@/lib/demo";
 import { resolveSelectedIncidentId } from "@/lib/demo-flow-state";
 import {
@@ -201,7 +207,9 @@ export function CommandCenter() {
   const [operationsConnected, setOperationsConnected] = useState(false);
   const [connectStatus, setConnectStatus] = useState<string | null>(null);
   const [connectLoading, setConnectLoading] = useState(false);
+  const [pullLoading, setPullLoading] = useState(false);
   const [ingestionRefreshKey, setIngestionRefreshKey] = useState(0);
+  const pullInFlightRef = useRef(false);
 
   useEffect(() => {
     setSourcesConnected(readSourcesConnected());
@@ -249,21 +257,36 @@ export function CommandCenter() {
     );
   }
 
+  function resetRealDemoQueueState() {
+    const emptyState = buildEmptyCommandState();
+    setIncidentPackages(emptyState.incidentPackages);
+    setSelectedIncidentId("");
+    setTimeline(emptyState.timeline);
+    setReportSummary(emptyState.reportSummary);
+    setBatchGeneratedAt(null);
+    setChangeSummary(null);
+    setPullStatus(null);
+    setSourceMode(null);
+    setLastIngestionSummary(null);
+  }
+
   // Read localStorage batch on mount (client-only — avoids hydration mismatch).
-  // Real-demo mode stays empty until operations data is connected and pulled.
+  // Real-demo mode never hydrates demo batches — only Pull populates the queue.
   useEffect(() => {
     setSourceAuditEvents(loadSourceAuditEvents());
+    const transcriptRecord = loadRadioTranscriptRecord();
+    setLatestTranscriptRecord(transcriptRecord);
 
-    if (realDemoFlowEnabled && !readOperationsConnected()) {
+    if (realDemoFlowEnabled) {
+      clearDemoIncidentBatch();
+      resetRealDemoQueueState();
       return;
     }
 
     const batch = loadDemoIncidentBatch();
-    const transcriptRecord = loadRadioTranscriptRecord();
-    setLatestTranscriptRecord(transcriptRecord);
 
     if (!batch) {
-      if (!realDemoFlowEnabled && transcriptRecord) {
+      if (transcriptRecord) {
         setTimeline((current) =>
           rebuildTimelineFromPersistedState(
             initialCommandState.incidentPackages,
@@ -301,9 +324,9 @@ export function CommandCenter() {
     setBatchGeneratedAt(batch.generatedAt);
   }, []);
 
-  const selectedIncidentPackage =
-    incidentPackages.find(({ incident }) => incident.id === selectedIncidentId) ??
-    incidentPackages[0];
+  const selectedIncidentPackage = selectedIncidentId
+    ? incidentPackages.find(({ incident }) => incident.id === selectedIncidentId)
+    : undefined;
 
   async function handleSubmit(options?: { confirmedReplace?: boolean }) {
     const plan = planManualReportIngestion({
@@ -414,7 +437,11 @@ export function CommandCenter() {
       if (result.outcome === "ready" || result.outcome === "seeded") {
         markOperationsConnected();
         setOperationsConnected(true);
-        setConnectStatus("Seeded stadium operations data connected.");
+        clearDemoIncidentBatch();
+        resetRealDemoQueueState();
+        setConnectStatus(
+          "Operations data connected. Pull latest reports to load incidents.",
+        );
         return;
       }
 
@@ -438,94 +465,106 @@ export function CommandCenter() {
   }
 
   async function handlePullLatestReports() {
+    if (pullInFlightRef.current) {
+      return;
+    }
+
     const { allowed } = checkRateLimit();
     if (!allowed) {
       setPullStatus("Incidents are up to date. Try again shortly.");
       return;
     }
 
+    pullInFlightRef.current = true;
+    setPullLoading(true);
+    setPullStatus("Pulling latest reports...");
     const previousPackages = incidentPackages;
     recordPull();
 
-    if (isElasticPullEnabled()) {
-      try {
-        const elasticPull = await fetchIngestPull();
-        if (elasticPull.sourceMode === "elastic" && elasticPull.outcome === "success") {
-          const packages = elasticPull.incidentPackages;
-          const enrichedPackages = latestTranscriptRecord
-            ? enrichPackagesWithTranscriptEvidence(
-                packages,
-                latestTranscriptRecord.matchedLines,
-                latestTranscriptRecord.extractedIncidentIds.filter((id) =>
-                  packages.some(({ incident }) => incident.id === id),
-                ),
-              )
-            : packages;
-          const sortedPackages = sortIncidentPackages(enrichedPackages);
-          const nextTimeline = rebuildTimelineFromPersistedState(
-            sortedPackages,
-            elasticPull.timeline,
-            latestTranscriptRecord,
-          );
-          setChangeSummary(buildChangeSummary(previousPackages, sortedPackages));
-          setIncidentPackages(sortedPackages);
-          setSelectedIncidentId((current) =>
-            resolveSelectedIncidentId(sortedPackages, current),
-          );
-          setTimeline(nextTimeline);
-          setReportSummary(buildPostEventReport(sortedPackages, nextTimeline));
-          setSourceMode("elastic");
-          setLastIngestionSummary(elasticPull.ingestionSummary);
-          setPullStatus(
-            `Seeded operations data pulled from Elastic (${sortedPackages.length} incidents).`,
-          );
-          recordSourceAudit(
-            "elastic",
-            elasticPull.ingestionSummary,
-            "success",
-            sortedPackages.length,
-          );
-          return;
+    try {
+      if (isElasticPullEnabled()) {
+        try {
+          const elasticPull = await fetchIngestPull();
+          if (elasticPull.sourceMode === "elastic" && elasticPull.outcome === "success") {
+            const packages = elasticPull.incidentPackages;
+            const enrichedPackages = latestTranscriptRecord
+              ? enrichPackagesWithTranscriptEvidence(
+                  packages,
+                  latestTranscriptRecord.matchedLines,
+                  latestTranscriptRecord.extractedIncidentIds.filter((id) =>
+                    packages.some(({ incident }) => incident.id === id),
+                  ),
+                )
+              : packages;
+            const sortedPackages = sortIncidentPackages(enrichedPackages);
+            const nextTimeline = rebuildTimelineFromPersistedState(
+              sortedPackages,
+              elasticPull.timeline,
+              latestTranscriptRecord,
+            );
+            setChangeSummary(buildChangeSummary(previousPackages, sortedPackages));
+            setIncidentPackages(sortedPackages);
+            setSelectedIncidentId((current) =>
+              resolveSelectedIncidentId(sortedPackages, current),
+            );
+            setTimeline(nextTimeline);
+            setReportSummary(buildPostEventReport(sortedPackages, nextTimeline));
+            setSourceMode("elastic");
+            setLastIngestionSummary(elasticPull.ingestionSummary);
+            setPullStatus(
+              `Seeded operations data pulled from Elastic (${sortedPackages.length} incidents).`,
+            );
+            recordSourceAudit(
+              "elastic",
+              elasticPull.ingestionSummary,
+              "success",
+              sortedPackages.length,
+            );
+            return;
+          }
+        } catch {
+          // Fall through to local demo pull.
         }
-      } catch {
-        // Fall through to local demo pull.
       }
-    }
 
-    const batch = generateDemoIncidentBatch();
-    saveDemoIncidentBatch(batch);
-    const packages = batch.incidents.map(localStorageIncidentToPackage);
-    if (packages.length === 0) return;
-    const enrichedPackages = latestTranscriptRecord
-      ? enrichPackagesWithTranscriptEvidence(
-          packages,
-          latestTranscriptRecord.matchedLines,
-          latestTranscriptRecord.extractedIncidentIds.filter((id) =>
-            packages.some(({ incident }) => incident.id === id),
-          ),
-        )
-      : packages;
-    const sortedPackages = sortIncidentPackages(enrichedPackages);
-    const nextTimeline = rebuildTimelineFromPersistedState(
-      sortedPackages,
-      [],
-      latestTranscriptRecord,
-    );
-    setChangeSummary(buildChangeSummary(previousPackages, sortedPackages));
-    setBatchGeneratedAt(batch.generatedAt);
-    setIncidentPackages(sortedPackages);
-    setSelectedIncidentId((current) =>
-      resolveSelectedIncidentId(sortedPackages, current),
-    );
-    setTimeline(nextTimeline);
-    setReportSummary(buildPostEventReport(sortedPackages, nextTimeline));
-    setPullStatus("Latest demo reports pulled.");
-    recordSourceAudit(
-      "demo",
-      `Demo pull loaded ${sortedPackages.length} incident package(s).`,
-      "success",
-      sortedPackages.length,
-    );
+      const batch = generateDemoIncidentBatch();
+      saveDemoIncidentBatch(batch);
+      const packages = batch.incidents.map(localStorageIncidentToPackage);
+      if (packages.length === 0) return;
+      const enrichedPackages = latestTranscriptRecord
+        ? enrichPackagesWithTranscriptEvidence(
+            packages,
+            latestTranscriptRecord.matchedLines,
+            latestTranscriptRecord.extractedIncidentIds.filter((id) =>
+              packages.some(({ incident }) => incident.id === id),
+            ),
+          )
+        : packages;
+      const sortedPackages = sortIncidentPackages(enrichedPackages);
+      const nextTimeline = rebuildTimelineFromPersistedState(
+        sortedPackages,
+        [],
+        latestTranscriptRecord,
+      );
+      setChangeSummary(buildChangeSummary(previousPackages, sortedPackages));
+      setBatchGeneratedAt(batch.generatedAt);
+      setIncidentPackages(sortedPackages);
+      setSelectedIncidentId((current) =>
+        resolveSelectedIncidentId(sortedPackages, current),
+      );
+      setTimeline(nextTimeline);
+      setReportSummary(buildPostEventReport(sortedPackages, nextTimeline));
+      setPullStatus("Latest demo reports pulled.");
+      recordSourceAudit(
+        "demo",
+        `Demo pull loaded ${sortedPackages.length} incident package(s).`,
+        "success",
+        sortedPackages.length,
+      );
+    } finally {
+      pullInFlightRef.current = false;
+      setPullLoading(false);
+    }
   }
 
   function handleExtractTranscript(text: string, presetId?: string) {
@@ -722,7 +761,12 @@ export function CommandCenter() {
 
   return (
     <div className="workbench-shell">
-      <main className="workbench">
+      <main
+        className="workbench"
+        data-real-demo-flow={realDemoFlowEnabled ? "true" : "false"}
+        data-operations-connected={operationsConnected ? "true" : "false"}
+        data-incidents-pulled={incidentPackages.length > 0 ? "true" : "false"}
+      >
         <CommandHeader
           incidentCount={incidentPackages.length}
           topPriority={topPriority}
@@ -746,6 +790,7 @@ export function CommandCenter() {
           onConnectOperations={() => void handleConnectOperationsData()}
           connectStatus={connectStatus}
           connectLoading={connectLoading}
+          pullLoading={pullLoading}
           ingestionRefreshKey={ingestionRefreshKey}
         />
 
@@ -757,7 +802,7 @@ export function CommandCenter() {
               onSelect={setSelectedIncidentId}
               emptyMessage={
                 realDemoFlowEnabled && incidentPackages.length === 0
-                  ? "No operations data connected. Connect stadium operations data to load current incidents from Elastic."
+                  ? getRealDemoQueueEmptyMessage(operationsConnected)
                   : null
               }
             />
@@ -782,12 +827,12 @@ export function CommandCenter() {
               <section className="ops-panel flex h-full min-h-0 flex-col overflow-hidden">
                 <h2 className="ops-heading text-lg" data-testid="workspace-empty-title">
                   {realDemoFlowEnabled
-                    ? "No operations data connected"
+                    ? getRealDemoWorkspaceEmptyTitle(operationsConnected)
                     : "No incidents matched the current report"}
                 </h2>
                 <p className="mt-2 max-w-[60ch] text-sm leading-6 text-slate-600">
                   {realDemoFlowEnabled
-                    ? "Connect stadium operations data to load current incidents from Elastic, then pull latest reports."
+                    ? getRealDemoWorkspaceEmptyBody(operationsConnected)
                     : "Use the demo scenario text to restore the dispatch queue, active incident workspace, and utility drawer workflow."}
                 </p>
               </section>

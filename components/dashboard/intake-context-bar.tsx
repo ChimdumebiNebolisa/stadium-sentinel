@@ -27,6 +27,7 @@ type IntakeContextBarProps = {
   onConnectOperations?: () => void;
   connectStatus?: string | null;
   connectLoading?: boolean;
+  pullLoading?: boolean;
   ingestionRefreshKey?: number;
 };
 
@@ -48,6 +49,7 @@ export function IntakeContextBar({
   onConnectOperations,
   connectStatus,
   connectLoading = false,
+  pullLoading = false,
   ingestionRefreshKey = 0,
 }: IntakeContextBarProps) {
   const [mounted, setMounted] = useState(false);
@@ -119,18 +121,25 @@ export function IntakeContextBar({
               {connectLoading ? "Connecting…" : "Connect operations data"}
             </button>
           ) : null}
-          <button
-            type="button"
-            data-testid="pull-latest-reports"
-            disabled={!pullEnabled}
-            onClick={onPullReports}
-            className="rounded-md border border-blue-500/40 bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-45"
-          >
-            Pull latest reports
-          </button>
+          {mounted && (!realDemoFlow || operationsConnected) ? (
+            <button
+              type="button"
+              data-testid="pull-latest-reports"
+              disabled={!pullEnabled || pullLoading}
+              onClick={onPullReports}
+              className="rounded-md border border-blue-500/40 bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-45"
+            >
+              {pullLoading ? "Pulling reports..." : "Pull latest reports"}
+            </button>
+          ) : null}
           {mounted && realDemoFlow && !operationsConnected ? (
             <p className="text-xs text-slate-500" data-testid="pull-helper-text">
               Connect operations data first.
+            </p>
+          ) : null}
+          {mounted && realDemoFlow && operationsConnected && batchCount === 0 ? (
+            <p className="text-xs text-slate-500" data-testid="pull-ready-helper-text">
+              Pull latest reports to load incidents.
             </p>
           ) : null}
           {mounted && !realDemoFlow && !sourcesConnected ? (

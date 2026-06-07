@@ -1,14 +1,12 @@
-# Stadium Sentinel — Real Demo Script
+# Stadium Sentinel Real Demo Script
 
-Use this script for the **Google Cloud Rapid Agent Hackathon** real-demo path: seeded Elastic operations data on **Google Cloud Run**, server-side bootstrap, Elastic-first Pull, Sentinel agent route, and operator-approved write-back.
+Use this script for the Google Cloud Run real-demo path: seeded Elastic operations data, server-side bootstrap, Elastic-backed pull, Sentinel question-and-answer, and operator-approved write-back.
 
-For the offline typed-Sentinel recording path without credentials, use [`demo-recording-checklist.md`](demo-recording-checklist.md).
+For the offline fallback recording path, use `docs/demo-recording-checklist.md`.
 
----
+## Before recording
 
-## Before you record
-
-### Local verification (no secrets printed)
+### Local verification
 
 ```bash
 npm install
@@ -16,105 +14,106 @@ npm run dev
 node scripts/verify-real-demo.mjs
 ```
 
-### Google Cloud Run (hackathon deployment)
+### Google Cloud Run build-time flags
 
-**Build-time** — set in Cloud Build before `npm run build`:
+Set these before `npm run build`:
 
 - `NEXT_PUBLIC_REAL_DEMO_FLOW=true`
 - `NEXT_PUBLIC_ENABLE_ELASTIC_PULL=true`
 - `NEXT_PUBLIC_ENABLE_SENTINEL_AGENT=true`
-- `NEXT_PUBLIC_ENABLE_SENTINEL_VOICE=true` (optional, voice-first Sentinel)
+- `NEXT_PUBLIC_ENABLE_SENTINEL_VOICE=true` for voice-first, otherwise `false`
 - `NEXT_PUBLIC_SHOW_VENUE_ORIENTATION=false`
 - `NEXT_PUBLIC_SHOW_RADIO_TRANSCRIPT=false`
 
-**Runtime** — Cloud Run service environment variables (use Secret Manager for secrets):
+These flags are build-time only. Updating them on the Cloud Run service without rebuilding the image will not change client behavior.
 
-- `ELASTICSEARCH_URL`, `ELASTICSEARCH_API_KEY` (or `ELASTIC_API_KEY`)
+### Google Cloud Run runtime env
+
+Set these on the Cloud Run service:
+
+- `ELASTICSEARCH_URL`
+- `ELASTICSEARCH_API_KEY` or `ELASTIC_API_KEY`
 - `AGENT_BACKEND_ENABLED=true`
-- `GOOGLE_CLOUD_PROJECT`, `GOOGLE_CLOUD_LOCATION`, `VERTEX_MODEL`
-- Cloud Run service account with Vertex AI access (ADC; avoid baking key files into the image)
+- `GOOGLE_CLOUD_PROJECT`
+- `GOOGLE_CLOUD_LOCATION`
+- `VERTEX_MODEL`
+- Cloud Run service account with Vertex access through ADC, or `GOOGLE_APPLICATION_CREDENTIALS`
+- `STADIUM_SENTINEL_BASE_URL` only if the optional MCP bridge is deployed
 
-Local dev only (not required on deployed demo):
+Local development may still use:
 
 ```bash
-npm run index:elastic   # optional; deployed UI uses POST /api/ingest/bootstrap instead
+npm run index:elastic
 ```
 
----
+That command is local-only and not required in the deployed demo.
 
-## Demo flow (5–7 minutes)
+## Deployed demo script
 
-### 1. Open command center
+### 1. Open the command center
 
-- Explain: **seeded stadium operations data**, not live ingestion.
-- Landing CTA → `/command` starts **empty / disconnected** when real-demo flow is enabled.
-- Ingestion banner describes Elastic readiness; local fallback remains available but is not the headline path.
+- Start on the landing page and open `/command`.
+- Explain that the app uses seeded stadium operations data, not live stadium feeds.
+- In the real-demo build, `/command` starts empty and disconnected.
 
 ### 2. Connect operations data
 
-- Click **Connect operations data** on `/command`.
-- Cloud Run runs `POST /api/ingest/bootstrap` — seeds or verifies Elastic indices server-side.
-- No terminal command required in the deployed demo.
+- Click `Connect operations data`.
+- This calls `POST /api/ingest/bootstrap` on Cloud Run.
+- Explain that the service seeds or verifies the Elastic indices server-side.
 
 ### 3. Pull latest reports
 
-- Click **Pull latest reports**.
-- **With Elastic configured:** `Seeded operations data pulled from Elastic (N incidents).`
-- **Without Elastic:** `Latest demo reports pulled.` (fallback)
-- Show source log entry with `elastic` or `demo` source mode.
-- Queue sorted by priority: Immediate → High → Moderate → Monitor.
+- Click `Pull latest reports`.
+- This calls `POST /api/ingest/pull`.
+- With Elastic configured, the queue loads seeded Elastic-backed incidents.
+- Without Elastic configured, the app falls back to the local demo path.
 
-### 4. Select top incident
+### 4. Select the top incident
 
-- Select the top incident (typically guest assistance at Section 112).
-- Show evidence in workspace/drawer — grounded in seeded ops docs.
+- Select the top priority incident.
+- Show the active workspace and operations timeline.
+- Keep the explanation focused on operations response, not venue visualization.
 
 ### 5. Ask Sentinel
 
-- Open **Ask Sentinel**.
-- **Voice-first** when `NEXT_PUBLIC_ENABLE_SENTINEL_VOICE=true`: push-to-talk → review transcript → press **Ask** (no auto-submit).
-- **Typed fallback** always available in “Type a question.”
-- Suggested questions:
+- Open `Ask Sentinel`.
+- If voice-first is enabled, use push-to-talk, review the transcript, then press `Ask`.
+- If voice-first is disabled, type the question manually.
+- Suggested prompts:
   - `What should I do first?`
   - `What evidence supports this?`
-  - `What did the radio log add?`
-- Show answer, evidence chips, citations, and recommended action when agent backend is live.
-- **Without Gemini:** deterministic local fallback still answers.
+  - `What changed after pull latest reports?`
 
-### 6. Approve action
+### 6. Approve the next action
 
-- Approve checklist action or **Apply Sentinel recommendation** when shown.
-- Human approval required — Sentinel does not autonomously dispatch.
-- **With Elastic:** write-back to `stadium_dispatch_timeline` and `stadium_incident_memory`.
-- Show timeline update and source log.
+- Show the grounded answer, evidence, citations, and recommended action.
+- Approve one action.
+- This calls `POST /api/timeline/write`.
+- Show the updated timeline and source log.
 
 ### 7. Close
 
-- Mention fallback: same UI loads with zero credentials.
-- Do **not** show venue orientation (hidden by default).
-- Do **not** claim in-app MCP usage — retrieval is direct Elastic search in-app.
-
----
+- State that human approval is required before write-back.
+- State that local fallback remains available if Elastic or Vertex are not configured.
+- Do not claim in-app MCP usage unless you are actually demonstrating the optional external bridge.
 
 ## Wording guardrails
 
-Use **priority** only: Immediate, High, Moderate, Monitor.
+Use `priority` only: Immediate, High, Moderate, Monitor.
 
 Do not say: Critical, Low, severity, confidence, score, or numeric scoring.
 
-Do not claim live ingestion unless it is truly live.
+Do not call the product a venue map, seat map, ticketing product, CRM dashboard, or analytics dashboard.
 
-Do not reference Vercel deployment — this app targets **Google Cloud Run**.
-
----
+Do not claim Vercel deployment.
 
 ## Troubleshooting
 
 | Symptom | Check |
-|---------|--------|
-| Command center shows preloaded demo incidents | `NEXT_PUBLIC_REAL_DEMO_FLOW` not `true` at **build** time — rebuild image |
-| Connect does nothing useful | Elastic runtime env missing on Cloud Run service |
-| Pull shows demo wording | Elastic empty or unconfigured — use Connect operations data first |
-| Sentinel shows local fallback | `AGENT_BACKEND_ENABLED` not `true` or Vertex/ADC missing on Cloud Run |
-| Voice button missing | `NEXT_PUBLIC_ENABLE_SENTINEL_VOICE` not `true` at build time |
-| Bootstrap slow on first connect | Normal — 12 index bulk operations on cold serverless |
+| --- | --- |
+| `/command` shows preloaded incidents in the real-demo build | `NEXT_PUBLIC_REAL_DEMO_FLOW` was not `true` during image build |
+| Connect does not enable the real-demo path | Elastic runtime env is missing or bootstrap failed |
+| Pull falls back to local demo wording | Elastic is unconfigured, empty, or bootstrap was skipped |
+| Sentinel falls back to deterministic answers | `AGENT_BACKEND_ENABLED` is not `true`, Vertex env is incomplete, or ADC is unavailable |
+| Voice controls are missing | `NEXT_PUBLIC_ENABLE_SENTINEL_VOICE` was not `true` during image build |

@@ -1,145 +1,127 @@
 # Stadium Sentinel
 
-Stadium Sentinel is a Next.js incident operations command center for live soccer stadium response workflows.
+Stadium Sentinel is a Next.js incident operations command center for live soccer-stadium response workflows.
+
+It is not a map product, seat-map product, ticketing product, CRM dashboard, or analytics dashboard.
 
 ## Commands
 
 ```bash
 npm run dev
 npm run build
+npm run start
 npm test
 npm run test:e2e
+node scripts/verify-real-demo.mjs
 ```
 
-## Demo Input
+## Demo input
 
 ```text
 Gate B is backed up, Elevator 4 is down, and a guest near Section 112 needs wheelchair access.
 ```
 
-## Product Direction
+## Current scope
 
-- Stadium Sentinel is a soccer stadium incident operations product.
-- The primary desktop layout is a 2-section command center:
-  - left dispatch queue
-  - right active incident workspace
-  - bottom utility drawer
-- The main value is operational response workflow, not venue visualization.
-- The product is not a map product, seat-map product, ticketing product, or CRM-style admin dashboard.
+- Deterministic parsing into exactly three incidents for the local fallback path
+- Priority-based incident queue with no numeric scoring
+- Active incident workspace with evidence, response checklist, operations timeline, and report draft
+- Elastic-seeded bootstrap and pull flow for the real demo
+- Sentinel question-and-answer route with deterministic fallback when backend services are unavailable
+- Approval-driven timeline write-back with local fallback
 
-## Current Scope
+## Product direction
 
-- Deterministic parsing into exactly three incidents
-- Scoreless priority-based incident queue
-- Active incident workspace with response checklist, team assignment, timeline summary, and evidence feed
-- Drawer-based supporting artifacts: sourced evidence, staff update, full timeline, and report workspace
-- Seeded operational evidence spanning policies, runbooks, historical incidents, locations, and staff response rules
-- Approval-driven timeline entries
-- Post-event report preview
+- Stadium Sentinel is a soccer-stadium incident operations command center.
+- The main monitoring surface is the operations timeline.
+- Venue orientation is hidden by default for the real-demo build.
+- Local fallback remains available when Elastic or Vertex are not configured.
 
-## Binding Constraints
+## Retrieval and agent path
 
-- No full seat-map package
-- No seat-map libraries
-- No seat selection
-- No ticketing UI or ticket purchase flows
-- No seat chart editor
-- No numeric score, confidence score, or severity score UI
+- `POST /api/ingest/bootstrap` seeds or verifies Elastic-backed operations data when configured.
+- `POST /api/ingest/pull` loads Elastic-backed incidents when available and falls back to the local demo batch otherwise.
+- `POST /api/sentinel` uses Gemini on Vertex only when `AGENT_BACKEND_ENABLED=true` and server credentials are available.
+- `POST /api/timeline/write` attempts Elastic write-back and still records a local approval result when Elastic is unavailable.
+- The in-app path uses direct Elastic retrieval. MCP is not used in the app runtime path unless you deploy the optional bridge described in [docs/ELASTIC_BUILDER_MCP_SETUP.md](docs/ELASTIC_BUILDER_MCP_SETUP.md).
 
-## Working Retrieval Path
+## Environment strategy
 
-- `POST /api/agent` runs the code-based orchestration path.
-- The orchestrator always parses and builds the deterministic baseline first.
-- If `AGENT_BACKEND_ENABLED=true`, the backend retrieves context from Elastic, calls Gemini on Vertex AI, validates the strict JSON response, and applies only validated enrichments.
-- If Elastic is unavailable or sparse, the backend merges in local context from the seeded data.
-- If Gemini or validation fails, the app falls back to the deterministic local response so the demo and tests still run.
-- If `AGENT_BACKEND_ENABLED=false`, the current mock-first behavior remains unchanged.
+### Build-time client flags
 
-## Hackathon Alignment
+`NEXT_PUBLIC_*` values are inlined during `npm run build`. For Google Cloud Run, set them in Cloud Build or Docker build args before the image is built.
 
-**Forward plan:** [`docs/real-demo-restructure-plan.md`](docs/real-demo-restructure-plan.md) — Elastic-seeded ops data, Elastic-first Pull, Sentinel agent route, write-back loop. **Fallback snapshot:** [`docs/demo-recording-checklist.md`](docs/demo-recording-checklist.md).
+- `NEXT_PUBLIC_REAL_DEMO_FLOW=true`
+- `NEXT_PUBLIC_ENABLE_ELASTIC_PULL=true`
+- `NEXT_PUBLIC_ENABLE_SENTINEL_AGENT=true`
+- `NEXT_PUBLIC_ENABLE_SENTINEL_VOICE=true` for a voice-first recording, otherwise `false`
+- `NEXT_PUBLIC_SHOW_VENUE_ORIENTATION=false`
+- `NEXT_PUBLIC_SHOW_RADIO_TRANSCRIPT=false`
 
-- Elastic is the current context, retrieval, and memory layer in the app path.
-- Elasticsearch indexes hold operational playbooks, locations, incident examples, and evidence.
-- Vertex AI / Gemini is the reasoning and enrichment layer that refines the deterministic incident packages.
-- The deterministic parser and fallback path remain the safety rail for count, ids, and recovery behavior.
-- The current implementation uses direct Elasticsearch retrieval from the app backend.
-- Elastic Agent Builder, MCP-served tools, ES|QL-backed tools, and Elastic workflows are valid future extensions for this project, but they are not implemented in the current app path and should not be described as shipped behavior.
+Changing these after deploy requires a rebuild and a new Cloud Run revision.
 
-## Environment
+### Runtime server environment
 
-Set these server-side only:
+Set these on the Cloud Run service. Do not expose them to the client.
 
-- `AGENT_BACKEND_ENABLED`
 - `ELASTICSEARCH_URL`
-- `ELASTICSEARCH_API_KEY`
+- `ELASTICSEARCH_API_KEY` or `ELASTIC_API_KEY`
+- `AGENT_BACKEND_ENABLED=true`
+- `GOOGLE_CLOUD_PROJECT`
+- `GOOGLE_CLOUD_LOCATION`
+- `VERTEX_MODEL`
+- `GOOGLE_APPLICATION_CREDENTIALS` only when you are not relying on the Cloud Run service account / ADC
+- `STADIUM_SENTINEL_BASE_URL` only when the optional MCP bridge is deployed
+
+Optional index overrides:
+
 - `ELASTICSEARCH_PLAYBOOKS_INDEX`
 - `ELASTICSEARCH_LOCATIONS_INDEX`
 - `ELASTICSEARCH_INCIDENT_EXAMPLES_INDEX`
 - `ELASTICSEARCH_EVIDENCE_INDEX`
-- `GOOGLE_CLOUD_PROJECT`
-- `GOOGLE_CLOUD_LOCATION`
-- `VERTEX_MODEL`
-- `GOOGLE_APPLICATION_CREDENTIALS`
-
-Compatibility aliases still work for now:
-
-- `ELASTIC_API_KEY`
-- `GEMINI_MODEL`
-
-Do not expose any of these to the client. For Google Cloud Run deployments, provide secrets via **Secret Manager** (or equivalent) as runtime environment variables on the Cloud Run service — never commit them to the repo.
+- `ELASTICSEARCH_ACTIVE_INCIDENTS_INDEX`
+- `ELASTICSEARCH_GUEST_ASSISTANCE_INDEX`
+- `ELASTICSEARCH_FACILITY_STATUS_INDEX`
+- `ELASTICSEARCH_GATE_FLOW_LOGS_INDEX`
+- `ELASTICSEARCH_STAFF_ROSTER_INDEX`
+- `ELASTICSEARCH_POLICIES_INDEX`
+- `ELASTICSEARCH_RADIO_TRANSCRIPTS_INDEX`
+- `ELASTICSEARCH_DISPATCH_TIMELINE_INDEX`
+- `ELASTICSEARCH_INCIDENT_MEMORY_INDEX`
 
 ## Google Cloud Run deployment
 
-Stadium Sentinel is a Next.js app intended for **Google Cloud Run** (Rapid Agent Hackathon), not a Vercel-specific deployment.
+This project targets Google Cloud Run, not Vercel.
 
-### Build-time client flags (`NEXT_PUBLIC_*`)
+### Container path
 
-Set before `npm run build` in **Cloud Build** or your container build step:
+- `next.config.ts` uses `output: "standalone"` for container deployment.
+- `Dockerfile` builds the app with explicit `NEXT_PUBLIC_*` build args and runs the standalone server on port `8080`.
+- `.dockerignore` excludes local secrets and untracked artifacts from the image build context.
 
-| Variable | Hackathon demo |
-|----------|----------------|
-| `NEXT_PUBLIC_REAL_DEMO_FLOW` | `true` |
-| `NEXT_PUBLIC_ENABLE_ELASTIC_PULL` | `true` (default) |
-| `NEXT_PUBLIC_ENABLE_SENTINEL_AGENT` | `true` (default) |
-| `NEXT_PUBLIC_ENABLE_SENTINEL_VOICE` | `true` if voice-first demo |
-| `NEXT_PUBLIC_SHOW_VENUE_ORIENTATION` | `false` |
-| `NEXT_PUBLIC_SHOW_RADIO_TRANSCRIPT` | `false` |
+### Cloud Run checklist
 
-These are inlined into the client bundle at build time. Updating them on a running Cloud Run revision alone is not enough — rebuild and redeploy the image.
+1. Build the image with the required `NEXT_PUBLIC_*` flags.
+2. Deploy the container to Cloud Run.
+3. Set runtime secrets and server env vars on the Cloud Run service.
+4. Use a Cloud Run service account with Vertex access when Sentinel backend is enabled.
+5. Open `/command`, connect operations data, pull latest reports, ask Sentinel, and approve one action.
 
-### Cloud Run runtime environment (server-only)
+## Real-demo flow
 
-| Variable | Purpose |
-|----------|---------|
-| `ELASTICSEARCH_URL` | Elastic cluster URL |
-| `ELASTICSEARCH_API_KEY` or `ELASTIC_API_KEY` | Elastic API key (prefer Secret Manager) |
-| `AGENT_BACKEND_ENABLED` | `true` for live Gemini Sentinel |
-| `GOOGLE_CLOUD_PROJECT` | Vertex project |
-| `GOOGLE_CLOUD_LOCATION` | Vertex region |
-| `VERTEX_MODEL` | e.g. `gemini-2.5-flash` |
-| ADC / service account | Cloud Run service account with Vertex access (preferred over `GOOGLE_APPLICATION_CREDENTIALS` file) |
-| `STADIUM_SENTINEL_BASE_URL` | Public Cloud Run URL (MCP bridge only) |
+1. Landing CTA opens `/command`.
+2. When `NEXT_PUBLIC_REAL_DEMO_FLOW=true`, `/command` starts empty and disconnected.
+3. Connect operations data calls `POST /api/ingest/bootstrap`.
+4. Pull latest reports calls `POST /api/ingest/pull`.
+5. Ask Sentinel calls `POST /api/sentinel`.
+6. Approve action calls `POST /api/timeline/write`.
+7. Local fallback remains available if credentials are absent.
 
-### Deployed demo flow
+No terminal command is required in the deployed demo. `npm run index:elastic` is for local setup only.
 
-1. Landing CTA → `/command` (empty / disconnected when `NEXT_PUBLIC_REAL_DEMO_FLOW=true`)
-2. **Connect operations data** → `POST /api/ingest/bootstrap` on the Cloud Run service
-3. **Pull latest reports** → `POST /api/ingest/pull` (seeded Elastic incidents)
-4. Ask Sentinel (voice-first when voice flag enabled) → approve → write-back to Elastic
+## Supporting docs
 
-Local dev may still use `npm run index:elastic` before recording; the deployed demo does not require a terminal seed command.
-
-**Follow-up:** A `GET /api/runtime-config` route could allow runtime toggling of client flags without rebuilds; not implemented yet.
-
-## Seed Data
-
-- Deterministic local operational documents live in `data/operational-knowledge.json`.
-- Elastic seed sets live in `data/elastic/`.
-- The indexing script is `npm run index:elastic`.
-
-## Partner Track Notes
-
-- The project is aligned with the Rapid Agent Hackathon resource framing around context retrieval, memory, MCP tools, ES|QL tools, and workflow-based extensions.
-- What is implemented now: direct Elasticsearch retrieval plus Vertex/Gemini enrichment with deterministic fallback.
-- What is not implemented now: Elastic Agent Builder in the app path, Elastic MCP server tool calls in the app path, or ES|QL-backed callable tools.
+- [docs/real-demo-script.md](docs/real-demo-script.md)
+- [docs/devpost-talking-points.md](docs/devpost-talking-points.md)
+- [docs/INGESTION_DEPLOY_CHECKLIST.md](docs/INGESTION_DEPLOY_CHECKLIST.md)
+- [docs/ELASTIC_BUILDER_MCP_SETUP.md](docs/ELASTIC_BUILDER_MCP_SETUP.md)

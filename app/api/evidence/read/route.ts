@@ -14,10 +14,16 @@ type EvidenceReadRequest = {
 };
 
 export async function POST(request: Request) {
-  const body = (await request.json()) as EvidenceReadRequest;
+  const body = (await request.json().catch(() => null)) as EvidenceReadRequest | null;
   const elasticConfigured = isElasticConfigured();
 
-  if (!body.incidentTitle || !body.locationName || !body.priority) {
+  if (
+    body === null ||
+    typeof body !== "object" ||
+    !body.incidentTitle ||
+    !body.locationName ||
+    !body.priority
+  ) {
     return NextResponse.json(
       { error: "incidentTitle, locationName, and priority are required." },
       { status: 400 },

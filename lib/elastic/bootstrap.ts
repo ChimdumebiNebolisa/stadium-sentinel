@@ -32,7 +32,7 @@ function getRepoRoot(): string {
 }
 
 async function readJson<T>(relativePath: string): Promise<T> {
-  const filePath = path.join(getRepoRoot(), relativePath);
+  const filePath = path.join(getRepoRoot(), "data", "elastic", relativePath);
   return JSON.parse(await fs.readFile(filePath, "utf8")) as T;
 }
 
@@ -89,18 +89,18 @@ export async function loadSeedSets(): Promise<SeedSet[]> {
     radioTranscripts,
     dispatchTimeline,
   ] = await Promise.all([
-    readJson<SeedDocument[]>("data/elastic/stadium_playbooks.json"),
-    readJson<SeedDocument[]>("data/elastic/stadium_locations.json"),
-    readJson<SeedDocument[]>("data/elastic/stadium_incident_examples.json"),
-    readJson<SeedDocument[]>("data/elastic/stadium_evidence.json"),
-    readJson<SeedDocument[]>("data/elastic/stadium_active_incidents.json"),
-    readJson<SeedDocument[]>("data/elastic/stadium_guest_assistance.json"),
-    readJson<SeedDocument[]>("data/elastic/stadium_facility_status.json"),
-    readJson<SeedDocument[]>("data/elastic/stadium_gate_flow_logs.json"),
-    readJson<SeedDocument[]>("data/elastic/stadium_staff_roster.json"),
-    readJson<SeedDocument[]>("data/elastic/stadium_policies.json"),
-    readJson<SeedDocument[]>("data/elastic/stadium_radio_transcripts.json"),
-    readJson<SeedDocument[]>("data/elastic/stadium_dispatch_timeline.json"),
+    readJson<SeedDocument[]>("stadium_playbooks.json"),
+    readJson<SeedDocument[]>("stadium_locations.json"),
+    readJson<SeedDocument[]>("stadium_incident_examples.json"),
+    readJson<SeedDocument[]>("stadium_evidence.json"),
+    readJson<SeedDocument[]>("stadium_active_incidents.json"),
+    readJson<SeedDocument[]>("stadium_guest_assistance.json"),
+    readJson<SeedDocument[]>("stadium_facility_status.json"),
+    readJson<SeedDocument[]>("stadium_gate_flow_logs.json"),
+    readJson<SeedDocument[]>("stadium_staff_roster.json"),
+    readJson<SeedDocument[]>("stadium_policies.json"),
+    readJson<SeedDocument[]>("stadium_radio_transcripts.json"),
+    readJson<SeedDocument[]>("stadium_dispatch_timeline.json"),
   ]);
 
   return [
