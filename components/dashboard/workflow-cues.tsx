@@ -54,10 +54,13 @@ export function WorkflowCues({
         </button>
       </div>
 
-      <div className="mt-5 border-t border-slate-200 pt-4">
-        <h4 className="text-sm font-semibold text-[#07111c]">Follow-up questions</h4>
+      <div className="mt-3 border-t border-slate-200 pt-3">
+        <h4 className="text-xs font-semibold text-[#07111c]">Follow-up questions</h4>
+        <p className="mt-1 text-xs text-slate-500">
+          Staff follow-ups are also available in Ask Sentinel.
+        </p>
         <ul
-          className="mt-2 space-y-2 text-sm text-slate-700"
+          className="mt-1.5 space-y-1 text-xs text-slate-700"
           data-testid="follow-up-questions"
         >
           {followUpQuestions.map((question) => (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { ActiveIncidentWorkspace } from "@/components/dashboard/active-incident-workspace";
 import { CommandHeader } from "@/components/dashboard/command-header";
@@ -29,6 +29,7 @@ import {
 } from "@/lib/demo-agent-workflow";
 import { buildDemoState } from "@/lib/demo";
 import { buildPostEventReport } from "@/lib/report";
+import type { CommandState } from "@/lib/sentinel-command-agent";
 import type {
   AgentRunResult,
   IncidentPackage,
@@ -239,6 +240,31 @@ export function CommandCenter() {
     batchGeneratedAt,
   );
 
+  const commandState = useMemo<CommandState>(
+    () => ({
+      incidentPackages,
+      selectedIncidentPackage,
+      timeline,
+      changeSummary,
+      batchGeneratedAt,
+      pullStatus,
+      reportSummary,
+      demoReportDraft,
+      demoMemorySummary,
+    }),
+    [
+      incidentPackages,
+      selectedIncidentPackage,
+      timeline,
+      changeSummary,
+      batchGeneratedAt,
+      pullStatus,
+      reportSummary,
+      demoReportDraft,
+      demoMemorySummary,
+    ],
+  );
+
   function openWorkspace(view: WorkspaceView) {
     setActiveWorkspace(view);
   }
@@ -276,6 +302,7 @@ export function CommandCenter() {
             {selectedIncidentPackage ? (
               <ActiveIncidentWorkspace
                 incidentPackage={selectedIncidentPackage}
+                commandState={commandState}
                 timeline={timeline}
                 onApprove={handleApprove}
               />

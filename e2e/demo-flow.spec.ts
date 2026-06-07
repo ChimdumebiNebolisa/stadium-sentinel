@@ -37,6 +37,34 @@ async function openSentinelPanel(page: Page) {
   await expect(page.getByTestId("sentinel-panel")).toBeVisible();
 }
 
+async function askSentinel(page: Page, question: string) {
+  await page.getByTestId("sentinel-question-input").fill(question);
+  await page.getByTestId("sentinel-question-input").press("Enter");
+  await expect(page.getByTestId("sentinel-answer")).toBeVisible();
+}
+
+async function assertNoForbiddenWording(text: string) {
+  expect(text).not.toMatch(/\bCritical\b/);
+  expect(text).not.toMatch(/\bLow\b(?!\s+operational)/i);
+  expect(text).not.toMatch(/\bseverity\b/i);
+  expect(text).not.toMatch(/\bconfidence\b/i);
+  expect(text).not.toMatch(/\bscore\b/i);
+}
+
+async function enableDemoSources(page: Page) {
+  await page.evaluate(() => {
+    localStorage.setItem("stadium-sentinel-demo-sources-connected", "true");
+  });
+  await page.reload();
+}
+
+async function pullLatestReports(page: Page) {
+  await page.getByTestId("pull-latest-reports").click();
+  await expect(page.getByTestId("pull-status")).toHaveText("Latest demo reports pulled.", {
+    timeout: 5_000,
+  });
+}
+
 test("demo report renders the command-center shell and preserves the response workflow", async ({
   page,
 }) => {
@@ -168,33 +196,80 @@ test("command file section updates when a different incident is selected", async
   await expect(page.getByTestId("command-file-section")).toContainText("Elevator 4");
 });
 
-test("sentinel control appears and opens explanation on default incidents", async ({
+test("sentinel control opens compact Q&A panel on default incidents", async ({
   page,
 }) => {
   await page.goto("/command");
 
   await expect(page.getByTestId("sentinel-control")).toBeVisible();
   await openSentinelPanel(page);
-  await expect(page.getByText("Why this priority")).toBeVisible();
-  await expect(page.getByText("Why this team")).toBeVisible();
-  await expect(page.getByText("What evidence supports it")).toBeVisible();
-  await expect(page.getByText("Next recommended action")).toBeVisible();
+  await expect(page.getByText("Ask about this incident")).toBeVisible();
+  await expect(page.getByText("Sentinel reads the current command state.")).toBeVisible();
+  await expect(page.getByTestId("sentinel-question-input")).toBeVisible();
+  await expect(page.getByTestId("sentinel-suggested-question").count()).resolves.toBeGreaterThanOrEqual(3);
+  await expect(page.getByTestId("sentinel-suggested-question").count()).resolves.toBeLessThanOrEqual(5);
 });
 
-test("sentinel explanation works after pull latest reports", async ({ page }) => {
+test("sentinel suggested question produces an answer", async ({ page }) => {
   await page.goto("/command");
-  await page.evaluate(() => {
-    localStorage.setItem("stadium-sentinel-demo-sources-connected", "true");
-  });
-  await page.reload();
+  await openSentinelPanel(page);
 
-  await page.getByTestId("pull-latest-reports").click();
-  await expect(page.getByTestId("pull-status")).toHaveText("Latest demo reports pulled.", {
-    timeout: 5_000,
-  });
+  await page.getByTestId("sentinel-suggested-question").first().click();
+  const answer = page.getByTestId("sentinel-answer");
+  await expect(answer).toBeVisible();
+  await expect(answer).not.toBeEmpty();
+});
+
+test("sentinel answers what should I do first on default incidents", async ({
+  page,
+}) => {
+  await page.goto("/command");
+  await openSentinelPanel(page);
+  await askSentinel(page, "What should I do first?");
+
+  const answerText = (await page.getByTestId("sentinel-answer").textContent()) ?? "";
+  expect(answerText).toMatch(/Guest Services|Dispatch|Section 112/i);
+});
+
+test("sentinel answers evidence question with current evidence", async ({ page }) => {
+  await page.goto("/command");
+  await openSentinelPanel(page);
+  await askSentinel(page, "What evidence supports this?");
+
+  const answerText = (await page.getByTestId("sentinel-answer").textContent()) ?? "";
+  expect(answerText.length).toBeGreaterThan(20);
+});
+
+test("sentinel answers what changed after pull latest reports", async ({ page }) => {
+  await page.goto("/command");
+  await enableDemoSources(page);
+  await pullLatestReports(page);
 
   await openSentinelPanel(page);
-  await expect(page.getByTestId("sentinel-panel").locator("dd").first()).not.toBeEmpty();
+  await askSentinel(page, "What changed?");
+
+  const answerText = (await page.getByTestId("sentinel-answer").textContent()) ?? "";
+  expect(answerText).toMatch(/New:|Top priority:/i);
+});
+
+test("sentinel drafts a radio update", async ({ page }) => {
+  await page.goto("/command");
+  await openSentinelPanel(page);
+  await askSentinel(page, "Draft a radio update.");
+
+  const answerText = (await page.getByTestId("sentinel-answer").textContent()) ?? "";
+  expect(answerText).toMatch(/dispatch/i);
+  expect(answerText).toMatch(/priority/i);
+});
+
+test("sentinel Q&A avoids forbidden wording", async ({ page }) => {
+  await page.goto("/command");
+  await openSentinelPanel(page);
+  await askSentinel(page, "What should I do first?");
+
+  const panelText =
+    (await page.getByTestId("sentinel-panel").textContent()) ?? "";
+  await assertNoForbiddenWording(panelText);
 });
 
 test("sentinel panel closes when selected incident changes", async ({ page }) => {

@@ -2,10 +2,12 @@ import { PriorityBadge } from "@/components/dashboard/priority-badge";
 import { SentinelInline } from "@/components/dashboard/sentinel-inline";
 import { WorkflowCues } from "@/components/dashboard/workflow-cues";
 import { getLocationRecord } from "@/lib/data";
+import type { CommandState } from "@/lib/sentinel-command-agent";
 import type { IncidentPackage, TimelineEntry } from "@/lib/types";
 
 type ActiveIncidentWorkspaceProps = {
   incidentPackage: IncidentPackage;
+  commandState: CommandState;
   timeline: TimelineEntry[];
   onApprove: (incidentId: string, action: string, actionIndex: number) => void;
 };
@@ -258,6 +260,7 @@ function WorkspaceSectionTitle({
 
 export function ActiveIncidentWorkspace({
   incidentPackage,
+  commandState,
   timeline,
   onApprove,
 }: ActiveIncidentWorkspaceProps) {
@@ -316,7 +319,7 @@ export function ActiveIncidentWorkspace({
               >
                 {incident.title}
               </h3>
-              <SentinelInline incidentPackage={incidentPackage} />
+              <SentinelInline commandState={commandState} />
               <p className="mt-3 text-[0.98rem] text-slate-600">
                 {location?.name ?? incident.locationLabel} •{" "}
                 {location ? formatZoneLayer(location.zoneLayer) : "Operations"} •{" "}

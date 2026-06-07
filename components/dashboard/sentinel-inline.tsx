@@ -1,22 +1,44 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 
-import { buildSentinelExplanation } from "@/components/dashboard/sentinel-explanation";
-import type { IncidentPackage } from "@/lib/types";
+import {
+  answerSentinelQuestion,
+  buildDefaultSentinelBrief,
+  buildSuggestedSentinelQuestions,
+  type CommandState,
+} from "@/lib/sentinel-command-agent";
 
 type SentinelInlineProps = {
-  incidentPackage: IncidentPackage;
+  commandState: CommandState;
 };
 
-export function SentinelInline({ incidentPackage }: SentinelInlineProps) {
+export function SentinelInline({ commandState }: SentinelInlineProps) {
   const [open, setOpen] = useState(false);
-  const incidentId = incidentPackage.incident.id;
-  const explanation = buildSentinelExplanation(incidentPackage);
+  const [questionInput, setQuestionInput] = useState("");
+  const [answer, setAnswer] = useState<string | null>(null);
+
+  const incidentId = commandState.selectedIncidentPackage?.incident.id ?? "";
+  const brief = buildDefaultSentinelBrief(commandState);
+  const suggestedQuestions = buildSuggestedSentinelQuestions(commandState);
 
   useEffect(() => {
     setOpen(false);
+    setQuestionInput("");
+    setAnswer(null);
   }, [incidentId]);
+
+  function submitQuestion(question: string) {
+    const trimmed = question.trim();
+    if (!trimmed) return;
+    setQuestionInput(trimmed);
+    setAnswer(answerSentinelQuestion(trimmed, commandState).answer);
+  }
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    submitQuestion(questionInput);
+  }
 
   return (
     <div className="mt-3">
@@ -24,7 +46,7 @@ export function SentinelInline({ incidentPackage }: SentinelInlineProps) {
         type="button"
         data-testid="sentinel-control"
         aria-expanded={open}
-        aria-controls={`sentinel-panel-${incidentId}`}
+        aria-controls={incidentId ? `sentinel-panel-${incidentId}` : undefined}
         onClick={() => setOpen((value) => !value)}
         className="inline-flex items-center gap-2 rounded-full border border-violet-500/30 bg-violet-500/8 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.05em] text-violet-900 transition-colors hover:bg-violet-500/12"
       >
@@ -39,31 +61,64 @@ export function SentinelInline({ incidentPackage }: SentinelInlineProps) {
 
       {open ? (
         <div
-          id={`sentinel-panel-${incidentId}`}
+          id={incidentId ? `sentinel-panel-${incidentId}` : undefined}
           data-testid="sentinel-panel"
-          className="mt-4 rounded-md border border-violet-500/20 bg-violet-500/5 p-4"
+          className="mt-3 rounded-md border border-violet-500/20 bg-violet-500/5 p-3"
         >
           <p className="text-xs font-semibold uppercase tracking-[0.06em] text-violet-800">
-            Sentinel explanation
+            Ask about this incident
           </p>
-          <dl className="mt-3 space-y-3 text-sm">
-            <div>
-              <dt className="font-medium text-slate-700">Why this priority</dt>
-              <dd className="mt-0.5 text-slate-600">{explanation.whyPriority}</dd>
-            </div>
-            <div>
-              <dt className="font-medium text-slate-700">Why this team</dt>
-              <dd className="mt-0.5 text-slate-600">{explanation.whyTeam}</dd>
-            </div>
-            <div>
-              <dt className="font-medium text-slate-700">What evidence supports it</dt>
-              <dd className="mt-0.5 text-slate-600">{explanation.whyEvidence}</dd>
-            </div>
-            <div>
-              <dt className="font-medium text-slate-700">Next recommended action</dt>
-              <dd className="mt-0.5 text-slate-600">{explanation.nextAction}</dd>
-            </div>
-          </dl>
+          <p className="mt-1 text-xs text-slate-500">
+            Sentinel reads the current command state.
+          </p>
+
+          {!answer ? (
+            <p className="mt-2 text-sm leading-5 text-slate-700">{brief}</p>
+          ) : (
+            <p
+              className="mt-2 text-sm leading-5 text-slate-700"
+              data-testid="sentinel-answer"
+            >
+              {answer}
+            </p>
+          )}
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            {suggestedQuestions.map((question) => (
+              <button
+                key={question}
+                type="button"
+                data-testid="sentinel-suggested-question"
+                onClick={() => submitQuestion(question)}
+                className="rounded-full border border-violet-500/25 bg-white px-2.5 py-1 text-xs text-violet-900 transition-colors hover:border-violet-500/40 hover:bg-violet-500/5"
+              >
+                {question}
+              </button>
+            ))}
+          </div>
+
+          <form onSubmit={handleSubmit} className="mt-3 flex gap-2">
+            <input
+              type="text"
+              value={questionInput}
+              onChange={(event) => setQuestionInput(event.target.value)}
+              placeholder="Ask about this incident…"
+              data-testid="sentinel-question-input"
+              className="min-w-0 flex-1 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-800 placeholder:text-slate-400"
+            />
+            <button
+              type="submit"
+              className="shrink-0 rounded-md border border-violet-500/30 bg-violet-600 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.04em] text-white transition-colors hover:bg-violet-700"
+            >
+              Ask
+            </button>
+          </form>
+
+          {answer ? (
+            <p className="mt-2 text-xs text-slate-500">
+              Answers are grounded in the active incident and command file.
+            </p>
+          ) : null}
         </div>
       ) : null}
     </div>
