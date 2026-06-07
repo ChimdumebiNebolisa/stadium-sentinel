@@ -427,6 +427,9 @@ export function CommandCenter() {
               null,
           })
         : [],
+      sourceMode: null,
+      lastIngestionSummary: null,
+      sourceAuditExcerpts: [],
     }),
     [
       incidentPackages,

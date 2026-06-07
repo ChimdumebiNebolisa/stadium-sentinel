@@ -8,6 +8,7 @@ import {
 import type { RadioTranscriptRecord } from "@/lib/radio-transcript-intake";
 import type { ResponseTimelineStage } from "@/lib/response-timeline";
 import { buildSentinelExplanation } from "@/lib/sentinel-explanation";
+import type { SourceMode } from "@/lib/source-mode";
 import type {
   IncidentPackage,
   ReportSummary,
@@ -30,6 +31,9 @@ export type CommandState = {
   transcriptAddedTitles: string[];
   transcriptMatchedTitles: string[];
   selectedResponseStages: ResponseStage[];
+  sourceMode: SourceMode | null;
+  lastIngestionSummary: string | null;
+  sourceAuditExcerpts: string[];
 };
 
 export type SentinelContext = {

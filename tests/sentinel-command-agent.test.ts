@@ -45,6 +45,9 @@ function buildCommandState(overrides: Partial<CommandState> = {}): CommandState 
           timeline: demo.timeline,
         })
       : [],
+    sourceMode: null,
+    lastIngestionSummary: null,
+    sourceAuditExcerpts: [],
     ...overrides,
   };
 }

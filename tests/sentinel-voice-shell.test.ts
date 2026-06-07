@@ -33,6 +33,9 @@ describe("sentinel voice shell", () => {
       transcriptAddedTitles: [],
       transcriptMatchedTitles: [],
       selectedResponseStages: [],
+      sourceMode: null,
+      lastIngestionSummary: null,
+      sourceAuditExcerpts: [],
     };
 
     const { answer } = answerSentinelQuestion(
