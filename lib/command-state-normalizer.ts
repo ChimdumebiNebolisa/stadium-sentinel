@@ -1,4 +1,5 @@
 import { buildDemoState } from "@/lib/demo";
+import type { IngestPullResponse } from "@/lib/elastic/pull-types";
 import type {
   IngestionOutcome,
   NormalizedIngestionResult,
@@ -91,6 +92,19 @@ export function normalizeTranscriptIngestion(
     sourceMode: "transcript",
     ingestionSummary: summary,
     outcome: "success",
+  };
+}
+
+export function normalizeFromElasticPull(
+  response: IngestPullResponse,
+): NormalizedIngestionResult {
+  return {
+    incidentPackages: response.incidentPackages,
+    timeline: response.timeline,
+    reportSummary: response.reportSummary,
+    sourceMode: response.sourceMode,
+    ingestionSummary: response.ingestionSummary,
+    outcome: response.outcome,
   };
 }
 

@@ -48,10 +48,14 @@ import {
   runAutomaticIngestionPrototype,
 } from "@/lib/automatic-ingestion";
 import { readSourcesConnected } from "@/lib/intake-demo";
+import { fetchIngestPull } from "@/lib/ingest-pull-client";
+import { isElasticPullEnabled } from "@/lib/feature-flags";
 import {
   fetchManualIngestionResult,
   planManualReportIngestion,
 } from "@/lib/manual-report-ingestion";
+import { writeApprovedTimelineEntry } from "@/lib/timeline-write-client";
+import type { SentinelRecommendedAction } from "@/lib/agent/sentinel-schema";
 import { buildPostEventReport } from "@/lib/report";
 import { buildResponseTimeline } from "@/lib/response-timeline";
 import type { NormalizedIngestionResult } from "@/lib/source-mode";
@@ -301,7 +305,12 @@ export function CommandCenter() {
     }
   }
 
-  function handleApprove(incidentId: string, action: string, actionIndex: number) {
+  function handleApprove(
+    incidentId: string,
+    action: string,
+    actionIndex: number,
+    options?: { sentinelRecommendationId?: string },
+  ) {
     const nextIncidentPackages = updateIncidentPackages(
       incidentPackages,
       incidentId,
@@ -325,18 +334,111 @@ export function CommandCenter() {
     setIncidentPackages(nextIncidentPackages);
     setTimeline(nextTimeline);
     setReportSummary(buildPostEventReport(nextIncidentPackages, nextTimeline));
+
+    const approvedPackage = nextIncidentPackages.find(
+      ({ incident }) => incident.id === incidentId,
+    );
+    if (!approvedPackage) {
+      return;
+    }
+
+    void writeApprovedTimelineEntry({
+      incidentId,
+      actionIndex,
+      actionLabel: action,
+      actor: "Operations Lead",
+      sentinelRecommendationId: options?.sentinelRecommendationId,
+      incidentPackage: approvedPackage,
+    })
+      .then((result) => {
+        recordSourceAudit(
+          result.elasticWritten ? "elastic" : "demo",
+          result.sourceAuditSummary,
+          result.elasticWritten ? "success" : "fallback",
+          1,
+        );
+      })
+      .catch(() => {
+        recordSourceAudit(
+          "demo",
+          `Local approval recorded for ${incidentId}; Elastic write-back unavailable.`,
+          "fallback",
+          1,
+        );
+      });
   }
 
-  function handlePullLatestReports() {
+  function handleApplySentinelRecommendation(recommendation: SentinelRecommendedAction) {
+    const selected = selectedIncidentPackage;
+    if (!selected || recommendation.actionIndex === undefined) {
+      return;
+    }
+
+    const action =
+      selected.incident.recommendedActions[recommendation.actionIndex] ??
+      recommendation.label;
+    handleApprove(selected.incident.id, action, recommendation.actionIndex, {
+      sentinelRecommendationId: recommendation.label,
+    });
+  }
+
+  async function handlePullLatestReports() {
     const { allowed } = checkRateLimit();
     if (!allowed) {
       setPullStatus("Incidents are up to date. Try again shortly.");
       return;
     }
+
     const previousPackages = incidentPackages;
+    recordPull();
+
+    if (isElasticPullEnabled()) {
+      try {
+        const elasticPull = await fetchIngestPull();
+        if (elasticPull.sourceMode === "elastic" && elasticPull.outcome === "success") {
+          const packages = elasticPull.incidentPackages;
+          const enrichedPackages = latestTranscriptRecord
+            ? enrichPackagesWithTranscriptEvidence(
+                packages,
+                latestTranscriptRecord.matchedLines,
+                latestTranscriptRecord.extractedIncidentIds.filter((id) =>
+                  packages.some(({ incident }) => incident.id === id),
+                ),
+              )
+            : packages;
+          const sortedPackages = sortIncidentPackages(enrichedPackages);
+          const nextTimeline = rebuildTimelineFromPersistedState(
+            sortedPackages,
+            elasticPull.timeline,
+            latestTranscriptRecord,
+          );
+          setChangeSummary(buildChangeSummary(previousPackages, sortedPackages));
+          setIncidentPackages(sortedPackages);
+          setSelectedIncidentId((current) =>
+            resolveSelectedIncidentId(sortedPackages, current),
+          );
+          setTimeline(nextTimeline);
+          setReportSummary(buildPostEventReport(sortedPackages, nextTimeline));
+          setSourceMode("elastic");
+          setLastIngestionSummary(elasticPull.ingestionSummary);
+          setPullStatus(
+            `Seeded operations data pulled from Elastic (${sortedPackages.length} incidents).`,
+          );
+          recordSourceAudit(
+            "elastic",
+            elasticPull.ingestionSummary,
+            "success",
+            sortedPackages.length,
+          );
+          return;
+        }
+      } catch {
+        // Fall through to local demo pull.
+      }
+    }
+
     const batch = generateDemoIncidentBatch();
     saveDemoIncidentBatch(batch);
-    recordPull();
     const packages = batch.incidents.map(localStorageIncidentToPackage);
     if (packages.length === 0) return;
     const enrichedPackages = latestTranscriptRecord
@@ -609,6 +711,7 @@ export function CommandCenter() {
                   ] ?? null
                 }
                 onApprove={handleApprove}
+                onApplySentinelRecommendation={handleApplySentinelRecommendation}
               />
             ) : (
               <section className="ops-panel flex h-full min-h-0 flex-col overflow-hidden">
