@@ -6,9 +6,19 @@ export default defineConfig({
     baseURL: "http://localhost:3000",
     trace: "on-first-retry",
   },
+  projects: [
+    {
+      name: "default",
+      testIgnore: /radio-transcript-fallback/,
+    },
+    {
+      name: "transcript-fallback",
+      testMatch: /radio-transcript-fallback/,
+    },
+  ],
   webServer: {
     command: "npm run dev",
     port: 3000,
-    reuseExistingServer: true,
+    reuseExistingServer: !process.env.CI,
   },
 });

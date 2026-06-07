@@ -52,17 +52,6 @@ async function assertNoForbiddenWording(text: string) {
   expect(text).not.toMatch(/\bscore\b/i);
 }
 
-async function extractStandardTranscriptPreset(page: Page) {
-  const toggle = page.getByTestId("radio-transcript-toggle");
-  if ((await toggle.getAttribute("aria-expanded")) !== "true") {
-    await toggle.click();
-  }
-  await expect(page.getByTestId("radio-transcript-input")).toBeVisible();
-  await page.getByTestId("transcript-preset-standard").click();
-  await page.getByTestId("extract-transcript").click();
-  await expect(page.getByTestId("transcript-extract-summary")).toBeVisible();
-}
-
 async function enableDemoSources(page: Page) {
   await page.evaluate(() => {
     localStorage.setItem("stadium-sentinel-demo-sources-connected", "true");
@@ -529,112 +518,10 @@ test("phase 2 workflow cues avoid forbidden wording after pull", async ({ page }
   expect(bodyText).not.toMatch(/\bscore\b/i);
 });
 
-test("radio transcript panel stays collapsed until opened", async ({ page }) => {
+test("radio transcript panel is hidden by default", async ({ page }) => {
   await page.goto("/command");
 
-  await expect(page.getByTestId("radio-transcript-panel")).toBeVisible();
-  await expect(page.getByTestId("radio-transcript-toggle")).toHaveAttribute("aria-expanded", "false");
-  await expect(page.getByTestId("radio-transcript-input")).toHaveCount(0);
-});
-
-test("standard transcript preset matches current queue without adding incidents", async ({
-  page,
-}) => {
-  await page.goto("/command");
-
-  const queueCountBefore = await page.getByTestId("incident-card").count();
-  await extractStandardTranscriptPreset(page);
-
-  await expect(page.getByTestId("incident-card")).toHaveCount(queueCountBefore);
-  await expect(page.getByTestId("transcript-extract-summary")).toContainText(
-    "Radio transcript processed. 3 reports matched in the current queue.",
-  );
-});
-
-test("repeat transcript extract keeps the selected incident stable", async ({ page }) => {
-  await page.goto("/command");
-
-  await page.getByRole("button", { name: /Gate B backed up/i }).click();
-  await expect(page.getByTestId("selected-incident-title")).toHaveText("Gate B backed up");
-
-  await extractStandardTranscriptPreset(page);
-  await expect(page.getByTestId("selected-incident-title")).toHaveText("Gate B backed up");
-
-  await extractStandardTranscriptPreset(page);
-  await expect(page.getByTestId("selected-incident-title")).toHaveText("Gate B backed up");
-  await expect(page.getByTestId("transcript-extract-summary")).toContainText(
-    "Radio transcript processed. 3 reports matched in the current queue.",
-  );
-});
-
-test("transcript extract adds radio_log evidence and incident log entries", async ({ page }) => {
-  await page.goto("/command");
-  await extractStandardTranscriptPreset(page);
-
-  await page.getByTestId("incident-drawer-handle").click();
-  await openWorkspace(page, "Evidence");
-  await expect(
-    page.getByTestId("evidence-panel").getByRole("heading", { name: "Radio log excerpt" }),
-  ).toBeVisible();
-
-  await openWorkspace(page, "Incident log");
-  await expect(page.getByTestId("timeline-panel")).toContainText("Radio report received");
-});
-
-test("pull latest reports and rate limit still work after transcript extract", async ({
-  page,
-}) => {
-  await page.goto("/command");
-  await enableDemoSources(page);
-  await extractStandardTranscriptPreset(page);
-
-  await pullLatestReports(page);
-  await expect(page.getByTestId("pull-status")).toHaveText("Latest demo reports pulled.", {
-    timeout: 5_000,
-  });
-
-  await page.getByTestId("pull-latest-reports").click();
-  await expect(page.getByTestId("pull-status")).toHaveText("Latest demo reports pulled.", {
-    timeout: 5_000,
-  });
-
-  await page.getByTestId("pull-latest-reports").click();
-  await expect(page.getByTestId("pull-status")).toHaveText(
-    "Incidents are up to date. Try again shortly.",
-    { timeout: 5_000 },
-  );
-});
-
-test("pull after transcript extract filters stale log snippets from removed incidents", async ({
-  page,
-}) => {
-  await page.goto("/command");
-  await enableDemoSources(page);
-
-  await page.getByTestId("radio-transcript-toggle").click();
-  await page.getByTestId("transcript-preset-restroom").click();
-  await page.getByTestId("extract-transcript").click();
-  await expect(page.getByTestId("transcript-extract-summary")).toContainText(
-    /new report added/i,
-  );
-
-  await pullLatestReports(page);
-
-  await page.getByTestId("incident-drawer-handle").click();
-  await openWorkspace(page, "Incident log");
-  const logText = (await page.getByTestId("timeline-panel").textContent()) ?? "";
-  expect(logText).not.toContain("West Concourse restroom is out of order.");
-});
-
-test("sentinel answers what the radio log added after transcript extract", async ({ page }) => {
-  await page.goto("/command");
-  await extractStandardTranscriptPreset(page);
-  await openSentinelPanel(page);
-  await askSentinel(page, "What did the radio log add?");
-
-  const answerText = (await page.getByTestId("sentinel-answer").textContent()) ?? "";
-  expect(answerText).toMatch(/recognized|matched/i);
-  expect(answerText).toMatch(/current queue/i);
+  await expect(page.getByTestId("radio-transcript-panel")).toHaveCount(0);
 });
 
 test("sentinel answers radio operator question with follow-ups", async ({ page }) => {
@@ -644,27 +531,6 @@ test("sentinel answers radio operator question with follow-ups", async ({ page }
 
   const answerText = (await page.getByTestId("sentinel-answer").textContent()) ?? "";
   expect(answerText.length).toBeGreaterThan(10);
-});
-
-test("sentinel answers timeline progress with active response stage", async ({ page }) => {
-  await page.goto("/command");
-  await extractStandardTranscriptPreset(page);
-  await openSentinelPanel(page);
-  await askSentinel(page, "What stage is this incident?");
-
-  const answerText = (await page.getByTestId("sentinel-answer").textContent()) ?? "";
-  expect(answerText).toMatch(/active stage|pending stage|complete/i);
-  expect(answerText).toMatch(/Intake|Acknowledged|Team assigned|Dispatched|Resolved/i);
-});
-
-test("sentinel transcript prompts avoid forbidden wording", async ({ page }) => {
-  await page.goto("/command");
-  await extractStandardTranscriptPreset(page);
-  await openSentinelPanel(page);
-  await askSentinel(page, "What did the radio log add?");
-
-  const panelText = (await page.getByTestId("sentinel-panel").textContent()) ?? "";
-  await assertNoForbiddenWording(panelText);
 });
 
 test("manual report ingestion requires replace confirmation when queue is non-empty", async ({

@@ -21,6 +21,10 @@ import type {
   ElasticRadioTranscript,
 } from "@/lib/elastic/pull-types";
 import { getLocalAgentContext, searchElasticAgentContext } from "@/lib/elastic/search";
+import {
+  isRadioTranscriptQuestion,
+  searchElasticRadioTranscripts,
+} from "@/lib/elastic/transcript-search";
 import type { AgentRetrievalBundle, EvidenceResult, IncidentPackage } from "@/lib/types";
 
 function isAgentBackendEnabled(): boolean {
@@ -85,7 +89,7 @@ async function retrieveSentinelElasticContext(
     ],
   });
 
-  const [policies, radioTranscripts, evidenceDocs] = await Promise.all([
+  const [policies, radioTranscripts, evidenceDocs, searchedTranscripts] = await Promise.all([
     searchOperationalIndex<ElasticPolicyDocument>(config.policiesIndex, {
       terms: { appliesToCategories: [incident.category] },
     }),
@@ -101,6 +105,17 @@ async function retrieveSentinelElasticContext(
         minimum_should_match: 1,
       },
     }),
+    isRadioTranscriptQuestion(request.question)
+      ? searchElasticRadioTranscripts({
+          queryText: request.question,
+          incidentId: incident.id,
+        })
+      : Promise.resolve([]),
+  ]);
+
+  const mergedTranscripts = dedupeRadioTranscripts([
+    ...radioTranscripts,
+    ...searchedTranscripts,
   ]);
 
   const supplementalEvidence: EvidenceResult[] = [
@@ -112,7 +127,7 @@ async function retrieveSentinelElasticContext(
       rationale: policy.body,
       sourceId: policy.id,
     })),
-    ...radioTranscripts.map((transcript) => ({
+    ...mergedTranscripts.map((transcript) => ({
       title: transcript.label,
       sourceType: "radio_log" as const,
       excerpt: transcript.excerpt,
@@ -135,7 +150,7 @@ async function retrieveSentinelElasticContext(
       excerpt: policy.excerpt,
       index: config.policiesIndex,
     })),
-    ...radioTranscripts.map((transcript) => ({
+    ...mergedTranscripts.map((transcript) => ({
       sourceId: transcript.id,
       title: transcript.label,
       excerpt: transcript.excerpt,
@@ -170,6 +185,17 @@ function dedupeCitations(citations: SentinelCitation[]): SentinelCitation[] {
   return citations.filter((item) => {
     if (seen.has(item.sourceId)) return false;
     seen.add(item.sourceId);
+    return true;
+  });
+}
+
+function dedupeRadioTranscripts(
+  transcripts: ElasticRadioTranscript[],
+): ElasticRadioTranscript[] {
+  const seen = new Set<string>();
+  return transcripts.filter((item) => {
+    if (seen.has(item.id)) return false;
+    seen.add(item.id);
     return true;
   });
 }

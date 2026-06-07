@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { IngestionStatusBanner } from "@/components/dashboard/ingestion-status-banner";
 import { RadioTranscriptPanel } from "@/components/dashboard/radio-transcript-panel";
 import type { ChangeSummary } from "@/lib/demo-agent-workflow";
+import { readRadioTranscriptPanelEnabled } from "@/lib/feature-flags";
 import { readIntakeComplete, readSourcesConnected } from "@/lib/intake-demo";
 import type { RadioTranscriptRecord } from "@/lib/radio-transcript-intake";
 
@@ -42,17 +43,20 @@ export function IntakeContextBar({
   const [mounted, setMounted] = useState(false);
   const [intakeComplete, setIntakeComplete] = useState(false);
   const [sourcesConnected, setSourcesConnected] = useState(false);
+  const [showRadioPanel, setShowRadioPanel] = useState(false);
 
   useEffect(() => {
     setMounted(true);
     setIntakeComplete(readIntakeComplete());
     setSourcesConnected(readSourcesConnected());
+    setShowRadioPanel(readRadioTranscriptPanelEnabled());
   }, []);
 
   return (
     <section
       className="ops-panel ops-strip intake-context-bar"
       data-testid="intake-context-bar"
+      data-ready={mounted ? "true" : "false"}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
@@ -124,11 +128,13 @@ export function IntakeContextBar({
 
       <IngestionStatusBanner fallbackMessage={ingestionFallbackMessage} />
 
-      <RadioTranscriptPanel
-        onExtract={onExtractTranscript}
-        extractStatus={transcriptExtractStatus}
-        latestRecord={latestTranscriptRecord}
-      />
+      {mounted && showRadioPanel ? (
+        <RadioTranscriptPanel
+          onExtract={onExtractTranscript}
+          extractStatus={transcriptExtractStatus}
+          latestRecord={latestTranscriptRecord}
+        />
+      ) : null}
     </section>
   );
 }
