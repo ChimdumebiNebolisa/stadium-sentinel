@@ -1,0 +1,32 @@
+[
+  {
+    "id": "timeline-gate-b-reported",
+    "incidentId": "incident-gate-b",
+    "timestamp": "2026-06-07T11:38:00.000Z",
+    "type": "reported",
+    "message": "Gate B ingress queue extending into perimeter lane.",
+    "actor": "System",
+    "source": "system",
+    "searchText": "gate b reported queue perimeter lane"
+  },
+  {
+    "id": "timeline-elevator-4-reported",
+    "incidentId": "incident-elevator-4",
+    "timestamp": "2026-06-07T11:41:00.000Z",
+    "type": "reported",
+    "message": "Elevator 4 in the East Stand is out of service.",
+    "actor": "System",
+    "source": "system",
+    "searchText": "elevator 4 reported out of service east stand"
+  },
+  {
+    "id": "timeline-section-112-reported",
+    "incidentId": "incident-section-112",
+    "timestamp": "2026-06-07T11:42:00.000Z",
+    "type": "reported",
+    "message": "Guest reported need for wheelchair access near Section 112.",
+    "actor": "System",
+    "source": "system",
+    "searchText": "section 112 reported wheelchair access guest"
+  }
+]

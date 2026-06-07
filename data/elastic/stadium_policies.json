@@ -1,0 +1,32 @@
+[
+  {
+    "id": "policy-gate-congestion",
+    "title": "Entry Queue Congestion Threshold",
+    "excerpt": "Escalate when ingress queues obstruct circulation or exceed target wait times.",
+    "body": "Dispatch crowd-flow staff to open overflow stanchions. Shift screening capacity when adjacent gates have headroom. Publish internal gate updates for operations channels.",
+    "appliesToCategories": ["crowd-flow"],
+    "procedureType": "crowd-flow-response",
+    "teams": ["Security / Crowd Flow"],
+    "searchText": "entry queue congestion gate crowd flow overflow stanchions screening"
+  },
+  {
+    "id": "policy-elevator-outage",
+    "title": "Accessibility Infrastructure Outage Response",
+    "excerpt": "Mobility-impacting elevator failures require immediate dispatch and alternate route coverage.",
+    "body": "Dispatch engineering to confirm elevator status. Station accessibility staff at the nearest alternate route. Flag guest services to reroute impacted guests.",
+    "appliesToCategories": ["facility-outage"],
+    "procedureType": "facility-outage-response",
+    "teams": ["Facilities", "Guest Services"],
+    "searchText": "elevator outage accessibility alternate route facilities guest services"
+  },
+  {
+    "id": "policy-wheelchair-assist",
+    "title": "Guest Mobility Assistance Standard",
+    "excerpt": "Guests requesting wheelchair access require direct acknowledgement and escorted support.",
+    "body": "Acknowledge the guest request immediately. Dispatch guest services with a wheelchair-access kit. Confirm handoff and route to destination seating.",
+    "appliesToCategories": ["guest-assistance"],
+    "procedureType": "guest-assistance-response",
+    "teams": ["Guest Services"],
+    "searchText": "wheelchair assist guest mobility escort guest services section"
+  }
+]

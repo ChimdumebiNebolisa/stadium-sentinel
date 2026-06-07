@@ -1,0 +1,32 @@
+[
+  {
+    "id": "transcript-standard-ops",
+    "presetId": "standard",
+    "label": "Standard ops preset",
+    "lines": [
+      "Gate B is backed up.",
+      "Elevator 4 is down.",
+      "Guest near Section 112 needs wheelchair access."
+    ],
+    "excerpt": "Gate B queue pressure, Elevator 4 outage, Section 112 wheelchair assist.",
+    "recordedAt": "2026-06-07T11:37:00.000Z",
+    "matchedIncidentHints": ["gate-b", "elevator-4", "section-112"],
+    "relatedIncidentIds": [
+      "incident-gate-b",
+      "incident-elevator-4",
+      "incident-section-112"
+    ],
+    "searchText": "gate b backed up elevator 4 down section 112 wheelchair radio standard ops"
+  },
+  {
+    "id": "transcript-restroom-line",
+    "presetId": "restroom",
+    "label": "Restroom outage line",
+    "lines": ["West Concourse restroom is out of order."],
+    "excerpt": "West Concourse restroom facility out of service.",
+    "recordedAt": "2026-06-07T11:44:00.000Z",
+    "matchedIncidentHints": ["west-concourse", "restroom"],
+    "relatedIncidentIds": ["incident-restroom-outage"],
+    "searchText": "west concourse restroom out of order facilities radio"
+  }
+]

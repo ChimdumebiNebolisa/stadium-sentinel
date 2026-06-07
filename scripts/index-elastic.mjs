@@ -46,21 +46,64 @@ function getRequiredEnv(name) {
   return value;
 }
 
+function getIndexName(envKey, defaultName) {
+  return process.env[envKey]?.trim() || defaultName;
+}
+
 function getElasticConfig() {
   return {
     apiKey:
       process.env.ELASTICSEARCH_API_KEY?.trim() ||
       process.env.ELASTIC_API_KEY?.trim() ||
       "",
-    evidenceIndex:
-      process.env.ELASTICSEARCH_EVIDENCE_INDEX?.trim() || "stadium_evidence",
-    incidentExamplesIndex:
-      process.env.ELASTICSEARCH_INCIDENT_EXAMPLES_INDEX?.trim() ||
+    evidenceIndex: getIndexName(
+      "ELASTICSEARCH_EVIDENCE_INDEX",
+      "stadium_evidence",
+    ),
+    incidentExamplesIndex: getIndexName(
+      "ELASTICSEARCH_INCIDENT_EXAMPLES_INDEX",
       "stadium_incident_examples",
-    locationsIndex:
-      process.env.ELASTICSEARCH_LOCATIONS_INDEX?.trim() || "stadium_locations",
-    playbooksIndex:
-      process.env.ELASTICSEARCH_PLAYBOOKS_INDEX?.trim() || "stadium_playbooks",
+    ),
+    locationsIndex: getIndexName(
+      "ELASTICSEARCH_LOCATIONS_INDEX",
+      "stadium_locations",
+    ),
+    playbooksIndex: getIndexName(
+      "ELASTICSEARCH_PLAYBOOKS_INDEX",
+      "stadium_playbooks",
+    ),
+    activeIncidentsIndex: getIndexName(
+      "ELASTICSEARCH_ACTIVE_INCIDENTS_INDEX",
+      "stadium_active_incidents",
+    ),
+    guestAssistanceIndex: getIndexName(
+      "ELASTICSEARCH_GUEST_ASSISTANCE_INDEX",
+      "stadium_guest_assistance",
+    ),
+    facilityStatusIndex: getIndexName(
+      "ELASTICSEARCH_FACILITY_STATUS_INDEX",
+      "stadium_facility_status",
+    ),
+    gateFlowLogsIndex: getIndexName(
+      "ELASTICSEARCH_GATE_FLOW_LOGS_INDEX",
+      "stadium_gate_flow_logs",
+    ),
+    staffRosterIndex: getIndexName(
+      "ELASTICSEARCH_STAFF_ROSTER_INDEX",
+      "stadium_staff_roster",
+    ),
+    policiesIndex: getIndexName(
+      "ELASTICSEARCH_POLICIES_INDEX",
+      "stadium_policies",
+    ),
+    radioTranscriptsIndex: getIndexName(
+      "ELASTICSEARCH_RADIO_TRANSCRIPTS_INDEX",
+      "stadium_radio_transcripts",
+    ),
+    dispatchTimelineIndex: getIndexName(
+      "ELASTICSEARCH_DISPATCH_TIMELINE_INDEX",
+      "stadium_dispatch_timeline",
+    ),
     url: getRequiredEnv("ELASTICSEARCH_URL").replace(/\/+$/, ""),
   };
 }
@@ -90,12 +133,43 @@ function withSearchText(document, fields) {
   };
 }
 
+function keywordMapping(properties) {
+  return {
+    mappings: {
+      dynamic: "false",
+      properties,
+    },
+  };
+}
+
 async function loadSeedSets() {
-  const [playbooks, locations, incidentExamples, evidence] = await Promise.all([
+  const config = getElasticConfig();
+  const [
+    playbooks,
+    locations,
+    incidentExamples,
+    evidence,
+    activeIncidents,
+    guestAssistance,
+    facilityStatus,
+    gateFlowLogs,
+    staffRoster,
+    policies,
+    radioTranscripts,
+    dispatchTimeline,
+  ] = await Promise.all([
     readJson("data/elastic/stadium_playbooks.json"),
     readJson("data/elastic/stadium_locations.json"),
     readJson("data/elastic/stadium_incident_examples.json"),
     readJson("data/elastic/stadium_evidence.json"),
+    readJson("data/elastic/stadium_active_incidents.json"),
+    readJson("data/elastic/stadium_guest_assistance.json"),
+    readJson("data/elastic/stadium_facility_status.json"),
+    readJson("data/elastic/stadium_gate_flow_logs.json"),
+    readJson("data/elastic/stadium_staff_roster.json"),
+    readJson("data/elastic/stadium_policies.json"),
+    readJson("data/elastic/stadium_radio_transcripts.json"),
+    readJson("data/elastic/stadium_dispatch_timeline.json"),
   ]);
 
   return [
@@ -103,46 +177,36 @@ async function loadSeedSets() {
       documents: playbooks.map((document) =>
         withSearchText(document, ["title", "excerpt", "body", "teams", "riskTags"]),
       ),
-      indexName: getElasticConfig().playbooksIndex,
-      mapping: {
-        mappings: {
-          dynamic: "false",
-          properties: {
-            id: { type: "keyword" },
-            title: { type: "text" },
-            procedureType: { type: "keyword" },
-            incidentTypes: { type: "keyword" },
-            locationIds: { type: "keyword" },
-            teams: { type: "keyword" },
-            riskTags: { type: "keyword" },
-            excerpt: { type: "text" },
-            body: { type: "text" },
-            searchText: { type: "text" },
-          },
-        },
-      },
+      indexName: config.playbooksIndex,
+      mapping: keywordMapping({
+        id: { type: "keyword" },
+        title: { type: "text" },
+        procedureType: { type: "keyword" },
+        incidentTypes: { type: "keyword" },
+        locationIds: { type: "keyword" },
+        teams: { type: "keyword" },
+        riskTags: { type: "keyword" },
+        excerpt: { type: "text" },
+        body: { type: "text" },
+        searchText: { type: "text" },
+      }),
     },
     {
       documents: locations.map((document) =>
         withSearchText(document, ["label", "aliases", "defaultTeams", "operationalRisks"]),
       ),
-      indexName: getElasticConfig().locationsIndex,
-      mapping: {
-        mappings: {
-          dynamic: "false",
-          properties: {
-            id: { type: "keyword" },
-            label: { type: "text" },
-            aliases: { type: "keyword" },
-            zoneLayer: { type: "keyword" },
-            defaultTeams: { type: "keyword" },
-            operationalRisks: { type: "keyword" },
-            accessibilityCritical: { type: "boolean" },
-            crowdFlowCritical: { type: "boolean" },
-            searchText: { type: "text" },
-          },
-        },
-      },
+      indexName: config.locationsIndex,
+      mapping: keywordMapping({
+        id: { type: "keyword" },
+        label: { type: "text" },
+        aliases: { type: "keyword" },
+        zoneLayer: { type: "keyword" },
+        defaultTeams: { type: "keyword" },
+        operationalRisks: { type: "keyword" },
+        accessibilityCritical: { type: "boolean" },
+        crowdFlowCritical: { type: "boolean" },
+        searchText: { type: "text" },
+      }),
     },
     {
       documents: incidentExamples.map((document) =>
@@ -153,41 +217,179 @@ async function loadSeedSets() {
           "expectedActions",
         ]),
       ),
-      indexName: getElasticConfig().incidentExamplesIndex,
-      mapping: {
-        mappings: {
-          dynamic: "false",
-          properties: {
-            id: { type: "keyword" },
-            messyReport: { type: "text" },
-            expectedIncidentIds: { type: "keyword" },
-            expectedSeverities: { type: "keyword" },
-            expectedActions: { type: "text" },
-            expectedTitles: { type: "text" },
-            searchText: { type: "text" },
-          },
-        },
-      },
+      indexName: config.incidentExamplesIndex,
+      mapping: keywordMapping({
+        id: { type: "keyword" },
+        messyReport: { type: "text" },
+        expectedIncidentIds: { type: "keyword" },
+        expectedSeverities: { type: "keyword" },
+        expectedActions: { type: "text" },
+        expectedTitles: { type: "text" },
+        searchText: { type: "text" },
+      }),
     },
     {
       documents: evidence.map((document) =>
         withSearchText(document, ["excerpt", "body", "incidentHints"]),
       ),
-      indexName: getElasticConfig().evidenceIndex,
-      mapping: {
-        mappings: {
-          dynamic: "false",
-          properties: {
-            id: { type: "keyword" },
-            sourceType: { type: "keyword" },
-            locationIds: { type: "keyword" },
-            incidentHints: { type: "keyword" },
-            excerpt: { type: "text" },
-            body: { type: "text" },
-            searchText: { type: "text" },
-          },
-        },
-      },
+      indexName: config.evidenceIndex,
+      mapping: keywordMapping({
+        id: { type: "keyword" },
+        sourceType: { type: "keyword" },
+        locationIds: { type: "keyword" },
+        incidentHints: { type: "keyword" },
+        excerpt: { type: "text" },
+        body: { type: "text" },
+        searchText: { type: "text" },
+      }),
+    },
+    {
+      documents: activeIncidents.map((document) =>
+        withSearchText(document, [
+          "title",
+          "rawText",
+          "locationLabel",
+          "assignedRole",
+          "category",
+        ]),
+      ),
+      indexName: config.activeIncidentsIndex,
+      mapping: keywordMapping({
+        id: { type: "keyword" },
+        title: { type: "text" },
+        rawText: { type: "text" },
+        category: { type: "keyword" },
+        incidentType: { type: "keyword" },
+        priority: { type: "keyword" },
+        locationId: { type: "keyword" },
+        locationLabel: { type: "text" },
+        assignedRole: { type: "keyword" },
+        status: { type: "keyword" },
+        reportedAt: { type: "date" },
+        evidenceIds: { type: "keyword" },
+        guestAssistanceId: { type: "keyword" },
+        facilityStatusId: { type: "keyword" },
+        searchText: { type: "text" },
+      }),
+    },
+    {
+      documents: guestAssistance.map((document) =>
+        withSearchText(document, ["guestLocation", "need", "assignedRole"]),
+      ),
+      indexName: config.guestAssistanceIndex,
+      mapping: keywordMapping({
+        id: { type: "keyword" },
+        guestLocation: { type: "text" },
+        need: { type: "text" },
+        priority: { type: "keyword" },
+        relatedIncidentId: { type: "keyword" },
+        locationId: { type: "keyword" },
+        status: { type: "keyword" },
+        requestedAt: { type: "date" },
+        assignedRole: { type: "keyword" },
+        searchText: { type: "text" },
+      }),
+    },
+    {
+      documents: facilityStatus.map((document) =>
+        withSearchText(document, ["assetLabel", "notes", "status"]),
+      ),
+      indexName: config.facilityStatusIndex,
+      mapping: keywordMapping({
+        id: { type: "keyword" },
+        assetId: { type: "keyword" },
+        assetLabel: { type: "text" },
+        status: { type: "keyword" },
+        relatedIncidentId: { type: "keyword" },
+        locationId: { type: "keyword" },
+        lastCheckedAt: { type: "date" },
+        notes: { type: "text" },
+        searchText: { type: "text" },
+      }),
+    },
+    {
+      documents: gateFlowLogs.map((document) =>
+        withSearchText(document, ["gateLabel", "observation", "source"]),
+      ),
+      indexName: config.gateFlowLogsIndex,
+      mapping: keywordMapping({
+        id: { type: "keyword" },
+        gateId: { type: "keyword" },
+        gateLabel: { type: "text" },
+        observation: { type: "text" },
+        priority: { type: "keyword" },
+        relatedIncidentId: { type: "keyword" },
+        loggedAt: { type: "date" },
+        source: { type: "keyword" },
+        searchText: { type: "text" },
+      }),
+    },
+    {
+      documents: staffRoster.map((document) =>
+        withSearchText(document, ["team", "callSign", "displayName", "zone"]),
+      ),
+      indexName: config.staffRosterIndex,
+      mapping: keywordMapping({
+        id: { type: "keyword" },
+        roleId: { type: "keyword" },
+        team: { type: "keyword" },
+        callSign: { type: "keyword" },
+        displayName: { type: "text" },
+        onDuty: { type: "boolean" },
+        zone: { type: "keyword" },
+        relatedIncidentIds: { type: "keyword" },
+        searchText: { type: "text" },
+      }),
+    },
+    {
+      documents: policies.map((document) =>
+        withSearchText(document, ["title", "excerpt", "body", "teams"]),
+      ),
+      indexName: config.policiesIndex,
+      mapping: keywordMapping({
+        id: { type: "keyword" },
+        title: { type: "text" },
+        excerpt: { type: "text" },
+        body: { type: "text" },
+        appliesToCategories: { type: "keyword" },
+        procedureType: { type: "keyword" },
+        teams: { type: "keyword" },
+        searchText: { type: "text" },
+      }),
+    },
+    {
+      documents: radioTranscripts.map((document) =>
+        withSearchText(document, ["label", "excerpt", "lines", "matchedIncidentHints"]),
+      ),
+      indexName: config.radioTranscriptsIndex,
+      mapping: keywordMapping({
+        id: { type: "keyword" },
+        presetId: { type: "keyword" },
+        label: { type: "text" },
+        lines: { type: "text" },
+        excerpt: { type: "text" },
+        recordedAt: { type: "date" },
+        matchedIncidentHints: { type: "keyword" },
+        relatedIncidentIds: { type: "keyword" },
+        searchText: { type: "text" },
+      }),
+    },
+    {
+      documents: dispatchTimeline.map((document) =>
+        withSearchText(document, ["message", "actor", "type"]),
+      ),
+      indexName: config.dispatchTimelineIndex,
+      mapping: keywordMapping({
+        id: { type: "keyword" },
+        incidentId: { type: "keyword" },
+        timestamp: { type: "date" },
+        type: { type: "keyword" },
+        message: { type: "text" },
+        actor: { type: "keyword" },
+        source: { type: "keyword" },
+        recommendedActionId: { type: "keyword" },
+        searchText: { type: "text" },
+      }),
     },
   ];
 }

@@ -1,0 +1,35 @@
+[
+  {
+    "id": "flow-gate-b-1",
+    "gateId": "gate-b",
+    "gateLabel": "Gate B",
+    "observation": "Queue has extended into plaza stanchions; screening pace slowing.",
+    "priority": "High",
+    "relatedIncidentId": "incident-gate-b",
+    "loggedAt": "2026-06-07T11:38:30.000Z",
+    "source": "radio_log",
+    "searchText": "gate b queue plaza stanchions screening pace slowing crowd flow"
+  },
+  {
+    "id": "flow-gate-b-2",
+    "gateId": "gate-b",
+    "gateLabel": "Gate B",
+    "observation": "Supervisor requested north-side overflow path standby.",
+    "priority": "High",
+    "relatedIncidentId": "incident-gate-b",
+    "loggedAt": "2026-06-07T11:39:15.000Z",
+    "source": "staff_note",
+    "searchText": "gate b overflow path north side supervisor crowd flow"
+  },
+  {
+    "id": "flow-north-concourse-1",
+    "gateId": "north-concourse",
+    "gateLabel": "North Concourse",
+    "observation": "Density rising near Section 300 entry; relief corridor B available.",
+    "priority": "High",
+    "relatedIncidentId": "incident-north-concourse",
+    "loggedAt": "2026-06-07T11:44:30.000Z",
+    "source": "sensor",
+    "searchText": "north concourse density section 300 relief corridor crowd flow"
+  }
+]

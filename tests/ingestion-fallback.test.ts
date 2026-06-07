@@ -20,7 +20,17 @@ describe("ingestion fallback handling", () => {
     const status = resolveIngestionPathStatus(true);
 
     expect(status.activePath).toBe("elastic-ready");
-    expect(status.detailLine).toContain("never required for page load");
+    expect(status.detailLine).toContain("Demo/local fallback remains active");
+  });
+
+  it("reports seeded mock operations ready when seed health is complete", () => {
+    const status = resolveIngestionPathStatus(true, {
+      ready: true,
+      indices: [],
+    });
+
+    expect(status.statusLine).toContain("Seeded mock operations data ready");
+    expect(status.detailLine).toContain("Demo/local fallback remains active");
   });
 
   it("uses demo fallback for elastic and automatic attempts without credentials", () => {

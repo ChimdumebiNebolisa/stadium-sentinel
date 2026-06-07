@@ -1,4 +1,5 @@
 import { isElasticConfigured } from "@/lib/elastic/client";
+import type { SeedHealth } from "@/lib/elastic/seed-health";
 
 export type IngestionPathStatus = {
   demoFallbackAvailable: boolean;
@@ -10,17 +11,29 @@ export type IngestionPathStatus = {
 
 export function resolveIngestionPathStatus(
   elasticConfigured: boolean = isElasticConfigured(),
+  seedHealth?: SeedHealth,
 ): IngestionPathStatus {
   const demoFallbackAvailable = true;
 
   if (elasticConfigured) {
+    if (seedHealth?.ready) {
+      return {
+        demoFallbackAvailable,
+        elasticConfigured: true,
+        activePath: "elastic-ready",
+        statusLine: "Seeded mock operations data ready in Elastic",
+        detailLine:
+          "Elastic seed indices meet minimum counts. Demo/local fallback remains active for page load and Pull until R3.",
+      };
+    }
+
     return {
       demoFallbackAvailable,
       elasticConfigured: true,
       activePath: "elastic-ready",
-      statusLine: "Demo/local fallback active · Elastic configured",
+      statusLine: "Elastic configured · seed indices incomplete",
       detailLine:
-        "Command center loads from demo/localStorage. Elastic reads are optional and never required for page load.",
+        "Run npm run index:elastic to load seeded mock operations data. Demo/local fallback remains active.",
     };
   }
 

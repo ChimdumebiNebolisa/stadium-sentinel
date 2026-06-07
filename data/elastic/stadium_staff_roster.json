@@ -1,0 +1,35 @@
+[
+  {
+    "id": "roster-guest-services-1",
+    "roleId": "guest-services-lead",
+    "team": "Guest Services",
+    "callSign": "GS-1",
+    "displayName": "Guest Services Lead",
+    "onDuty": true,
+    "zone": "Lower bowl",
+    "relatedIncidentIds": ["incident-section-112", "incident-medical-assist"],
+    "searchText": "guest services gs-1 lower bowl on duty wheelchair assist"
+  },
+  {
+    "id": "roster-security-crowd-1",
+    "roleId": "security-crowd-flow",
+    "team": "Security / Crowd Flow",
+    "callSign": "CF-2",
+    "displayName": "Crowd Flow Supervisor",
+    "onDuty": true,
+    "zone": "Perimeter gates",
+    "relatedIncidentIds": ["incident-gate-b", "incident-north-concourse"],
+    "searchText": "security crowd flow cf-2 gate b perimeter on duty"
+  },
+  {
+    "id": "roster-facilities-1",
+    "roleId": "facilities-engineer",
+    "team": "Facilities",
+    "callSign": "FAC-4",
+    "displayName": "Facilities Engineer",
+    "onDuty": true,
+    "zone": "East stand circulation",
+    "relatedIncidentIds": ["incident-elevator-4", "incident-restroom-outage"],
+    "searchText": "facilities fac-4 elevator outage engineer on duty east stand"
+  }
+]

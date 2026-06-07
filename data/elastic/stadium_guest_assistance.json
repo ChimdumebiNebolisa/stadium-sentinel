@@ -1,0 +1,38 @@
+[
+  {
+    "id": "assist-section-112-1",
+    "guestLocation": "Section 112",
+    "need": "Wheelchair access and escorted route to seating",
+    "priority": "Immediate",
+    "relatedIncidentId": "incident-section-112",
+    "locationId": "section-112",
+    "status": "open",
+    "requestedAt": "2026-06-07T11:42:00.000Z",
+    "assignedRole": "Guest Services",
+    "searchText": "section 112 wheelchair access escort guest services immediate"
+  },
+  {
+    "id": "assist-lost-child-1",
+    "guestLocation": "North Gate",
+    "need": "Reunite child with guardian per lost child protocol",
+    "priority": "Immediate",
+    "relatedIncidentId": "incident-lost-child",
+    "locationId": "screening-east",
+    "status": "assigned",
+    "requestedAt": "2026-06-07T11:55:00.000Z",
+    "assignedRole": "Security",
+    "searchText": "lost child north gate reunite guardian security immediate"
+  },
+  {
+    "id": "assist-medical-318-1",
+    "guestLocation": "Section 318",
+    "need": "Medical response for guest reporting dizziness",
+    "priority": "Immediate",
+    "relatedIncidentId": "incident-medical-assist",
+    "locationId": "section-112",
+    "status": "open",
+    "requestedAt": "2026-06-07T11:52:00.000Z",
+    "assignedRole": "Guest Services",
+    "searchText": "section 318 medical assist dizziness guest services first aid"
+  }
+]

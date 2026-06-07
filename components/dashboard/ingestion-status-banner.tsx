@@ -10,6 +10,9 @@ type IngestionStatusPayload = {
   statusLine: string;
   detailLine: string;
   elasticConfigured: boolean;
+  seedHealth?: {
+    ready: boolean;
+  };
 };
 
 export function IngestionStatusBanner({
@@ -56,6 +59,14 @@ export function IngestionStatusBanner({
         <>
           <p className="text-xs font-semibold text-slate-800">{status.statusLine}</p>
           <p className="mt-0.5 text-xs leading-5 text-slate-600">{status.detailLine}</p>
+          {status.seedHealth?.ready ? (
+            <p
+              className="mt-0.5 text-xs leading-5 text-emerald-800"
+              data-testid="ingestion-seed-ready"
+            >
+              Elastic seed ready for mock operations retrieval.
+            </p>
+          ) : null}
         </>
       ) : null}
       {fallbackMessage ? (
