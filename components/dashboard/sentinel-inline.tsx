@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 
 import {
   answerSentinelQuestion,
@@ -21,8 +21,19 @@ export function SentinelInline({ commandState }: SentinelInlineProps) {
   const incidentId = commandState.selectedIncidentPackage?.incident.id ?? "";
   const brief = buildDefaultSentinelBrief(commandState);
   const suggestedQuestions = buildSuggestedSentinelQuestions(commandState);
+  const trackedIncidentId = useRef<string | null>(null);
 
   useEffect(() => {
+    if (trackedIncidentId.current === null) {
+      trackedIncidentId.current = incidentId;
+      return;
+    }
+
+    if (trackedIncidentId.current === incidentId) {
+      return;
+    }
+
+    trackedIncidentId.current = incidentId;
     setOpen(false);
     setQuestionInput("");
     setAnswer(null);

@@ -51,7 +51,10 @@ async function assertNoForbiddenWording(text: string) {
 }
 
 async function extractStandardTranscriptPreset(page: Page) {
-  await page.getByTestId("radio-transcript-toggle").click();
+  const toggle = page.getByTestId("radio-transcript-toggle");
+  if ((await toggle.getAttribute("aria-expanded")) !== "true") {
+    await toggle.click();
+  }
   await expect(page.getByTestId("radio-transcript-input")).toBeVisible();
   await page.getByTestId("transcript-preset-standard").click();
   await page.getByTestId("extract-transcript").click();
@@ -504,6 +507,22 @@ test("standard transcript preset matches current queue without adding incidents"
   await extractStandardTranscriptPreset(page);
 
   await expect(page.getByTestId("incident-card")).toHaveCount(queueCountBefore);
+  await expect(page.getByTestId("transcript-extract-summary")).toContainText(
+    "Radio transcript processed. 3 reports matched in the current queue.",
+  );
+});
+
+test("repeat transcript extract keeps the selected incident stable", async ({ page }) => {
+  await page.goto("/command");
+
+  await page.getByRole("button", { name: /Gate B backed up/i }).click();
+  await expect(page.getByTestId("selected-incident-title")).toHaveText("Gate B backed up");
+
+  await extractStandardTranscriptPreset(page);
+  await expect(page.getByTestId("selected-incident-title")).toHaveText("Gate B backed up");
+
+  await extractStandardTranscriptPreset(page);
+  await expect(page.getByTestId("selected-incident-title")).toHaveText("Gate B backed up");
   await expect(page.getByTestId("transcript-extract-summary")).toContainText(
     "Radio transcript processed. 3 reports matched in the current queue.",
   );

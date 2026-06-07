@@ -29,6 +29,7 @@ import {
   type ChangeSummary,
 } from "@/lib/demo-agent-workflow";
 import { buildDemoState } from "@/lib/demo";
+import { resolveSelectedIncidentId } from "@/lib/demo-flow-state";
 import {
   appendTranscriptTimelineEntries,
   buildExtractionStatusMessage,
@@ -183,7 +184,9 @@ export function CommandCenter() {
       : packages;
     const sortedPackages = sortIncidentPackages(enrichedPackages);
     setIncidentPackages(sortedPackages);
-    setSelectedIncidentId(sortedPackages[0]?.incident.id ?? "");
+    setSelectedIncidentId((current) =>
+      resolveSelectedIncidentId(sortedPackages, current),
+    );
     setTimeline(
       rebuildTimelineFromPersistedState(sortedPackages, [], transcriptRecord),
     );
@@ -288,7 +291,9 @@ export function CommandCenter() {
     setChangeSummary(buildChangeSummary(previousPackages, sortedPackages));
     setBatchGeneratedAt(batch.generatedAt);
     setIncidentPackages(sortedPackages);
-    setSelectedIncidentId(sortedPackages[0]?.incident.id ?? "");
+    setSelectedIncidentId((current) =>
+      resolveSelectedIncidentId(sortedPackages, current),
+    );
     setTimeline(nextTimeline);
     setReportSummary(buildPostEventReport(sortedPackages, nextTimeline));
     setPullStatus("Latest demo reports pulled.");
@@ -358,7 +363,9 @@ export function CommandCenter() {
     }
 
     setIncidentPackages(nextPackages);
-    setSelectedIncidentId(nextPackages[0]?.incident.id ?? selectedIncidentId);
+    setSelectedIncidentId((current) =>
+      resolveSelectedIncidentId(nextPackages, current),
+    );
     setTimeline(nextTimeline);
     setReportSummary(buildPostEventReport(nextPackages, nextTimeline));
     setTranscriptExtractStatus(
