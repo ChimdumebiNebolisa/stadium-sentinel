@@ -44,9 +44,12 @@ import {
 } from "@/lib/radio-transcript-intake";
 import { buildPostEventReport } from "@/lib/report";
 import { buildResponseTimeline } from "@/lib/response-timeline";
+import {
+  fetchManualIngestionResult,
+  planManualReportIngestion,
+} from "@/lib/manual-report-ingestion";
 import type { CommandState } from "@/lib/sentinel-command-agent";
 import type {
-  AgentRunResult,
   IncidentPackage,
   ReportSummary,
   TimelineEntry,
@@ -152,6 +155,19 @@ export function CommandCenter() {
   const [transcriptExtractStatus, setTranscriptExtractStatus] = useState<string | null>(
     null,
   );
+  const [sourceMode, setSourceMode] = useState<CommandState["sourceMode"]>(null);
+  const [lastIngestionSummary, setLastIngestionSummary] = useState<string | null>(
+    null,
+  );
+
+  function applyNormalizedIngestion(result: NormalizedIngestionResult) {
+    setIncidentPackages(result.incidentPackages);
+    setTimeline(result.timeline);
+    setReportSummary(result.reportSummary);
+    setSelectedIncidentId(result.incidentPackages[0]?.incident.id ?? "");
+    setSourceMode(result.sourceMode);
+    setLastIngestionSummary(result.ingestionSummary);
+  }
 
   // Read localStorage batch on mount (client-only — avoids hydration mismatch).
   // Falls back to buildDemoState() if no valid batch exists.
@@ -203,33 +219,22 @@ export function CommandCenter() {
     incidentPackages.find(({ incident }) => incident.id === selectedIncidentId) ??
     incidentPackages[0];
 
-  async function handleSubmit() {
+  async function handleSubmit(options?: { confirmedReplace?: boolean }) {
+    const plan = planManualReportIngestion({
+      reportText: report,
+      queueNonEmpty: incidentPackages.length > 0,
+      confirmedReplace: options?.confirmedReplace ?? false,
+    });
+
+    if (plan.type === "needs_confirmation") {
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
-      const response = await fetch("/api/agent", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ report }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Agent refresh failed.");
-      }
-
-      const nextState = (await response.json()) as AgentRunResult;
-      setIncidentPackages(nextState.incidentPackages);
-      setTimeline(nextState.timeline);
-      setReportSummary(nextState.reportSummary);
-      setSelectedIncidentId(nextState.incidentPackages[0]?.incident.id ?? "");
-    } catch {
-      const nextState = buildDemoState(report);
-      setIncidentPackages(nextState.incidentPackages);
-      setTimeline(nextState.timeline);
-      setReportSummary(nextState.reportSummary);
-      setSelectedIncidentId(nextState.incidentPackages[0]?.incident.id ?? "");
+      const result = await fetchManualIngestionResult(report);
+      applyNormalizedIngestion(result);
     } finally {
       setIsSubmitting(false);
     }
@@ -427,8 +432,8 @@ export function CommandCenter() {
               null,
           })
         : [],
-      sourceMode: null,
-      lastIngestionSummary: null,
+      sourceMode,
+      lastIngestionSummary,
       sourceAuditExcerpts: [],
     }),
     [
@@ -442,6 +447,8 @@ export function CommandCenter() {
       demoReportDraft,
       demoMemorySummary,
       latestTranscriptRecord,
+      sourceMode,
+      lastIngestionSummary,
     ],
   );
 
@@ -542,6 +549,7 @@ export function CommandCenter() {
               <ReportInput
                 report={report}
                 isSubmitting={isSubmitting}
+                queueNonEmpty={incidentPackages.length > 0}
                 onChange={setReport}
                 onSubmit={handleSubmit}
               />
