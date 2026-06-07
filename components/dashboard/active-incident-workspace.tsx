@@ -1,6 +1,7 @@
 import { PriorityBadge } from "@/components/dashboard/priority-badge";
 import { ResponseTimeline } from "@/components/dashboard/response-timeline";
 import { SentinelInline } from "@/components/dashboard/sentinel-inline";
+import { VenueOrientationPanel } from "@/components/dashboard/venue-orientation-panel";
 import { WorkflowCues } from "@/components/dashboard/workflow-cues";
 import { getLocationRecord } from "@/lib/data";
 import type { CommandState } from "@/lib/sentinel-command-agent";
@@ -10,6 +11,7 @@ type ActiveIncidentWorkspaceProps = {
   incidentPackage: IncidentPackage;
   commandState: CommandState;
   timeline: TimelineEntry[];
+  activeLocationIds?: string[];
   transcriptLine?: string | null;
   onApprove: (incidentId: string, action: string, actionIndex: number) => void;
 };
@@ -180,6 +182,7 @@ export function ActiveIncidentWorkspace({
   incidentPackage,
   commandState,
   timeline,
+  activeLocationIds = [],
   transcriptLine = null,
   onApprove,
 }: ActiveIncidentWorkspaceProps) {
@@ -384,6 +387,11 @@ export function ActiveIncidentWorkspace({
             </div>
           </dl>
         </article>
+
+        <VenueOrientationPanel
+          selectedLocationId={incident.locationId}
+          activeLocationIds={activeLocationIds}
+        />
 
         <p
           className="text-xs text-slate-500"

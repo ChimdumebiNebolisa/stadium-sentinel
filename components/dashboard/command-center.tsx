@@ -63,6 +63,7 @@ import {
   loadSourceAuditEvents,
   type SourceAuditEvent,
 } from "@/lib/source-audit";
+import { getActiveLocationIdsFromPackages } from "@/lib/venue-schematic";
 import type { CommandState } from "@/lib/sentinel-command-agent";
 import type {
   IncidentPackage,
@@ -499,6 +500,10 @@ export function CommandCenter() {
     pullStatus,
     batchGeneratedAt,
   );
+  const activeLocationIds = useMemo(
+    () => getActiveLocationIdsFromPackages(incidentPackages),
+    [incidentPackages],
+  );
 
   const commandState = useMemo<CommandState>(
     () => ({
@@ -597,6 +602,7 @@ export function CommandCenter() {
                 incidentPackage={selectedIncidentPackage}
                 commandState={commandState}
                 timeline={timeline}
+                activeLocationIds={activeLocationIds}
                 transcriptLine={
                   latestTranscriptRecord?.matchedLines[
                     selectedIncidentPackage.incident.id
