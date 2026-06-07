@@ -1,3 +1,4 @@
+import { ElasticEvidenceReadPanel } from "@/components/dashboard/elastic-evidence-read-panel";
 import { getPrioritySummary } from "@/lib/priority";
 import type { EvidenceSourceType, IncidentPackage } from "@/lib/types";
 
@@ -54,6 +55,8 @@ export function EvidencePanel({
           </p>
         </div>
       ) : null}
+
+      <ElasticEvidenceReadPanel incidentPackage={incidentPackage} />
     </section>
   );
 }
