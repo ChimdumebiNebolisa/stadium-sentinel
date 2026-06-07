@@ -46,7 +46,7 @@ export function IncidentCard({
       onClick={onSelect}
       data-testid="incident-card"
       data-incident-id={incident.id}
-      className={`w-full rounded-xl border px-4 py-5 text-left transition-colors ${
+      className={`w-full rounded-xl border px-3 py-3.5 text-left transition-colors ${
         isSelected
           ? `${selectedBorder} bg-[var(--panel-hover)]`
           : "border-slate-200 bg-[var(--panel-elevated)] hover:border-slate-300 hover:bg-[var(--panel-hover)]"

@@ -296,7 +296,7 @@ test("workspace shows evidence pointer without evidence card", async ({ page }) 
 
   await expect(page.getByText("Recent evidence")).toHaveCount(0);
   await expect(page.getByTestId("evidence-drawer-pointer")).toHaveText(
-    "Evidence reviewed — open drawer for full record.",
+    "Open drawer → Evidence for full record.",
   );
 });
 
@@ -447,7 +447,7 @@ test("selected incident shows compact dispatch note", async ({ page }) => {
   await page.getByTestId("copy-dispatch-message").click();
   await expect(page.getByTestId("copy-dispatch-message")).toHaveText("Copied");
   await expect(page.getByTestId("follow-up-sentinel-cue")).toHaveText(
-    "Staff follow-ups available in Ask Sentinel.",
+    "More follow-ups in Ask Sentinel.",
   );
   await expect(page.getByTestId("follow-up-questions")).toHaveCount(0);
   await expect(page.getByTestId("response-timeline")).toBeVisible();

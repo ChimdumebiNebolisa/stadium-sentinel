@@ -16,8 +16,8 @@ export function TimelinePanel({
     <section className="h-full pr-2" data-testid="timeline-panel">
       <div className="mb-2">
         <h2 className="ops-heading">Full incident log</h2>
-        <p className="mt-1 text-sm text-slate-600">
-          Intake, recommendations, and approvals stay in one running incident log.
+        <p className="mt-0.5 text-xs text-slate-600">
+          Intake, dispatch, and approvals in one log.
         </p>
       </div>
       <div className="divide-y divide-slate-200">

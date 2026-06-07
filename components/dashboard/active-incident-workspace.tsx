@@ -165,11 +165,11 @@ function WorkspaceSectionTitle({
   title: string;
 }) {
   return (
-    <div className="mb-4 flex items-center gap-3">
-      <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-600/85 text-sm font-semibold text-white">
+    <div className="mb-2 flex items-center gap-2">
+      <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-600/85 text-xs font-semibold text-white">
         {marker}
       </span>
-      <h3 className="text-[1.05rem] font-semibold tracking-tight text-[#07111c]">
+      <h3 className="text-sm font-semibold tracking-tight text-[#07111c]">
         {title}
       </h3>
     </div>
@@ -203,27 +203,27 @@ export function ActiveIncidentWorkspace({
       className="ops-panel flex h-full min-h-0 flex-col"
       data-testid="active-incident-workspace"
     >
-      <div className="mb-4 border-b border-slate-200 pb-4">
-        <h2 className="text-[1.15rem] font-semibold tracking-tight text-[#07111c]">
+      <div className="mb-2 border-b border-slate-200 pb-2">
+        <h2 className="text-sm font-semibold tracking-tight text-[#07111c]">
           Active incident workspace
         </h2>
       </div>
 
-      <div className="grid min-h-0 gap-4">
-        <article className="ops-subpanel p-5">
+      <div className="grid min-h-0 gap-3">
+        <article className="ops-subpanel p-4">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-3">
                 <PriorityBadge level={incident.priority} />
               </div>
               <h3
-                className="mt-3 text-[2rem] font-semibold leading-tight tracking-[-0.03em] text-[#07111c]"
+                className="mt-2 text-[1.35rem] font-semibold leading-tight tracking-[-0.02em] text-[#07111c]"
                 data-testid="selected-incident-title"
               >
                 {incident.title}
               </h3>
               <SentinelInline commandState={commandState} />
-              <p className="mt-3 text-[0.98rem] text-slate-600">
+              <p className="mt-2 text-sm text-slate-600">
                 {location?.name ?? incident.locationLabel} •{" "}
                 {location ? formatZoneLayer(location.zoneLayer) : "Operations"} •{" "}
                 {teamName}
@@ -235,7 +235,7 @@ export function ActiveIncidentWorkspace({
                 {copy.riskTags.map((tag) => (
                   <span
                     key={tag}
-                    className="inline-flex items-center rounded-md border border-rose-500/30 bg-rose-500/8 px-3 py-2 text-sm font-medium text-rose-800"
+                    className="inline-flex items-center rounded-md border border-rose-500/30 bg-rose-500/8 px-2 py-1 text-xs font-medium text-rose-800"
                   >
                     {tag}
                   </span>
@@ -244,14 +244,14 @@ export function ActiveIncidentWorkspace({
             ) : null}
           </div>
 
-          <div className="mt-5 flex flex-wrap gap-3">
+          <div className="mt-3 flex flex-wrap gap-2">
             {primaryAction ? (
               <button
                 type="button"
                 onClick={() => onApprove(incident.id, primaryAction, 0)}
                 disabled={dispatchApproved}
                 aria-label={`${copy.actionLabels[0]}: ${primaryAction}`}
-                className={`rounded-md border px-5 py-3 text-sm font-semibold transition-colors ${
+                className={`rounded-md border px-4 py-2 text-sm font-semibold transition-colors ${
                   dispatchApproved
                     ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-800"
                     : "border-blue-500/40 bg-blue-600 text-white hover:bg-blue-500 disabled:cursor-not-allowed"
@@ -274,7 +274,7 @@ export function ActiveIncidentWorkspace({
                   onClick={() => onApprove(incident.id, action, actionIndex)}
                   disabled={isApproved}
                   aria-label={`${copy.actionLabels[actionIndex]}: ${action}`}
-                  className={`rounded-md border px-4 py-3 text-sm font-medium transition-colors ${
+                  className={`rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
                     isApproved
                       ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-800"
                       : "border-slate-200 bg-[var(--panel-inset)] text-slate-700 hover:border-slate-300 hover:bg-[var(--panel-hover)] disabled:cursor-not-allowed"
@@ -288,25 +288,25 @@ export function ActiveIncidentWorkspace({
         </article>
 
         <div className="workspace-grid">
-          <article className="ops-subpanel p-5">
+          <article className="ops-subpanel p-4">
             <WorkspaceSectionTitle marker="A" title="Response checklist" />
-            <div className="space-y-4">
+            <div className="space-y-2">
               {copy.checklist.map((item, index) => {
                 const status = getChecklistStatus(approvedActionCount, index);
 
                 return (
                   <div
                     key={`${incident.id}-check-${item}`}
-                    className="grid grid-cols-[auto_1fr_auto] items-center gap-4"
+                    className="grid grid-cols-[auto_1fr_auto] items-center gap-2"
                   >
                     <span
-                      className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-sm font-semibold ${status.markerClass}`}
+                      className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${status.markerClass}`}
                     >
                       {index + 1}
                     </span>
-                    <p className="text-[1rem] text-slate-800">{item}</p>
+                    <p className="text-sm text-slate-800">{item}</p>
                     <span
-                      className={`inline-flex rounded-md border px-3 py-1.5 text-sm font-medium ${status.badgeClass}`}
+                      className={`inline-flex rounded-md border px-2 py-1 text-xs font-medium ${status.badgeClass}`}
                     >
                       {status.label}
                     </span>
@@ -316,10 +316,10 @@ export function ActiveIncidentWorkspace({
             </div>
           </article>
 
-          <article className="ops-subpanel p-5">
+          <article className="ops-subpanel p-4">
             <WorkspaceSectionTitle marker="B" title="Team assignment" />
-            <div className="flex items-center gap-4">
-              <div className="flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-full bg-blue-500/10 text-2xl font-semibold text-blue-700">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-blue-500/10 text-lg font-semibold text-blue-700">
                 {teamName
                   .split(" ")
                   .map((part) => part[0])
@@ -327,10 +327,10 @@ export function ActiveIncidentWorkspace({
                   .slice(0, 2)}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-[1.15rem] font-semibold text-[#07111c]">{teamName}</p>
-                <p className="mt-1 text-[0.98rem] text-slate-600">{copy.teamLabel}</p>
+                <p className="text-sm font-semibold text-[#07111c]">{teamName}</p>
+                <p className="mt-0.5 text-xs text-slate-600">{copy.teamLabel}</p>
               </div>
-              <div className="text-right text-[0.98rem] text-slate-600">
+              <div className="text-right text-xs text-slate-600">
                 {copy.teamStatus}
               </div>
             </div>
@@ -342,7 +342,7 @@ export function ActiveIncidentWorkspace({
                 }
               }}
               disabled={dispatchApproved || !primaryAction}
-              className={`mt-6 w-full rounded-md border px-4 py-3 text-sm font-semibold transition-colors ${
+              className={`mt-3 w-full rounded-md border px-3 py-2 text-sm font-semibold transition-colors ${
                 dispatchApproved
                   ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-800"
                   : "border-blue-500/40 bg-blue-600 text-white hover:bg-blue-500 disabled:cursor-not-allowed"
@@ -362,9 +362,8 @@ export function ActiveIncidentWorkspace({
           transcriptLine={transcriptLine}
         />
 
-        <article className="ops-subpanel p-5" data-testid="command-file-section">
-          <WorkspaceSectionTitle marker="E" title="Command file" />
-          <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+        <article className="ops-subpanel px-4 py-3" data-testid="command-file-section">
+          <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs sm:grid-cols-4">
             <div>
               <dt className="text-slate-500">Priority</dt>
               <dd className="font-medium text-[#07111c]">{incident.priority}</dd>
@@ -387,10 +386,10 @@ export function ActiveIncidentWorkspace({
         </article>
 
         <p
-          className="text-sm text-slate-500"
+          className="text-xs text-slate-500"
           data-testid="evidence-drawer-pointer"
         >
-          Evidence reviewed — open drawer for full record.
+          Open drawer → Evidence for full record.
         </p>
       </div>
     </section>

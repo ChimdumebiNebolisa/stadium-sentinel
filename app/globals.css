@@ -102,7 +102,7 @@ textarea:focus-visible {
 }
 
 .ops-strip {
-  padding: 0.875rem 1rem;
+  padding: 0.75rem 1rem;
 }
 
 .workbench-shell {
@@ -224,16 +224,16 @@ textarea:focus-visible {
   max-width: 1680px;
   margin: 0 auto;
   grid-template-rows: auto auto minmax(0, 1fr) auto;
-  gap: 1rem;
-  padding: 1rem;
-  padding-bottom: calc(var(--drawer-handle-height) + 1rem);
+  gap: 0.75rem;
+  padding: 0.75rem;
+  padding-bottom: calc(var(--drawer-handle-height) + 0.75rem);
 }
 
 .board-grid {
   display: grid;
   min-height: 0;
-  grid-template-columns: 300px minmax(0, 1fr);
-  gap: 1rem;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 0.75rem;
 }
 
 .board-column {
@@ -248,7 +248,82 @@ textarea:focus-visible {
 .workspace-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1rem;
+  gap: 0.75rem;
+}
+
+.workbench-shell .utility-tab {
+  padding: 0.65rem 0.15rem 0.5rem;
+  font-size: 0.875rem;
+}
+
+.workbench-shell .utility-tab + .utility-tab {
+  margin-left: 0.85rem;
+}
+
+.workbench-shell .incident-drawer-handle {
+  gap: 0.75rem;
+  padding: 0 1rem;
+}
+
+.transcript-result-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+.transcript-result-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.15rem 0.55rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.transcript-result-chip-matched {
+  border: 1px solid rgba(37, 99, 235, 0.22);
+  background: rgba(37, 99, 235, 0.08);
+  color: #1d4ed8;
+}
+
+.transcript-result-chip-added {
+  border: 1px solid rgba(16, 185, 129, 0.24);
+  background: rgba(16, 185, 129, 0.1);
+  color: #047857;
+}
+
+.response-timeline-compact .response-timeline-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.35rem 0;
+}
+
+.response-timeline-compact .response-timeline-marker {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+}
+
+.response-timeline-compact .response-timeline-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.response-timeline-compact .response-timeline-detail {
+  margin-top: 0.1rem;
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
+.response-timeline-compact .response-timeline-time {
+  font-size: 0.75rem;
+  color: #64748b;
+  white-space: nowrap;
 }
 
 .incident-drawer {

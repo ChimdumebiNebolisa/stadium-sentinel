@@ -15,7 +15,7 @@ const priorityTone: Record<PriorityLevel, string> = {
 export function CommandHeader({ incidentCount, topPriority }: CommandHeaderProps) {
   return (
     <header
-      className="ops-panel ops-strip flex min-h-[4.5rem] items-center justify-between gap-4"
+      className="ops-panel ops-strip flex min-h-[3.5rem] items-center justify-between gap-3"
       data-testid="command-bar"
     >
       <div className="flex min-w-0 flex-wrap items-center gap-x-5 gap-y-2 text-sm">

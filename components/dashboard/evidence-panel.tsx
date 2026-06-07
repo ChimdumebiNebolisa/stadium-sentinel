@@ -23,13 +23,13 @@ export function EvidencePanel({
         {getPrioritySummary(incident)}
       </p>
 
-      <div className="mt-5 border-t border-slate-200 pt-4">
+      <div className="mt-3 border-t border-slate-200 pt-3">
         <p className="ops-label">Operational evidence</p>
-        <div className="mt-2 divide-y divide-slate-200">
+        <div className="mt-1.5 divide-y divide-slate-200">
           {evidence.map((item) => (
             <article
               key={item.sourceId}
-              className="py-3"
+              className="py-2"
             >
               <p className="ops-label">
                 {formatEvidenceSourceType(item.sourceType)}

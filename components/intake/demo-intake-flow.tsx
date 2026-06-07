@@ -70,15 +70,14 @@ export function DemoIntakeFlow() {
             <h1 className="mt-3 text-2xl font-semibold tracking-tight text-[#07111c]">
               Simulated intake demo
             </h1>
-            <p className="mt-2 max-w-[62ch] text-sm leading-6 text-slate-600">
-              Mock source connection flow — demo sources can receive reports for
-              simulated intake. No live CRM systems are connected.
+            <p className="mt-2 max-w-[52ch] text-sm leading-5 text-slate-600">
+              Connect demo sources, then open the command center to pull reports.
             </p>
           </div>
         </header>
 
         <section className="ops-panel">
-          <h2 className="ops-heading mb-4">Connect demo sources</h2>
+          <h2 className="ops-heading mb-3 text-sm">Connect demo sources</h2>
           <ul className="intake-source-list">
             {DEMO_SOURCES.map((source) => {
               const status = sourceStatus[source.id];
@@ -87,9 +86,7 @@ export function DemoIntakeFlow() {
                 <li key={source.id} className="intake-source-row">
                   <div>
                     <p className="font-medium text-[#07111c]">{source.label}</p>
-                    <p className="mt-1 text-sm text-slate-600">
-                      Demo source — mock connection only
-                    </p>
+                    <p className="mt-0.5 text-xs text-slate-500">Mock connection</p>
                   </div>
                   <span
                     className={`intake-status-badge ${
