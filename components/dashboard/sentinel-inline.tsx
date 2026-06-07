@@ -7,6 +7,7 @@ import {
   buildSuggestedSentinelQuestions,
   type CommandState,
 } from "@/lib/sentinel-command-agent";
+import { SENTINEL_MOCK_VOICE_QUESTION } from "@/lib/sentinel-voice-shell";
 
 type SentinelInlineProps = {
   commandState: CommandState;
@@ -52,6 +53,10 @@ export function SentinelInline({ commandState }: SentinelInlineProps) {
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     submitQuestion(questionInput);
+  }
+
+  function handleMockVoice() {
+    setQuestionInput(SENTINEL_MOCK_VOICE_QUESTION);
   }
 
   return (
@@ -107,7 +112,16 @@ export function SentinelInline({ commandState }: SentinelInlineProps) {
             ))}
           </div>
 
-          <form onSubmit={handleSubmit} className="mt-2 flex gap-1.5">
+          <form onSubmit={handleSubmit} className="mt-2 flex flex-wrap gap-1.5">
+            <button
+              type="button"
+              data-testid="sentinel-mock-voice"
+              aria-label="Insert mock voice question"
+              onClick={handleMockVoice}
+              className="shrink-0 rounded-md border border-slate-200 bg-white px-2 py-1 text-[0.7rem] font-medium text-slate-600 transition-colors hover:border-violet-500/30 hover:text-violet-900"
+            >
+              Mock voice
+            </button>
             <input
               type="text"
               value={questionInput}

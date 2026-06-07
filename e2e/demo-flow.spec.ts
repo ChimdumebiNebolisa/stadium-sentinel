@@ -216,8 +216,45 @@ test("sentinel control opens compact Q&A panel on default incidents", async ({
   await expect(page.getByText("Ask about this incident")).toBeVisible();
   await expect(page.getByText("Sentinel reads the current command state.")).toBeVisible();
   await expect(page.getByTestId("sentinel-question-input")).toBeVisible();
+  await expect(page.getByTestId("sentinel-mock-voice")).toBeVisible();
   await expect(page.getByTestId("sentinel-suggested-question").count()).resolves.toBeGreaterThanOrEqual(3);
   await expect(page.getByTestId("sentinel-suggested-question").count()).resolves.toBeLessThanOrEqual(5);
+});
+
+test("sentinel mock voice fills question input without auto-submit", async ({ page }) => {
+  await page.goto("/command");
+  await openSentinelPanel(page);
+
+  await page.getByTestId("sentinel-mock-voice").click();
+  await expect(page.getByTestId("sentinel-question-input")).toHaveValue(
+    "What should I ask the radio operator?",
+  );
+  await expect(page.getByTestId("sentinel-answer")).toHaveCount(0);
+});
+
+test("sentinel mock voice requires manual Ask before showing an answer", async ({
+  page,
+}) => {
+  await page.goto("/command");
+  await openSentinelPanel(page);
+
+  await page.getByTestId("sentinel-mock-voice").click();
+  await expect(page.getByTestId("sentinel-answer")).toHaveCount(0);
+
+  await page.getByTestId("sentinel-question-input").press("Enter");
+  await expect(page.getByTestId("sentinel-answer")).toBeVisible();
+  await expect(page.getByTestId("sentinel-answer")).not.toBeEmpty();
+});
+
+test("sentinel typed ask flow still works after mock voice control is present", async ({
+  page,
+}) => {
+  await page.goto("/command");
+  await openSentinelPanel(page);
+  await askSentinel(page, "What should I do first?");
+
+  const answerText = (await page.getByTestId("sentinel-answer").textContent()) ?? "";
+  expect(answerText).toMatch(/Guest Services|Dispatch|Section 112/i);
 });
 
 test("sentinel suggested question produces an answer", async ({ page }) => {
