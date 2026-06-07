@@ -2,6 +2,8 @@
 
 Stadium Sentinel ingestion is designed so **demo/localStorage always works** and **Elastic is never required for page load**.
 
+> **Hackathon forward plan:** The real-demo restructure (Elastic-first Pull, Sentinel agent route, write-back) is defined in [`docs/real-demo-restructure-plan.md`](real-demo-restructure-plan.md). This checklist’s fallback constraints remain binding; the “optional Elastic (post-demo)” framing is superseded for the primary hackathon narrative.
+
 ## Required for demo / hackathon recording
 
 - No Elastic credentials required

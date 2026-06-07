@@ -102,3 +102,7 @@ The drawer is collapsed by default and acts as a supporting artifact surface, no
 - `npm run test:e2e`
 - Local browser verification that the primary screen is queue plus workspace plus drawer
 - Screenshot capture of the redesigned desktop command center
+
+## Forward plan (hackathon — supersedes polish-only roadmap)
+
+Pass 1–4 delivered the recording demo, partial voice shell, radio transcript intake, and ingestion/Elastic sidecar infrastructure. The **active forward plan** for the Rapid Agent Hackathon is [`docs/real-demo-restructure-plan.md`](real-demo-restructure-plan.md): Elastic-seeded operations data, Elastic-first Pull, Sentinel agent route with Gemini/Agent Builder, visible write-back, then voice and transcript reframing. The recording checklist in [`docs/demo-recording-checklist.md`](demo-recording-checklist.md) remains the fallback snapshot.

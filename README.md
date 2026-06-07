@@ -57,6 +57,8 @@ Gate B is backed up, Elevator 4 is down, and a guest near Section 112 needs whee
 
 ## Hackathon Alignment
 
+**Forward plan:** [`docs/real-demo-restructure-plan.md`](docs/real-demo-restructure-plan.md) — Elastic-seeded ops data, Elastic-first Pull, Sentinel agent route, write-back loop. **Fallback snapshot:** [`docs/demo-recording-checklist.md`](docs/demo-recording-checklist.md).
+
 - Elastic is the current context, retrieval, and memory layer in the app path.
 - Elasticsearch indexes hold operational playbooks, locations, incident examples, and evidence.
 - Vertex AI / Gemini is the reasoning and enrichment layer that refines the deterministic incident packages.
