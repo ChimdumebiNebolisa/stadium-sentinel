@@ -36,15 +36,15 @@ function recommendedActionsForTeam(team: string): string[] {
 function buildAssumptions(incident: ElasticActiveIncident): string[] {
   const priorityReason: Record<ElasticActiveIncident["priority"], string> = {
     Immediate:
-      "Triaged as Immediate — guest safety or accessibility requires an immediate response.",
-    High: "Triaged as High — operational disruption affecting multiple guests or a key area.",
-    Moderate: "Triaged as Moderate — localized issue with a known resolution path.",
-    Monitor: "Triaged as Monitor — low operational impact; tracking for escalation.",
+      "Triaged as Immediate. Guest safety or accessibility requires an immediate response.",
+    High: "Triaged as High. Operational disruption is affecting multiple guests or a key area.",
+    Moderate: "Triaged as Moderate. Localized issue with a known resolution path.",
+    Monitor: "Triaged as Monitor. Limited operational impact; continue tracking for escalation.",
   };
   const actions = recommendedActionsForTeam(incident.assignedRole);
   return [
     priorityReason[incident.priority],
-    `${incident.assignedRole} assigned — best match for this incident type based on dispatch runbook.`,
+    `${incident.assignedRole} assigned. Best match for this incident type based on the dispatch runbook.`,
     `Reported at ${incident.reportedAt}.`,
     `Recommended next action: ${actions[0]}.`,
   ];
@@ -84,7 +84,7 @@ function evidenceFromGuestAssistance(
   document: ElasticGuestAssistanceRequest,
 ): EvidenceResult {
   return {
-    title: `Guest assistance — ${document.guestLocation}`,
+    title: `Guest assistance: ${document.guestLocation}`,
     sourceType: "policy",
     excerpt: document.need,
     rationale: `${document.assignedRole ?? "Operations"} assigned for ${document.status} request.`,

@@ -48,7 +48,7 @@ function parsePoolLine(line: string): PoolLine | null {
 
   return {
     time: parts[0]!.trim(),
-    message: parts.slice(1).join(" — ").trim(),
+    message: parts.slice(1).join(": ").trim(),
   };
 }
 
