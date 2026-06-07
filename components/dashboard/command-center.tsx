@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { ActiveIncidentWorkspace } from "@/components/dashboard/active-incident-workspace";
 import { CommandHeader } from "@/components/dashboard/command-header";
@@ -12,6 +12,14 @@ import { PostEventReportPanel } from "@/components/dashboard/post-event-report-p
 import { ReportInput } from "@/components/dashboard/report-input";
 import { StaffUpdatePanel } from "@/components/dashboard/staff-update-panel";
 import { TimelinePanel } from "@/components/dashboard/timeline-panel";
+import {
+  checkRateLimit,
+  generateDemoIncidentBatch,
+  loadDemoIncidentBatch,
+  localStorageIncidentToPackage,
+  recordPull,
+  saveDemoIncidentBatch,
+} from "@/lib/demo-incident-pool";
 import { buildDemoState } from "@/lib/demo";
 import { buildPostEventReport } from "@/lib/report";
 import type {
@@ -102,6 +110,19 @@ export function CommandCenter() {
   const [activeWorkspace, setActiveWorkspace] = useState<WorkspaceView | null>(
     null,
   );
+  const [pullStatus, setPullStatus] = useState<string | null>(null);
+
+  // Read localStorage batch on mount (client-only — avoids hydration mismatch).
+  // Falls back to buildDemoState() if no valid batch exists.
+  useEffect(() => {
+    const batch = loadDemoIncidentBatch();
+    if (!batch) return;
+    const packages = batch.incidents.map(localStorageIncidentToPackage);
+    if (packages.length === 0) return;
+    setIncidentPackages(packages);
+    setSelectedIncidentId(packages[0].incident.id);
+    setReportSummary(buildPostEventReport(packages, []));
+  }, []);
 
   const selectedIncidentPackage =
     incidentPackages.find(({ incident }) => incident.id === selectedIncidentId) ??
@@ -165,8 +186,24 @@ export function CommandCenter() {
     setReportSummary(buildPostEventReport(nextIncidentPackages, nextTimeline));
   }
 
-  const topPriority = incidentPackages[0]?.incident.priority ?? "Monitor";
-  const latestEntry = selectedIncidentPackage
+  function handlePullLatestReports() {
+    const { allowed } = checkRateLimit();
+    if (!allowed) {
+      setPullStatus("Incidents are up to date. Try again shortly.");
+      return;
+    }
+    const batch = generateDemoIncidentBatch();
+    saveDemoIncidentBatch(batch);
+    recordPull();
+    const packages = batch.incidents.map(localStorageIncidentToPackage);
+    if (packages.length === 0) return;
+    setIncidentPackages(packages);
+    setSelectedIncidentId(packages[0].incident.id);
+    setReportSummary(buildPostEventReport(packages, []));
+    setPullStatus("Latest demo reports pulled.");
+  }
+
+  const topPriority = incidentPackages[0]?.incident.priority ?? "Monitor";  const latestEntry = selectedIncidentPackage
     ? [...timeline]
         .reverse()
         .find((entry) => entry.incidentId === selectedIncidentPackage.incident.id)
@@ -192,7 +229,12 @@ export function CommandCenter() {
           topPriority={topPriority}
         />
 
-        <IntakeContextBar />
+        <IntakeContextBar
+          onPullReports={handlePullLatestReports}
+          pullStatus={pullStatus}
+          batchCount={incidentPackages.length}
+          topIncidentTitle={incidentPackages[0]?.incident.title ?? null}
+        />
 
         <section className="board-grid">
           <div className="board-column min-h-0">

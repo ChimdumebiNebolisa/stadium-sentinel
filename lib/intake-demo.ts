@@ -1,6 +1,7 @@
 import { demoScenario } from "@/lib/data";
 
 export const INTAKE_SESSION_KEY = "stadium-sentinel-intake-complete";
+export const DEMO_SOURCES_CONNECTED_KEY = "stadium-sentinel-demo-sources-connected";
 
 export const DEMO_REPORT_TEXT = demoScenario.inputReport;
 
@@ -19,7 +20,11 @@ export const PROCESSING_STEPS = [
   "Creating incidents...",
 ] as const;
 
-export const EXPECTED_INCIDENT_PREVIEW = [
+/**
+ * Static fallback preview — shown only when no generated batch exists.
+ * Not the active source of truth for intake results; use the pool-generated batch instead.
+ */
+export const FALLBACK_INCIDENT_PREVIEW = [
   {
     id: "incident-section-112",
     title: "Section 112 assist",
@@ -70,4 +75,22 @@ export function markIntakeComplete(): void {
   }
 
   window.sessionStorage.setItem(INTAKE_SESSION_KEY, "true");
+}
+
+export function markSourcesConnected(): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(DEMO_SOURCES_CONNECTED_KEY, "true");
+  } catch {
+    // fail silently — localStorage unavailable
+  }
+}
+
+export function readSourcesConnected(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.localStorage.getItem(DEMO_SOURCES_CONNECTED_KEY) === "true";
+  } catch {
+    return false;
+  }
 }
