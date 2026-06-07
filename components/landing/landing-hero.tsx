@@ -17,7 +17,7 @@ export function LandingHero() {
       </p>
       <div className="landing-cta-row">
         <Link
-          href="/demo/intake"
+          href="/command"
           className="landing-cta-primary"
           data-testid="hero-cta-intake-demo"
         >

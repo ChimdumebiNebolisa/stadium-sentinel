@@ -29,6 +29,7 @@ import {
   buildIncidentMemorySummary,
   type ChangeSummary,
 } from "@/lib/demo-agent-workflow";
+import { buildEmptyCommandState } from "@/lib/command-empty-state";
 import { buildDemoState } from "@/lib/demo";
 import { resolveSelectedIncidentId } from "@/lib/demo-flow-state";
 import {
@@ -47,9 +48,14 @@ import {
   evaluateAutomaticIngestionGate,
   runAutomaticIngestionPrototype,
 } from "@/lib/automatic-ingestion";
-import { readSourcesConnected } from "@/lib/intake-demo";
+import {
+  markOperationsConnected,
+  readOperationsConnected,
+  readSourcesConnected,
+} from "@/lib/intake-demo";
+import { fetchIngestBootstrap } from "@/lib/ingest-bootstrap-client";
 import { fetchIngestPull } from "@/lib/ingest-pull-client";
-import { isElasticPullEnabled } from "@/lib/feature-flags";
+import { isElasticPullEnabled, isRealDemoFlowEnabled } from "@/lib/feature-flags";
 import {
   fetchManualIngestionResult,
   planManualReportIngestion,
@@ -75,7 +81,10 @@ import type {
   TimelineEntry,
 } from "@/lib/types";
 
-const initialDemoState = buildDemoState();
+const realDemoFlowEnabled = isRealDemoFlowEnabled();
+const initialCommandState = realDemoFlowEnabled
+  ? buildEmptyCommandState()
+  : buildDemoState();
 type WorkspaceView = "evidence" | "staff" | "timeline" | "report" | "source";
 
 function resolveTranscriptTitle(
@@ -150,19 +159,19 @@ function updateIncidentPackages(
 }
 
 export function CommandCenter() {
-  const [report, setReport] = useState(() => initialDemoState.report);
+  const [report, setReport] = useState(() => initialCommandState.report);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [incidentPackages, setIncidentPackages] = useState<IncidentPackage[]>(
-    () => initialDemoState.incidentPackages,
+    () => initialCommandState.incidentPackages,
   );
   const [selectedIncidentId, setSelectedIncidentId] = useState(
-    () => initialDemoState.incidentPackages[0]?.incident.id ?? "",
+    () => initialCommandState.incidentPackages[0]?.incident.id ?? "",
   );
   const [timeline, setTimeline] = useState<TimelineEntry[]>(
-    () => initialDemoState.timeline,
+    () => initialCommandState.timeline,
   );
   const [reportSummary, setReportSummary] = useState<ReportSummary>(
-    () => initialDemoState.reportSummary,
+    () => initialCommandState.reportSummary,
   );
   const [activeWorkspace, setActiveWorkspace] = useState<WorkspaceView | null>(
     null,
@@ -189,14 +198,22 @@ export function CommandCenter() {
     null,
   );
   const [sourcesConnected, setSourcesConnected] = useState(false);
+  const [operationsConnected, setOperationsConnected] = useState(false);
+  const [connectStatus, setConnectStatus] = useState<string | null>(null);
+  const [connectLoading, setConnectLoading] = useState(false);
+  const [ingestionRefreshKey, setIngestionRefreshKey] = useState(0);
 
   useEffect(() => {
     setSourcesConnected(readSourcesConnected());
+    setOperationsConnected(readOperationsConnected());
   }, []);
 
   const automaticIngestGate = useMemo(
-    () => evaluateAutomaticIngestionGate(sourcesConnected),
-    [sourcesConnected],
+    () =>
+      evaluateAutomaticIngestionGate(
+        realDemoFlowEnabled ? operationsConnected : sourcesConnected,
+      ),
+    [sourcesConnected, operationsConnected],
   );
 
   function recordSourceAudit(
@@ -233,19 +250,23 @@ export function CommandCenter() {
   }
 
   // Read localStorage batch on mount (client-only — avoids hydration mismatch).
-  // Falls back to buildDemoState() if no valid batch exists.
+  // Real-demo mode stays empty until operations data is connected and pulled.
   useEffect(() => {
     setSourceAuditEvents(loadSourceAuditEvents());
+
+    if (realDemoFlowEnabled && !readOperationsConnected()) {
+      return;
+    }
 
     const batch = loadDemoIncidentBatch();
     const transcriptRecord = loadRadioTranscriptRecord();
     setLatestTranscriptRecord(transcriptRecord);
 
     if (!batch) {
-      if (transcriptRecord) {
+      if (!realDemoFlowEnabled && transcriptRecord) {
         setTimeline((current) =>
           rebuildTimelineFromPersistedState(
-            initialDemoState.incidentPackages,
+            initialCommandState.incidentPackages,
             current,
             transcriptRecord,
           ),
@@ -380,6 +401,40 @@ export function CommandCenter() {
     handleApprove(selected.incident.id, action, recommendation.actionIndex, {
       sentinelRecommendationId: recommendation.label,
     });
+  }
+
+  async function handleConnectOperationsData() {
+    setConnectLoading(true);
+    setConnectStatus(null);
+
+    try {
+      const result = await fetchIngestBootstrap();
+      setIngestionRefreshKey((current) => current + 1);
+
+      if (result.outcome === "ready" || result.outcome === "seeded") {
+        markOperationsConnected();
+        setOperationsConnected(true);
+        setConnectStatus("Seeded stadium operations data connected.");
+        return;
+      }
+
+      if (result.outcome === "unconfigured") {
+        setConnectStatus(
+          "Elastic is not configured. Local fallback remains available.",
+        );
+        return;
+      }
+
+      setConnectStatus(
+        result.errorSummary ?? "Could not connect stadium operations data.",
+      );
+    } catch {
+      setConnectStatus(
+        "Could not connect stadium operations data. Local fallback remains available.",
+      );
+    } finally {
+      setConnectLoading(false);
+    }
   }
 
   async function handlePullLatestReports() {
@@ -687,6 +742,11 @@ export function CommandCenter() {
           automaticIngestReason={automaticIngestGate.reason}
           onAutomaticIngest={handleAutomaticIngest}
           automaticIngestStatus={automaticIngestStatus}
+          operationsConnected={operationsConnected}
+          onConnectOperations={() => void handleConnectOperationsData()}
+          connectStatus={connectStatus}
+          connectLoading={connectLoading}
+          ingestionRefreshKey={ingestionRefreshKey}
         />
 
         <section className="board-grid">
@@ -695,6 +755,11 @@ export function CommandCenter() {
               incidentPackages={incidentPackages}
               selectedIncidentId={selectedIncidentId}
               onSelect={setSelectedIncidentId}
+              emptyMessage={
+                realDemoFlowEnabled && incidentPackages.length === 0
+                  ? "No operations data connected. Connect stadium operations data to load current incidents from Elastic."
+                  : null
+              }
             />
           </div>
 
@@ -715,12 +780,15 @@ export function CommandCenter() {
               />
             ) : (
               <section className="ops-panel flex h-full min-h-0 flex-col overflow-hidden">
-                <h2 className="ops-heading text-lg">
-                  No incidents matched the current report
+                <h2 className="ops-heading text-lg" data-testid="workspace-empty-title">
+                  {realDemoFlowEnabled
+                    ? "No operations data connected"
+                    : "No incidents matched the current report"}
                 </h2>
                 <p className="mt-2 max-w-[60ch] text-sm leading-6 text-slate-600">
-                  Use the demo scenario text to restore the dispatch queue,
-                  active incident workspace, and utility drawer workflow.
+                  {realDemoFlowEnabled
+                    ? "Connect stadium operations data to load current incidents from Elastic, then pull latest reports."
+                    : "Use the demo scenario text to restore the dispatch queue, active incident workspace, and utility drawer workflow."}
                 </p>
               </section>
             )}

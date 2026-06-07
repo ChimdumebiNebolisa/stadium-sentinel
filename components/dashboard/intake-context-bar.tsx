@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { IngestionStatusBanner } from "@/components/dashboard/ingestion-status-banner";
 import { RadioTranscriptPanel } from "@/components/dashboard/radio-transcript-panel";
 import type { ChangeSummary } from "@/lib/demo-agent-workflow";
-import { readRadioTranscriptPanelEnabled } from "@/lib/feature-flags";
+import { isRealDemoFlowEnabled, readRadioTranscriptPanelEnabled } from "@/lib/feature-flags";
 import { readIntakeComplete, readSourcesConnected } from "@/lib/intake-demo";
 import type { RadioTranscriptRecord } from "@/lib/radio-transcript-intake";
 
@@ -23,6 +23,11 @@ type IntakeContextBarProps = {
   automaticIngestReason?: string;
   onAutomaticIngest?: () => void;
   automaticIngestStatus?: string | null;
+  operationsConnected?: boolean;
+  onConnectOperations?: () => void;
+  connectStatus?: string | null;
+  connectLoading?: boolean;
+  ingestionRefreshKey?: number;
 };
 
 export function IntakeContextBar({
@@ -39,11 +44,18 @@ export function IntakeContextBar({
   automaticIngestReason,
   onAutomaticIngest,
   automaticIngestStatus,
+  operationsConnected = false,
+  onConnectOperations,
+  connectStatus,
+  connectLoading = false,
+  ingestionRefreshKey = 0,
 }: IntakeContextBarProps) {
   const [mounted, setMounted] = useState(false);
   const [intakeComplete, setIntakeComplete] = useState(false);
   const [sourcesConnected, setSourcesConnected] = useState(false);
   const [showRadioPanel, setShowRadioPanel] = useState(false);
+  const realDemoFlow = isRealDemoFlowEnabled();
+  const pullEnabled = mounted && (realDemoFlow ? operationsConnected : sourcesConnected);
 
   useEffect(() => {
     setMounted(true);
@@ -61,9 +73,16 @@ export function IntakeContextBar({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <p className="text-xs font-medium uppercase tracking-[0.04em] text-slate-500">
-            Demo sources · Guest Services · Security · Facilities · Radio Log
+            {realDemoFlow
+              ? "Stadium operations data · Elastic-backed incidents"
+              : "Demo sources · Guest Services · Security · Facilities · Radio Log"}
           </p>
-          {mounted && intakeComplete ? (
+          {mounted && realDemoFlow && operationsConnected ? (
+            <p className="mt-1 text-xs text-emerald-800" data-testid="operations-connected-status">
+              Elastic operations data connected.
+            </p>
+          ) : null}
+          {mounted && !realDemoFlow && intakeComplete ? (
             <div className="mt-1 space-y-0.5 text-xs text-slate-500">
               <p data-testid="intake-last-sync">Last sync: Demo intake completed</p>
               <p data-testid="intake-summary">
@@ -89,18 +108,39 @@ export function IntakeContextBar({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          {mounted && realDemoFlow && !operationsConnected ? (
+            <button
+              type="button"
+              data-testid="connect-operations-data"
+              disabled={connectLoading}
+              onClick={onConnectOperations}
+              className="rounded-md border border-emerald-500/40 bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-45"
+            >
+              {connectLoading ? "Connecting…" : "Connect operations data"}
+            </button>
+          ) : null}
           <button
             type="button"
             data-testid="pull-latest-reports"
-            disabled={!mounted || !sourcesConnected}
+            disabled={!pullEnabled}
             onClick={onPullReports}
             className="rounded-md border border-blue-500/40 bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-45"
           >
             Pull latest reports
           </button>
-          {mounted && !sourcesConnected ? (
+          {mounted && realDemoFlow && !operationsConnected ? (
+            <p className="text-xs text-slate-500" data-testid="pull-helper-text">
+              Connect operations data first.
+            </p>
+          ) : null}
+          {mounted && !realDemoFlow && !sourcesConnected ? (
             <p className="text-xs text-slate-500" data-testid="pull-helper-text">
               Connect demo sources first.
+            </p>
+          ) : null}
+          {connectStatus ? (
+            <p className="text-xs text-slate-500" data-testid="connect-status">
+              {connectStatus}
             </p>
           ) : null}
           {pullStatus ? (
@@ -126,7 +166,10 @@ export function IntakeContextBar({
         </div>
       </div>
 
-      <IngestionStatusBanner fallbackMessage={ingestionFallbackMessage} />
+      <IngestionStatusBanner
+        fallbackMessage={ingestionFallbackMessage}
+        refreshKey={ingestionRefreshKey}
+      />
 
       {mounted && showRadioPanel ? (
         <RadioTranscriptPanel

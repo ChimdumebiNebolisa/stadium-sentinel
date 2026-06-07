@@ -16,12 +16,12 @@ test("landing page loads with hero and CTAs", async ({ page }) => {
   await expect(page.getByTestId("landing-expected-incidents")).toBeVisible();
 });
 
-test("Run intake demo opens the mock intake flow", async ({ page }) => {
+test("Run intake demo opens the command center", async ({ page }) => {
   await page.goto("/");
   await page.getByTestId("hero-cta-intake-demo").click();
-  await page.waitForURL("**/demo/intake");
+  await page.waitForURL("**/command");
 
-  await expect(page.getByRole("heading", { name: "Simulated intake demo" })).toBeVisible();
+  await expect(page.getByTestId("intake-context-bar")).toBeVisible();
 });
 
 test("intake shows single connect button and four sources starting Not connected", async ({
@@ -156,9 +156,7 @@ test("pull button is disabled with helper text when sources not connected", asyn
 });
 
 test("full demo journey from landing through dispatch and drawer", async ({ page }) => {
-  await page.goto("/");
-  await page.getByTestId("hero-cta-intake-demo").click();
-  await page.waitForURL("**/demo/intake");
+  await page.goto("/demo/intake");
 
   await page.getByTestId("connect-demo-sources").click();
   for (const sourceId of DEMO_SOURCE_IDS) {

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 type IngestionStatusBannerProps = {
   fallbackMessage?: string | null;
+  refreshKey?: number;
 };
 
 type IngestionStatusPayload = {
@@ -17,6 +18,7 @@ type IngestionStatusPayload = {
 
 export function IngestionStatusBanner({
   fallbackMessage,
+  refreshKey = 0,
 }: IngestionStatusBannerProps) {
   const [status, setStatus] = useState<IngestionStatusPayload | null>(null);
 
@@ -33,9 +35,9 @@ export function IngestionStatusBanner({
       .catch(() => {
         if (!cancelled) {
           setStatus({
-            statusLine: "Operating on demo/local data",
+            statusLine: "Operations data not connected",
             detailLine:
-              "Ingestion status unavailable. Demo/local fallback remains active.",
+              "Connect stadium operations data to load current incidents from Elastic.",
             elasticConfigured: false,
           });
         }
@@ -44,7 +46,7 @@ export function IngestionStatusBanner({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [refreshKey]);
 
   if (!status && !fallbackMessage) {
     return null;
@@ -64,7 +66,7 @@ export function IngestionStatusBanner({
               className="mt-0.5 text-xs leading-5 text-emerald-800"
               data-testid="ingestion-seed-ready"
             >
-              Elastic seed ready for mock operations retrieval.
+              Seeded stadium operations data ready for retrieval.
             </p>
           ) : null}
         </>

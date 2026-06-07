@@ -25,7 +25,7 @@ export function LandingNav() {
           )}
         </div>
 
-        <Link className="landing-nav-cta" href="/demo/intake">
+        <Link className="landing-nav-cta" href="/command">
           Launch demo
         </Link>
       </div>

@@ -2,6 +2,7 @@ import { demoScenario } from "@/lib/data";
 
 export const INTAKE_SESSION_KEY = "stadium-sentinel-intake-complete";
 export const DEMO_SOURCES_CONNECTED_KEY = "stadium-sentinel-demo-sources-connected";
+export const OPERATIONS_CONNECTED_KEY = "stadium-sentinel-operations-connected";
 
 export const DEMO_REPORT_TEXT = demoScenario.inputReport;
 
@@ -92,5 +93,32 @@ export function readSourcesConnected(): boolean {
     return window.localStorage.getItem(DEMO_SOURCES_CONNECTED_KEY) === "true";
   } catch {
     return false;
+  }
+}
+
+export function markOperationsConnected(): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(OPERATIONS_CONNECTED_KEY, "true");
+  } catch {
+    // fail silently — localStorage unavailable
+  }
+}
+
+export function readOperationsConnected(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.localStorage.getItem(OPERATIONS_CONNECTED_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
+export function clearOperationsConnected(): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.removeItem(OPERATIONS_CONNECTED_KEY);
+  } catch {
+    // fail silently
   }
 }

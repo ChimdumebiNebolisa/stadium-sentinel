@@ -5,12 +5,14 @@ type IncidentListProps = {
   incidentPackages: IncidentPackage[];
   selectedIncidentId: string;
   onSelect: (incidentId: string) => void;
+  emptyMessage?: string | null;
 };
 
 export function IncidentList({
   incidentPackages,
   selectedIncidentId,
   onSelect,
+  emptyMessage,
 }: IncidentListProps) {
   return (
     <section
@@ -24,6 +26,14 @@ export function IncidentList({
         </span>
       </div>
       <div className="queue-scroll min-h-0 flex-1 space-y-3 overflow-y-auto pr-0.5">
+        {incidentPackages.length === 0 && emptyMessage ? (
+          <p
+            className="rounded-md border border-dashed border-slate-200 bg-slate-50 px-3 py-4 text-sm leading-6 text-slate-600"
+            data-testid="dispatch-queue-empty"
+          >
+            {emptyMessage}
+          </p>
+        ) : null}
         {incidentPackages.map((incidentPackage, index) => (
           <IncidentCard
             key={incidentPackage.incident.id}

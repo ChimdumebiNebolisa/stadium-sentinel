@@ -4,9 +4,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { isRealDemoFlowEnabled } from "@/lib/feature-flags";
+import { fetchIngestBootstrap } from "@/lib/ingest-bootstrap-client";
 import {
   DEMO_SOURCES,
   markIntakeComplete,
+  markOperationsConnected,
   markSourcesConnected,
 } from "@/lib/intake-demo";
 
@@ -14,6 +17,7 @@ type SourceStatus = "ready" | "connecting" | "connected";
 
 export function DemoIntakeFlow() {
   const router = useRouter();
+  const realDemoFlow = isRealDemoFlowEnabled();
   const [sourceStatus, setSourceStatus] = useState<Record<string, SourceStatus>>(
     () =>
       Object.fromEntries(DEMO_SOURCES.map((source) => [source.id, "ready"])) as Record<
@@ -21,6 +25,9 @@ export function DemoIntakeFlow() {
         SourceStatus
       >,
   );
+  const [operationsConnected, setOperationsConnected] = useState(false);
+  const [connectStatus, setConnectStatus] = useState<string | null>(null);
+  const [connectLoading, setConnectLoading] = useState(false);
   const isConnecting = useRef(false);
 
   const allConnected = useMemo(
@@ -32,10 +39,11 @@ export function DemoIntakeFlow() {
     (source) => sourceStatus[source.id] === "connecting",
   );
 
-  // Persist source connection flag to localStorage when all sources reach "connected"
   useEffect(() => {
-    if (allConnected) markSourcesConnected();
-  }, [allConnected]);
+    if (!realDemoFlow && allConnected) {
+      markSourcesConnected();
+    }
+  }, [allConnected, realDemoFlow]);
 
   async function startAutoConnect() {
     if (isConnecting.current) return;
@@ -51,9 +59,103 @@ export function DemoIntakeFlow() {
     isConnecting.current = false;
   }
 
+  async function handleConnectOperationsData() {
+    setConnectLoading(true);
+    setConnectStatus(null);
+
+    try {
+      const result = await fetchIngestBootstrap();
+
+      if (result.outcome === "ready" || result.outcome === "seeded") {
+        markOperationsConnected();
+        markIntakeComplete();
+        setOperationsConnected(true);
+        setConnectStatus("Seeded stadium operations data connected.");
+        return;
+      }
+
+      if (result.outcome === "unconfigured") {
+        setConnectStatus(
+          "Elastic is not configured. Open the command center to use local fallback.",
+        );
+        return;
+      }
+
+      setConnectStatus(
+        result.errorSummary ?? "Could not connect stadium operations data.",
+      );
+    } catch {
+      setConnectStatus("Could not connect stadium operations data.");
+    } finally {
+      setConnectLoading(false);
+    }
+  }
+
   function openCommandCenter() {
     markIntakeComplete();
     router.push("/command");
+  }
+
+  if (realDemoFlow) {
+    return (
+      <div className="landing-shell intake-shell">
+        <main className="intake-main">
+          <header className="intake-header">
+            <div>
+              <Link
+                href="/"
+                className="text-sm text-slate-500 transition-colors hover:text-[#07111c]"
+              >
+                ← Back to landing
+              </Link>
+              <h1 className="mt-3 text-2xl font-semibold tracking-tight text-[#07111c]">
+                Stadium operations intake
+              </h1>
+              <p className="mt-2 max-w-[52ch] text-sm leading-5 text-slate-600">
+                Connect stadium operations data, then open the command center to pull
+                latest reports from Elastic.
+              </p>
+            </div>
+          </header>
+
+          <section className="ops-panel">
+            <h2 className="ops-heading mb-3 text-sm">Connect stadium operations data</h2>
+            <p className="text-sm text-slate-600">
+              Loads seeded stadium operations incidents, policies, roster, and radio
+              transcripts into Elastic when configured.
+            </p>
+
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              {!operationsConnected ? (
+                <button
+                  type="button"
+                  className="landing-cta-primary"
+                  data-testid="connect-operations-data"
+                  disabled={connectLoading}
+                  onClick={() => void handleConnectOperationsData()}
+                >
+                  {connectLoading ? "Connecting…" : "Connect stadium operations data"}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="landing-cta-primary"
+                  data-testid="open-command-center"
+                  onClick={openCommandCenter}
+                >
+                  Open command center
+                </button>
+              )}
+              {connectStatus ? (
+                <p className="text-sm text-slate-600" data-testid="intake-connect-status">
+                  {connectStatus}
+                </p>
+              ) : null}
+            </div>
+          </section>
+        </main>
+      </div>
+    );
   }
 
   return (

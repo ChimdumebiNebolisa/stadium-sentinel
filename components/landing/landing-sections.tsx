@@ -186,7 +186,7 @@ export function FinalCtaSection() {
         <h2>Open the command center.</h2>
         <div className="landing-cta-row landing-final-cta-row">
           <Link
-            href="/demo/intake"
+            href="/command"
             className="landing-cta-final-primary"
             data-testid="final-cta-intake-demo"
           >
