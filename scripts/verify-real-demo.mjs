@@ -16,6 +16,7 @@ const requiredDocs = [
 
 const requiredRoutes = [
   "app/api/ingest/status/route.ts",
+  "app/api/ingest/bootstrap/route.ts",
   "app/api/ingest/pull/route.ts",
   "app/api/sentinel/route.ts",
   "app/api/timeline/write/route.ts",
@@ -74,6 +75,17 @@ async function verifyFallbackApiChecks() {
       throw new Error("ingest status did not report demo fallback availability.");
     }
     log("✓ GET /api/ingest/status reports demo fallback availability.");
+
+    const bootstrap = await fetchJson(`${baseUrl}/api/ingest/bootstrap`, {
+      method: "POST",
+    });
+    if (!bootstrap.response.ok) {
+      throw new Error(`ingest bootstrap returned ${bootstrap.response.status}`);
+    }
+    if (!bootstrap.body?.outcome) {
+      throw new Error("ingest bootstrap response missing outcome.");
+    }
+    log(`✓ POST /api/ingest/bootstrap returned outcome=${bootstrap.body.outcome}.`);
 
     const pull = await fetchJson(`${baseUrl}/api/ingest/pull`, {
       method: "POST",

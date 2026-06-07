@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "index:elastic": "node scripts/index-elastic.mjs",
+    "index:elastic": "npx tsx scripts/index-elastic-cli.ts",
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -27,6 +27,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.7",
     "tailwindcss": "^4",
+    "tsx": "^4.20.5",
     "typescript": "^5",
     "vite-tsconfig-paths": "^6.1.1",
     "vitest": "^4.1.8"

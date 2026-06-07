@@ -21,9 +21,9 @@ export function resolveIngestionPathStatus(
         demoFallbackAvailable,
         elasticConfigured: true,
         activePath: "elastic-ready",
-        statusLine: "Seeded mock operations data ready in Elastic",
+        statusLine: "Seeded stadium operations data ready",
         detailLine:
-          "Elastic seed indices meet minimum counts. Demo/local fallback remains active for page load and Pull until R3.",
+          "Elastic indices meet minimum counts. Pull latest reports to load current incidents.",
       };
     }
 
@@ -31,9 +31,9 @@ export function resolveIngestionPathStatus(
       demoFallbackAvailable,
       elasticConfigured: true,
       activePath: "elastic-ready",
-      statusLine: "Elastic configured · seed indices incomplete",
+      statusLine: "Elastic configured · operations data not connected",
       detailLine:
-        "Run npm run index:elastic to load seeded mock operations data. Demo/local fallback remains active.",
+        "Connect stadium operations data to load current incidents from Elastic.",
     };
   }
 
@@ -41,9 +41,9 @@ export function resolveIngestionPathStatus(
     demoFallbackAvailable,
     elasticConfigured: false,
     activePath: "elastic-unavailable",
-    statusLine: "Operating on demo/local data",
+    statusLine: "Operations data not connected",
     detailLine:
-      "Elastic credentials are not configured. Demo pull, manual report, and transcript intake remain available.",
+      "Connect stadium operations data to load current incidents from Elastic. Local fallback available if Elastic is unavailable.",
   };
 }
 
