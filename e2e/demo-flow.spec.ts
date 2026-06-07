@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 
 async function openWorkspace(
   page: Page,
-  panel: "Evidence" | "Incident log" | "Report",
+  panel: "Evidence" | "Incident log" | "Report" | "Source log",
 ) {
   const tab = page
     .getByRole("tablist", { name: "Workspace panels" })
@@ -24,7 +24,9 @@ async function openWorkspace(
       ? page.getByTestId("evidence-panel")
       : panel === "Incident log"
         ? page.getByTestId("timeline-panel")
-        : page.getByTestId("report-panel");
+        : panel === "Source log"
+          ? page.getByTestId("source-log-panel")
+          : page.getByTestId("report-panel");
 
   await expect(panelTarget).toBeVisible();
 }
@@ -107,7 +109,7 @@ test("demo report renders the command-center shell and preserves the response wo
     .count();
 
   await openWorkspace(page, "Report");
-  await page.getByRole("button", { name: "Process report" }).click({ force: true });
+  await page.getByTestId("manual-ingest-confirm-replace").click();
 
   await expect(page.getByTestId("incident-card")).toHaveCount(3);
   await expect(page.getByTestId("selected-incident-title")).toHaveText(
@@ -663,6 +665,48 @@ test("sentinel transcript prompts avoid forbidden wording", async ({ page }) => 
 
   const panelText = (await page.getByTestId("sentinel-panel").textContent()) ?? "";
   await assertNoForbiddenWording(panelText);
+});
+
+test("manual report ingestion requires replace confirmation when queue is non-empty", async ({
+  page,
+}) => {
+  await page.goto("/command");
+  await openWorkspace(page, "Report");
+
+  await expect(page.getByTestId("manual-ingest-confirm")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Process report" })).toBeDisabled();
+});
+
+test("ingestion status banner loads without elastic credentials", async ({ page }) => {
+  await page.goto("/command");
+
+  await expect(page.getByTestId("ingestion-status-banner")).toBeVisible({
+    timeout: 5_000,
+  });
+  await expect(page.getByTestId("ingestion-status-banner")).toContainText(
+    /demo\/local/i,
+  );
+});
+
+test("pull latest reports records a source log entry", async ({ page }) => {
+  await page.goto("/command");
+  await enableDemoSources(page);
+  await pullLatestReports(page);
+  await openWorkspace(page, "Source log");
+
+  await expect(page.getByTestId("source-log-entry").first()).toBeVisible();
+});
+
+test("evidence panel shows optional elastic read path state", async ({ page }) => {
+  await page.goto("/command");
+  await openWorkspace(page, "Evidence");
+
+  await expect(page.getByTestId("elastic-evidence-read-panel")).toBeVisible({
+    timeout: 5_000,
+  });
+  await expect(page.getByTestId("evidence-read-mode")).not.toHaveText("Checking…", {
+    timeout: 5_000,
+  });
 });
 
 test("backend-off mode keeps the deterministic api contract for the demo input", async ({
