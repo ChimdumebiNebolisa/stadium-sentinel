@@ -24,38 +24,34 @@ export function WorkflowCues({
   }
 
   return (
-    <article className="ops-subpanel p-5" data-testid="workflow-cues">
-      <div className="mb-4">
-        <h3 className="text-[1.05rem] font-semibold tracking-tight text-[#07111c]">
-          Recommended dispatch message
-        </h3>
-        <p className="mt-1 text-sm text-slate-500">
-          Staff-ready wording for radio or ops channel — copy only, nothing is sent.
-        </p>
-      </div>
-      <div className="flex flex-wrap items-start gap-3">
+    <div
+      className="rounded-md border border-slate-200 bg-[var(--panel-inset)] px-4 py-3"
+      data-testid="workflow-cues"
+    >
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="shrink-0 text-sm font-semibold text-[#07111c]">Dispatch note</span>
         <p
-          className="min-w-0 flex-1 rounded-md border border-slate-200 bg-[var(--panel-inset)] px-4 py-3 font-mono text-sm leading-6 text-[#07111c]"
+          className="min-w-0 flex-1 truncate text-sm text-slate-700"
           data-testid="dispatch-message"
+          title={dispatchMessage}
         >
           {dispatchMessage}
         </p>
         <button
           type="button"
           onClick={handleCopy}
-          className="rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors hover:border-slate-300"
+          className="shrink-0 rounded-md border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:border-slate-300"
           data-testid="copy-dispatch-message"
         >
           {copied ? "Copied" : "Copy"}
         </button>
       </div>
-
       <p
-        className="mt-3 border-t border-slate-200 pt-3 text-sm text-slate-500"
+        className="mt-2 text-xs text-slate-500"
         data-testid="follow-up-sentinel-cue"
       >
         Staff follow-ups available in Ask Sentinel.
       </p>
-    </article>
+    </div>
   );
 }

@@ -422,15 +422,27 @@ test("pull latest reports shows what changed summary", async ({ page }) => {
   await expect(summary.getByText(/Top priority:/)).toBeVisible();
 });
 
-test("selected incident shows workflow cues", async ({ page }) => {
+test("selected incident shows compact dispatch note", async ({ page }) => {
   await page.goto("/command");
+  await page.context().grantPermissions(["clipboard-read", "clipboard-write"]);
 
+  await expect(page.getByText("Recommended dispatch message")).toHaveCount(0);
+  await expect(
+    page.getByText("Staff-ready wording for radio or ops channel — copy only, nothing is sent."),
+  ).toHaveCount(0);
+  await expect(page.getByText("Dispatch note", { exact: true })).toBeVisible();
   await expect(page.getByTestId("workflow-cues")).toBeVisible();
   await expect(page.getByTestId("dispatch-message")).not.toBeEmpty();
+  await expect(page.getByTestId("copy-dispatch-message")).toBeVisible();
+  await page.getByTestId("copy-dispatch-message").click();
+  await expect(page.getByTestId("copy-dispatch-message")).toHaveText("Copied");
   await expect(page.getByTestId("follow-up-sentinel-cue")).toHaveText(
     "Staff follow-ups available in Ask Sentinel.",
   );
   await expect(page.getByTestId("follow-up-questions")).toHaveCount(0);
+  await expect(page.getByTestId("response-timeline")).toBeVisible();
+  await expect(page.getByTestId("evidence-drawer-pointer")).toBeVisible();
+  await expect(page.getByText("Recent evidence")).toHaveCount(0);
 });
 
 test("report tab shows demo report draft and memory", async ({ page }) => {

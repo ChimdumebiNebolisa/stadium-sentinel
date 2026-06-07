@@ -351,13 +351,13 @@ export function ActiveIncidentWorkspace({
           </article>
         </div>
 
+        <WorkflowCues incidentPackage={incidentPackage} />
+
         <ResponseTimeline
           incidentPackage={incidentPackage}
           timeline={timeline}
           poolTimeline={poolTimeline}
         />
-
-        <WorkflowCues incidentPackage={incidentPackage} />
 
         <article className="ops-subpanel p-5" data-testid="command-file-section">
           <WorkspaceSectionTitle marker="E" title="Command file" />
