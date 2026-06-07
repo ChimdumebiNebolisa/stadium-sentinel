@@ -298,35 +298,83 @@ export function SentinelInline({
             ))}
           </div>
 
-          <form onSubmit={handleSubmit} className="mt-2 flex flex-wrap gap-1.5">
-            {voiceEnabled ? (
-              <>
+          {voiceEnabled ? (
+            <div className="mt-2 space-y-2" data-testid="sentinel-voice-first">
+              <button
+                type="button"
+                data-testid="sentinel-push-to-talk"
+                aria-label="Push to talk"
+                onMouseDown={handlePushToTalkStart}
+                onMouseUp={handlePushToTalkStop}
+                onMouseLeave={handlePushToTalkStop}
+                onTouchStart={handlePushToTalkStart}
+                onTouchEnd={handlePushToTalkStop}
+                disabled={voiceStatus === "unsupported"}
+                className="w-full rounded-md border border-violet-500/40 bg-violet-600 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {voiceStatus === "listening" ? "Listening…" : "Push to talk"}
+              </button>
+
+              {questionInput.trim() ? (
+                <p
+                  className="rounded-md border border-violet-500/15 bg-white px-2.5 py-1.5 text-sm text-slate-700"
+                  data-testid="sentinel-transcript-preview"
+                >
+                  {questionInput}
+                </p>
+              ) : null}
+
+              <p className="text-[0.7rem] text-slate-500">
+                Review the transcript, then press Ask. Voice does not auto-submit.
+              </p>
+
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
-                  data-testid="sentinel-push-to-talk"
-                  aria-label="Push to talk"
-                  onMouseDown={handlePushToTalkStart}
-                  onMouseUp={handlePushToTalkStop}
-                  onMouseLeave={handlePushToTalkStop}
-                  onTouchStart={handlePushToTalkStart}
-                  onTouchEnd={handlePushToTalkStop}
-                  disabled={voiceStatus === "unsupported"}
-                  className="shrink-0 rounded-md border border-violet-500/30 bg-white px-2 py-1 text-[0.7rem] font-medium text-violet-900 transition-colors hover:bg-violet-500/5 disabled:cursor-not-allowed disabled:opacity-50"
+                  data-testid="sentinel-ask-voice"
+                  disabled={loading || !questionInput.trim()}
+                  onClick={() => void submitQuestion(questionInput)}
+                  className="rounded-md border border-violet-500/30 bg-violet-600 px-3 py-1.5 text-[0.7rem] font-semibold uppercase tracking-[0.03em] text-white transition-colors hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {voiceStatus === "listening" ? "Listening…" : "Push to talk"}
+                  Ask
                 </button>
                 {answer && readAloudSupported ? (
                   <button
                     type="button"
                     data-testid="sentinel-read-aloud"
                     onClick={handleReadAloud}
-                    className="shrink-0 rounded-md border border-slate-200 bg-white px-2 py-1 text-[0.7rem] font-medium text-slate-600 transition-colors hover:border-violet-500/30 hover:text-violet-900"
+                    className="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-[0.7rem] font-medium text-slate-600 transition-colors hover:border-violet-500/30 hover:text-violet-900"
                   >
                     Read aloud
                   </button>
                 ) : null}
-              </>
-            ) : (
+              </div>
+
+              <details className="rounded-md border border-slate-200 bg-white px-2.5 py-1.5">
+                <summary className="cursor-pointer text-[0.7rem] font-medium text-slate-600">
+                  Type a question
+                </summary>
+                <form onSubmit={handleSubmit} className="mt-2 flex flex-wrap gap-1.5">
+                  <input
+                    type="text"
+                    value={questionInput}
+                    onChange={(event) => setQuestionInput(event.target.value)}
+                    placeholder="Ask about this incident…"
+                    data-testid="sentinel-question-input"
+                    className="min-w-0 flex-1 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-sm text-slate-800 placeholder:text-slate-400"
+                  />
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="shrink-0 rounded-md border border-violet-500/30 bg-violet-600 px-2.5 py-1 text-[0.7rem] font-semibold uppercase tracking-[0.03em] text-white transition-colors hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    Ask
+                  </button>
+                </form>
+              </details>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="mt-2 flex flex-wrap gap-1.5">
               <button
                 type="button"
                 data-testid="sentinel-mock-voice"
@@ -336,23 +384,23 @@ export function SentinelInline({
               >
                 Mock voice
               </button>
-            )}
-            <input
-              type="text"
-              value={questionInput}
-              onChange={(event) => setQuestionInput(event.target.value)}
-              placeholder="Ask about this incident…"
-              data-testid="sentinel-question-input"
-              className="min-w-0 flex-1 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-sm text-slate-800 placeholder:text-slate-400"
-            />
-            <button
-              type="submit"
-              disabled={loading}
-              className="shrink-0 rounded-md border border-violet-500/30 bg-violet-600 px-2.5 py-1 text-[0.7rem] font-semibold uppercase tracking-[0.03em] text-white transition-colors hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              Ask
-            </button>
-          </form>
+              <input
+                type="text"
+                value={questionInput}
+                onChange={(event) => setQuestionInput(event.target.value)}
+                placeholder="Ask about this incident…"
+                data-testid="sentinel-question-input"
+                className="min-w-0 flex-1 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-sm text-slate-800 placeholder:text-slate-400"
+              />
+              <button
+                type="submit"
+                disabled={loading}
+                className="shrink-0 rounded-md border border-violet-500/30 bg-violet-600 px-2.5 py-1 text-[0.7rem] font-semibold uppercase tracking-[0.03em] text-white transition-colors hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Ask
+              </button>
+            </form>
+          )}
         </div>
       ) : null}
     </div>
