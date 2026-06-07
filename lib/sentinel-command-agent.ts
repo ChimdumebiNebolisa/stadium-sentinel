@@ -119,7 +119,9 @@ export function buildSuggestedSentinelQuestions(state: CommandState): string[] {
     "What evidence supports this?",
   ];
 
-  if (state.latestTranscript?.extractionStatus === "extracted") {
+  if (state.sourceAuditExcerpts.length > 0) {
+    questions.push("What sources fed this queue?");
+  } else if (state.latestTranscript?.extractionStatus === "extracted") {
     questions.push("What did the radio log add?");
     questions.push("What should I ask the radio operator?");
   } else if (state.changeSummary) {
@@ -154,6 +156,7 @@ type QuestionIntent =
   | "unresolved"
   | "summary"
   | "ask-staff"
+  | "source-history"
   | "unknown";
 
 function classifyQuestion(normalized: string): QuestionIntent {
@@ -264,6 +267,14 @@ function classifyQuestion(normalized: string): QuestionIntent {
     (normalized.includes("what should i ask") && !normalized.includes("operator"))
   ) {
     return "ask-staff";
+  }
+  if (
+    normalized.includes("what sources fed") ||
+    normalized.includes("source log") ||
+    normalized.includes("ingested recently") ||
+    normalized.includes("ingestion history")
+  ) {
+    return "source-history";
   }
   return "unknown";
 }
@@ -532,6 +543,30 @@ function answerAskStaff(ctx: SentinelContext): string {
     .join(" ");
 }
 
+function answerSourceHistory(state: CommandState): string {
+  const lines: string[] = [];
+
+  if (state.lastIngestionSummary) {
+    lines.push(`Latest ingestion: ${state.lastIngestionSummary}`);
+  }
+
+  if (state.sourceMode) {
+    lines.push(`Current source mode: ${state.sourceMode}.`);
+  }
+
+  if (state.sourceAuditExcerpts.length > 0) {
+    lines.push(
+      `Recent source log: ${state.sourceAuditExcerpts.slice(0, 3).join(" | ")}`,
+    );
+  }
+
+  if (lines.length === 0) {
+    return "No source audit history is recorded yet. Pull latest reports, process a manual report, or extract a radio transcript to populate the source log.";
+  }
+
+  return lines.join(" ");
+}
+
 export function answerSentinelQuestion(
   question: string,
   state: CommandState,
@@ -581,6 +616,8 @@ export function answerSentinelQuestion(
       return { answer: answerSummary(state, ctx) };
     case "ask-staff":
       return { answer: answerAskStaff(ctx) };
+    case "source-history":
+      return { answer: answerSourceHistory(state) };
     default:
       return {
         answer: `${buildDefaultSentinelBrief(state)} Try a suggested question below.`,

@@ -219,6 +219,35 @@ describe("sentinel command agent", () => {
     expect(timelineAnswer).toMatch(/active stage|pending stage|complete/i);
   });
 
+  it("includes source history question when audit excerpts exist", () => {
+    const state = buildCommandState({
+      sourceAuditExcerpts: ["Demo pull: Demo pull loaded 3 incident packages."],
+      lastIngestionSummary: "Demo pull loaded 3 incident packages.",
+      sourceMode: "demo",
+    });
+
+    expect(buildSuggestedSentinelQuestions(state)).toContain(
+      "What sources fed this queue?",
+    );
+  });
+
+  it("answers source history from audit excerpts", () => {
+    const state = buildCommandState({
+      sourceAuditExcerpts: [
+        "Manual report: Manual ingestion applied 3 incident packages. (applied, 3 incidents)",
+      ],
+      lastIngestionSummary: "Manual ingestion applied 3 incident packages.",
+      sourceMode: "manual",
+    });
+    const { answer } = answerSentinelQuestion("What sources fed this queue?", state);
+
+    expect(answer).toContain("Manual report");
+    expect(answer).not.toMatch(/\bCritical\b/);
+    expect(answer).not.toMatch(/\bseverity\b/i);
+    expect(answer).not.toMatch(/\bconfidence\b/i);
+    expect(answer).not.toMatch(/\bscore\b/i);
+  });
+
   it("avoids forbidden wording in answers", () => {
     const matchedState = buildMatchedTranscriptState();
     const prompts = [
