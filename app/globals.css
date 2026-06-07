@@ -1751,12 +1751,15 @@ textarea:focus-visible {
 .landing-shell.intake-shell {
   background: var(--landing-bg, #f9f9ff);
   color: #07111c;
-  /* override dark-root panel tokens for ops-panel and ops-subpanel */
-  --panel: #ffffff;
-  --panel-muted: #f4f7f9;
-  --panel-border: rgba(7, 17, 28, 0.12);
-  --panel-border-strong: rgba(7, 17, 28, 0.18);
-  --ops-heading-color: #07111c;
+}
+
+.landing-shell .ops-panel {
+  background: #ffffff;
+  border-color: rgba(7, 17, 28, 0.12);
+}
+
+.landing-shell .ops-heading {
+  color: #07111c;
 }
 
 .landing-shell .intake-source-row {
