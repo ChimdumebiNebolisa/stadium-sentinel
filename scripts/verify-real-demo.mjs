@@ -173,7 +173,9 @@ async function verifyOptionalElasticConfigured() {
     return;
   }
 
-  log("• Elastic credentials detected. Run npm run index:elastic before recording the credentialed demo.");
+  log("• Elastic credentials detected.");
+  log("  Local dev: npm run index:elastic before recording.");
+  log("  Google Cloud Run demo: use Connect operations data (POST /api/ingest/bootstrap) — no terminal seed required.");
 }
 
 async function main() {

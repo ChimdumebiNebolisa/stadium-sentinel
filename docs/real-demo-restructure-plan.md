@@ -60,7 +60,7 @@ The R phases below supersede historical Pass labels for all future implementatio
 4. **`/api/report` memory write** not connected to operator approve flow in main UI.
 5. **Venue orientation** visible in workspace — visual noise for hackathon story.
 6. **Radio transcript** client-only in intake bar — competes with Elastic narrative.
-7. **`AGENT_BACKEND_ENABLED`** defaults `false`; production deploy verified with agent off.
+7. **`AGENT_BACKEND_ENABLED`** defaults `false`; Google Cloud Run deploy may ship with agent off until Vertex is wired.
 
 ### Fallback preservation
 
@@ -70,20 +70,20 @@ The **local recording demo remains valid** and must not be deleted. When Elastic
 
 ## 1. Target real demo story
 
-### Exact target flow
+### Exact target flow (Google Cloud Run)
 
 ```
-npm run index:elastic  (seed mock stadium operations data)
+Landing CTA  →  /command  (empty / disconnected when NEXT_PUBLIC_REAL_DEMO_FLOW=true)
         ↓
-/demo/intake  →  connect sources  →  verify Elastic readiness (ingest status)
+Connect operations data  →  POST /api/ingest/bootstrap  (Cloud Run server-side seed/verify)
         ↓
-/command  →  Pull latest reports  →  POST /api/ingest/pull  →  query Elastic
+Pull latest reports  →  POST /api/ingest/pull  →  query Elastic
         ↓
 normalize hits  →  IncidentPackage[] + TimelineEntry[]
         ↓
-operator selects top incident  →  Ask Sentinel  →  POST /api/sentinel
+operator selects top incident  →  Ask Sentinel (voice-first when enabled)  →  POST /api/sentinel
         ↓
-Gemini/Agent Builder + Elastic/MCP retrieval
+Gemini/Vertex + direct Elastic retrieval (MCP external only)
         ↓
 structured response: answer + evidence + recommended action + citations
         ↓
@@ -93,6 +93,8 @@ POST /api/timeline/write  →  stadium_dispatch_timeline + stadium_incident_memo
         ↓
 Source log + timeline panel show write-back
 ```
+
+**Local dev only:** `npm run index:elastic` before recording — not required in the deployed Cloud Run demo (bootstrap API replaces it).
 
 **Without credentials:** same UI loads; Pull uses `DEMO_INCIDENT_POOL`; Sentinel uses `answerSentinelQuestion`; writes stay in React state + local source audit.
 
@@ -986,21 +988,33 @@ type TimelineWriteResponse = {
 | `GOOGLE_APPLICATION_CREDENTIALS` | — | R4+ (or ADC) |
 | `STADIUM_SENTINEL_BASE_URL` | — | MCP bridge only |
 
-### Client-side feature flags
+### Client-side feature flags (build-time)
 
-| Variable | Default | Phase |
-|----------|---------|-------|
-| `NEXT_PUBLIC_SHOW_VENUE_ORIENTATION` | `false` | R1 |
-| `NEXT_PUBLIC_ENABLE_ELASTIC_PULL` | `true` | R3 |
-| `NEXT_PUBLIC_ENABLE_SENTINEL_AGENT` | `true` | R4 |
-| `NEXT_PUBLIC_ENABLE_SENTINEL_VOICE` | `false` | R5 |
-| `NEXT_PUBLIC_SHOW_RADIO_TRANSCRIPT` | `false` | R6 |
+Next.js inlines `NEXT_PUBLIC_*` at **`npm run build`**. On **Google Cloud Run**, set these in **Cloud Build** / the image build step, not only as runtime env vars on the service. Rebuild to change client flags.
+
+| Variable | Default | Hackathon demo |
+|----------|---------|----------------|
+| `NEXT_PUBLIC_REAL_DEMO_FLOW` | `false` | `true` |
+| `NEXT_PUBLIC_SHOW_VENUE_ORIENTATION` | `false` | `false` |
+| `NEXT_PUBLIC_ENABLE_ELASTIC_PULL` | `true` | `true` |
+| `NEXT_PUBLIC_ENABLE_SENTINEL_AGENT` | `true` | `true` |
+| `NEXT_PUBLIC_ENABLE_SENTINEL_VOICE` | `false` | `true` (optional) |
+| `NEXT_PUBLIC_SHOW_RADIO_TRANSCRIPT` | `false` | `false` |
+
+**Follow-up:** `GET /api/runtime-config` could allow runtime toggling without rebuilds — not implemented.
+
+### Google Cloud Run deployment
+
+- **Platform:** Google Cloud Run (not Vercel).
+- **Runtime secrets:** Elastic API key via Secret Manager → Cloud Run env vars.
+- **Vertex:** Cloud Run service account + ADC preferred over baking `GOOGLE_APPLICATION_CREDENTIALS` into the image.
+- **MCP bridge:** `STADIUM_SENTINEL_BASE_URL` = public Cloud Run URL of main service.
 
 ### Constraints
 
 - **App must load** with zero Elastic/Gemini env vars.
 - **Tests must not** require real credentials (`NODE_ENV=test` forces local evidence path).
-- **Real demo** requires configured Elastic + `AGENT_BACKEND_ENABLED=true` + Vertex credentials.
+- **Real demo** requires configured Elastic + `AGENT_BACKEND_ENABLED=true` + Vertex credentials on Cloud Run runtime.
 - **Never commit** `.env.local` or secrets.
 
 ---
@@ -1062,15 +1076,15 @@ Deliverable: [`docs/real-demo-script.md`](real-demo-script.md) (created in R7).
 
 ### Required beats (in order)
 
-1. **Show Elastic readiness** — open `/command`; ingestion banner shows seed counts (after `npm run index:elastic`).
-2. **Intake** — connect demo sources; mention seeded operations data (not live feed).
-3. **Pull latest reports** — queue loads from Elastic; note priority sort (Immediate first).
+1. **Open `/command`** — empty/disconnected on Cloud Run when real-demo flow enabled; ingestion banner describes Elastic readiness.
+2. **Connect operations data** — `POST /api/ingest/bootstrap` on Cloud Run; seeded stadium operations data (not live feed).
+3. **Pull latest reports** — queue loads from Elastic; priority sort (Immediate first).
 4. **Select top incident** — workspace shows checklist, team, dispatch note.
-5. **Ask Sentinel** — typed question e.g. “What evidence supports this?” or “What should I do first?”
+5. **Ask Sentinel** — voice-first when enabled; typed fallback; e.g. “What should I do first?”
 6. **Show agent response** — answer + evidence/source snippets + recommended action.
 7. **Approve action** — operator confirms; timeline updates.
-8. **Show write-back** — Source log entry with elastic path; optional mention of dispatch timeline index.
-9. **Fallback mention** (optional caption) — “Without credentials, same UI runs on local demo data.”
+8. **Show write-back** — Source log entry with elastic path.
+9. **Fallback mention** (optional) — “Without credentials, same UI runs on local demo data.”
 
 ### Do not show
 

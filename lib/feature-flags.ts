@@ -1,3 +1,7 @@
+/**
+ * Client feature flags read `process.env.NEXT_PUBLIC_*` at build time in Next.js.
+ * For Google Cloud Run, set these during the image build (Cloud Build), not only at runtime.
+ */
 /** Real-demo path: empty command center until operations data is connected. */
 export function isRealDemoFlowEnabled(): boolean {
   return process.env.NEXT_PUBLIC_REAL_DEMO_FLOW === "true";

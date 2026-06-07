@@ -2,32 +2,51 @@
 
 Stadium Sentinel ingestion is designed so **demo/localStorage always works** and **Elastic is never required for page load**.
 
-> **Hackathon forward plan:** The real-demo restructure (Elastic-first Pull, Sentinel agent route, write-back) is defined in [`docs/real-demo-restructure-plan.md`](real-demo-restructure-plan.md). This checklist’s fallback constraints remain binding; the “optional Elastic (post-demo)” framing is superseded for the primary hackathon narrative.
+Deployment target: **Google Cloud Run** (Rapid Agent Hackathon). See [`README.md`](../README.md) for the full env split.
 
 ## Required for demo / hackathon recording
 
-- No Elastic credentials required
-- `/command` and `/demo/intake` must load with default demo state
-- **Pull latest reports** uses local demo batch generation
-- **Typed Sentinel** remains the primary Q&A path
+- No Elastic credentials required for page load
+- `/command` and `/demo/intake` must load
+- **Pull latest reports** can use local demo batch when Elastic is absent
+- **Typed Sentinel** remains available as fallback
 - Manual report processing uses `/api/agent` with deterministic local fallback
 
-## Optional Elastic setup (post-demo / production)
+## Google Cloud Run — build-time client flags
 
-Set in `.env.local` (never commit this file):
+Set in **Cloud Build** (or Docker build) **before** `npm run build`:
+
+| Variable | Hackathon demo |
+|----------|----------------|
+| `NEXT_PUBLIC_REAL_DEMO_FLOW` | `true` |
+| `NEXT_PUBLIC_ENABLE_ELASTIC_PULL` | `true` |
+| `NEXT_PUBLIC_ENABLE_SENTINEL_AGENT` | `true` |
+| `NEXT_PUBLIC_ENABLE_SENTINEL_VOICE` | `true` if voice-first |
+| `NEXT_PUBLIC_SHOW_VENUE_ORIENTATION` | `false` |
+| `NEXT_PUBLIC_SHOW_RADIO_TRANSCRIPT` | `false` |
+
+`NEXT_PUBLIC_*` values are inlined at build time. Changing them on a running Cloud Run revision without rebuilding will not update client behavior.
+
+## Google Cloud Run — runtime server config
+
+Set on the **Cloud Run service** (prefer Secret Manager for secrets):
 
 - `ELASTICSEARCH_URL`
 - `ELASTICSEARCH_API_KEY` or `ELASTIC_API_KEY`
-- Optional index overrides:
-  - `ELASTICSEARCH_PLAYBOOKS_INDEX`
-  - `ELASTICSEARCH_LOCATIONS_INDEX`
-  - `ELASTICSEARCH_INCIDENT_EXAMPLES_INDEX`
-  - `ELASTICSEARCH_EVIDENCE_INDEX`
-  - `ELASTICSEARCH_INCIDENT_MEMORY_INDEX`
+- Index overrides (optional): `ELASTICSEARCH_*_INDEX` vars
+- `AGENT_BACKEND_ENABLED=true` for live Gemini + Elastic retrieval
+- `GOOGLE_CLOUD_PROJECT`, `GOOGLE_CLOUD_LOCATION`, `VERTEX_MODEL`
+- Cloud Run service account with Vertex AI access (ADC)
 
-Optional agent backend:
+Never expose Elastic or Google credentials to the client bundle.
 
-- `AGENT_BACKEND_ENABLED=true` for live Gemini + Elastic retrieval on `/api/agent`
+## Deployed demo path (no terminal seed)
+
+1. Open `/command` (empty when `NEXT_PUBLIC_REAL_DEMO_FLOW=true`)
+2. **Connect operations data** → `POST /api/ingest/bootstrap`
+3. **Pull latest reports** → `POST /api/ingest/pull`
+
+Local dev may still use `npm run index:elastic` before recording.
 
 ## Verification commands
 
@@ -36,32 +55,31 @@ npm test
 npm run test:e2e
 npm run build
 npm run start
+node scripts/verify-real-demo.mjs
 ```
 
-Smoke checks:
+Smoke checks (fallback, no Elastic):
 
-1. Open `/demo/intake` and connect demo sources
-2. Open `/command` — dispatch queue renders without Elastic
-3. Pull latest reports — queue refreshes from demo batch
-4. Open Report tab — replace confirmation appears when queue is non-empty
-5. Ask Sentinel via typed input — answer renders without voice or Elastic
-6. Open Evidence tab — evidence read path shows local/fallback mode when Elastic is absent
-7. Open Source log tab — ingestion events appear after pull/manual/transcript actions
+1. Open `/command` — dispatch queue renders (preloaded in fallback mode, empty in real-demo mode)
+2. Connect operations data or complete `/demo/intake` fallback path
+3. Pull latest reports — queue refreshes
+4. Ask Sentinel via typed input — answer renders
+5. Open Source log — events after pull/approve
 
 ## CI constraints
 
 - No real Elastic credentials in CI
 - Voice APIs remain mocked in E2E
-- Automatic ingest prototype stays disabled unless Elastic is configured server-side
+- `REAL_DEMO_E2E=1` required for gated real-demo Playwright suite
 
 ## Ingestion architecture notes
 
 | Path | Storage / audit | Queue merge policy |
 |------|-----------------|--------------------|
+| Elastic bootstrap | server `POST /api/ingest/bootstrap` | Seeds indices; no queue change |
+| Elastic pull | source audit | Replaces queue from Elastic |
 | Demo pull | `demo-incident-pool` + source audit | Replaces batch via demo generator |
-| Manual report | source audit | Replace + explicit confirmation when queue non-empty |
+| Manual report | source audit | Replace + confirmation when queue non-empty |
 | Radio transcript | `radio-transcript-intake` + source audit | Merge/add matched incidents |
-| Elastic evidence read | optional `/api/evidence/read` | Does not mutate queue |
-| Automatic ingest (prototype) | source audit | Gated; requires Elastic configured |
 
-Full audit history is capped at 20 events in `lib/source-audit.ts` and stored outside `CommandState`.
+Full audit history is capped at 20 events in `lib/source-audit.ts`.

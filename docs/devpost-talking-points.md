@@ -2,36 +2,47 @@
 
 ## Product summary
 
-Stadium Sentinel is a **soccer-stadium incident operations command center**. Operators pull seeded operations reports, review a priority-sorted incident queue, ask Sentinel for grounded guidance, approve the next action, and see audited write-back in the timeline and source log.
+Stadium Sentinel is a **soccer-stadium incident operations command center** deployed on **Google Cloud Run** for the Rapid Agent Hackathon. Operators connect seeded operations data, pull Elastic-backed incidents, ask Sentinel for grounded guidance, approve the next action, and see audited write-back in the timeline and source log.
 
 It is not a map, seat-map, ticketing, CRM, or analytics dashboard.
 
 ---
 
+## Deployment (Google Cloud)
+
+- **Platform:** Google Cloud Run (Next.js container).
+- **Secrets:** Elastic API key and similar values via **Secret Manager** → Cloud Run runtime env vars. Never client-exposed.
+- **Build-time flags:** `NEXT_PUBLIC_*` variables must be set during **Cloud Build** / `npm run build`, not only at Cloud Run runtime.
+- **Hackathon demo build:** `NEXT_PUBLIC_REAL_DEMO_FLOW=true`, voice flag optional, venue/radio panels off.
+- **Runtime:** `AGENT_BACKEND_ENABLED=true`, Elastic URL/key, Vertex project/region/model, Cloud Run service account for ADC.
+
+---
+
 ## Agentic loop
 
-1. **Pull** — `POST /api/ingest/pull` reads seeded active incidents and related ops docs from Elastic (fallback: local demo pool).
-2. **Retrieve** — Sentinel gathers incident context, policies, evidence, roster, and radio transcripts via direct Elastic search.
-3. **Reason** — Gemini/Vertex synthesizes an operator-facing answer when `AGENT_BACKEND_ENABLED=true`.
-4. **Recommend** — Structured response includes evidence, citations, and one recommended next action.
-5. **Human oversight** — Operator explicitly approves before any dispatch/write-back.
-6. **Write-back** — `POST /api/timeline/write` appends dispatch timeline + incident memory when Elastic is configured.
+1. **Connect** — `POST /api/ingest/bootstrap` on Cloud Run seeds/verifies Elastic ops indices.
+2. **Pull** — `POST /api/ingest/pull` reads seeded active incidents and related ops docs (fallback: local demo pool).
+3. **Retrieve** — Sentinel gathers context via direct Elastic search.
+4. **Reason** — Gemini/Vertex on `POST /api/sentinel` when `AGENT_BACKEND_ENABLED=true`.
+5. **Recommend** — Answer + evidence + citations + recommended next action.
+6. **Human oversight** — Operator explicitly approves before write-back.
+7. **Write-back** — `POST /api/timeline/write` appends dispatch timeline + incident memory.
 
 ---
 
 ## Elastic role
 
-- Seeded mock operations backend (`npm run index:elastic`).
+- Seeded stadium operations backend (bootstrap from UI or `npm run index:elastic` locally).
 - Indices: active incidents, guest assistance, facility status, gate flow, staff roster, policies, radio transcripts, dispatch timeline, incident memory.
-- Pull, Sentinel retrieval, and approved write-back all use **direct Elastic retrieval** in-app.
+- Pull, Sentinel retrieval, and approved write-back use **direct Elastic retrieval** in-app.
 - Not required for page load — demo/local fallback always works.
 
 ---
 
 ## Gemini / Agent Builder role
 
-- **In-app:** Gemini via Vertex on `POST /api/sentinel` when enabled.
-- **Agent Builder / MCP:** Documented as an external integration path (`docs/ELASTIC_BUILDER_MCP_SETUP.md`). The app does **not** claim in-app MCP usage — `meta.elasticMcpMode` is `"unused"`.
+- **In-app:** Gemini via Vertex on `POST /api/sentinel` when enabled on Cloud Run.
+- **Agent Builder / MCP:** External integration (`docs/ELASTIC_BUILDER_MCP_SETUP.md`). In-app `meta.elasticMcpMode` is `"unused"`.
 
 ---
 
@@ -54,18 +65,18 @@ It is not a map, seat-map, ticketing, CRM, or analytics dashboard.
 ## Demo limitations (state honestly)
 
 - Seeded mock data, not live stadium feeds.
-- Voice is optional (`NEXT_PUBLIC_ENABLE_SENTINEL_VOICE=false` by default).
-- Client radio transcript extract is hidden by default; indexed radio transcripts are the primary radio narrative.
-- Venue orientation schematic is hidden by default.
+- Voice is optional (`NEXT_PUBLIC_ENABLE_SENTINEL_VOICE` — build-time flag).
+- Client radio transcript extract hidden by default.
+- Venue orientation schematic hidden by default.
 
 ---
 
 ## What to show in the video
 
-1. Ingest status / seed readiness
+1. `/command` disconnected → Connect operations data (Cloud Run bootstrap)
 2. Pull from Elastic (or demo fallback)
 3. Priority queue + selected incident
-4. Sentinel Ask with citations + recommended action
+4. Sentinel Ask (voice-first if enabled) with citations + recommended action
 5. Operator approval + timeline/source log write-back
 6. One sentence on fallback without credentials
 

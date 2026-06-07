@@ -87,7 +87,50 @@ Compatibility aliases still work for now:
 - `ELASTIC_API_KEY`
 - `GEMINI_MODEL`
 
-Do not expose any of these to the client. For deployed environments, move secrets to GCP Secret Manager instead of committing them to the repo.
+Do not expose any of these to the client. For Google Cloud Run deployments, provide secrets via **Secret Manager** (or equivalent) as runtime environment variables on the Cloud Run service — never commit them to the repo.
+
+## Google Cloud Run deployment
+
+Stadium Sentinel is a Next.js app intended for **Google Cloud Run** (Rapid Agent Hackathon), not a Vercel-specific deployment.
+
+### Build-time client flags (`NEXT_PUBLIC_*`)
+
+Set before `npm run build` in **Cloud Build** or your container build step:
+
+| Variable | Hackathon demo |
+|----------|----------------|
+| `NEXT_PUBLIC_REAL_DEMO_FLOW` | `true` |
+| `NEXT_PUBLIC_ENABLE_ELASTIC_PULL` | `true` (default) |
+| `NEXT_PUBLIC_ENABLE_SENTINEL_AGENT` | `true` (default) |
+| `NEXT_PUBLIC_ENABLE_SENTINEL_VOICE` | `true` if voice-first demo |
+| `NEXT_PUBLIC_SHOW_VENUE_ORIENTATION` | `false` |
+| `NEXT_PUBLIC_SHOW_RADIO_TRANSCRIPT` | `false` |
+
+These are inlined into the client bundle at build time. Updating them on a running Cloud Run revision alone is not enough — rebuild and redeploy the image.
+
+### Cloud Run runtime environment (server-only)
+
+| Variable | Purpose |
+|----------|---------|
+| `ELASTICSEARCH_URL` | Elastic cluster URL |
+| `ELASTICSEARCH_API_KEY` or `ELASTIC_API_KEY` | Elastic API key (prefer Secret Manager) |
+| `AGENT_BACKEND_ENABLED` | `true` for live Gemini Sentinel |
+| `GOOGLE_CLOUD_PROJECT` | Vertex project |
+| `GOOGLE_CLOUD_LOCATION` | Vertex region |
+| `VERTEX_MODEL` | e.g. `gemini-2.5-flash` |
+| ADC / service account | Cloud Run service account with Vertex access (preferred over `GOOGLE_APPLICATION_CREDENTIALS` file) |
+| `STADIUM_SENTINEL_BASE_URL` | Public Cloud Run URL (MCP bridge only) |
+
+### Deployed demo flow
+
+1. Landing CTA → `/command` (empty / disconnected when `NEXT_PUBLIC_REAL_DEMO_FLOW=true`)
+2. **Connect operations data** → `POST /api/ingest/bootstrap` on the Cloud Run service
+3. **Pull latest reports** → `POST /api/ingest/pull` (seeded Elastic incidents)
+4. Ask Sentinel (voice-first when voice flag enabled) → approve → write-back to Elastic
+
+Local dev may still use `npm run index:elastic` before recording; the deployed demo does not require a terminal seed command.
+
+**Follow-up:** A `GET /api/runtime-config` route could allow runtime toggling of client flags without rebuilds; not implemented yet.
 
 ## Seed Data
 
