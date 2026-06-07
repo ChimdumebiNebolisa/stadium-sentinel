@@ -23,7 +23,7 @@ type IncidentDrawerProps = {
 const workspaceTabs: WorkspaceTab[] = [
   { id: "evidence", label: "Evidence" },
   { id: "staff", label: "Staff Update" },
-  { id: "timeline", label: "Timeline" },
+  { id: "timeline", label: "Incident log" },
   { id: "report", label: "Report" },
 ];
 
@@ -76,15 +76,6 @@ export function IncidentDrawer({
 }: IncidentDrawerProps) {
   const isExpanded = activeWorkspace !== null;
 
-  function handleContentTabClick(view: WorkspaceView) {
-    if (activeWorkspace === view) {
-      onToggleExpanded();
-      return;
-    }
-
-    onOpenWorkspace(view);
-  }
-
   return (
     <section
       className="incident-drawer utility-drawer"
@@ -92,14 +83,6 @@ export function IncidentDrawer({
       data-testid="utility-drawer"
     >
       <div className="incident-drawer-content">
-        <div className="incident-drawer-content-header">
-          <DrawerTabs
-            activeWorkspace={activeWorkspace}
-            onOpenWorkspace={handleContentTabClick}
-            className="flex min-w-0 items-center gap-2"
-          />
-        </div>
-
         <div className="incident-drawer-body min-h-0 overflow-hidden px-4 py-3">
           <div
             id="workspace-panel-evidence"

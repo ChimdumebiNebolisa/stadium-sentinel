@@ -1,4 +1,5 @@
 import { PriorityBadge } from "@/components/dashboard/priority-badge";
+import { SentinelInline } from "@/components/dashboard/sentinel-inline";
 import { getLocationRecord } from "@/lib/data";
 import type { IncidentPackage, TimelineEntry } from "@/lib/types";
 
@@ -271,6 +272,24 @@ export function ActiveIncidentWorkspace({
     `${incident.id}-action-0`,
   );
   const relevantTimeline = timeline.filter((entry) => entry.incidentId === incident.id);
+  const recentActivityEntries = [
+    ...copy.timelineSummary.slice(-2).map((entry) => ({
+      key: `${incident.id}-summary-${entry.message}`,
+      timestamp: entry.timestamp,
+      message: entry.message,
+      markerClass: "bg-slate-400",
+    })),
+    ...relevantTimeline
+      .filter((entry) => entry.type === "approved")
+      .slice(-1)
+      .map((entry) => ({
+        key: entry.id,
+        timestamp: entry.timestamp,
+        message: "Dispatch approved",
+        markerClass: "bg-emerald-500",
+      })),
+  ].slice(-3);
+  const recentEvidence = copy.evidenceFeed.slice(0, 2);
 
   return (
     <section
@@ -287,13 +306,16 @@ export function ActiveIncidentWorkspace({
         <article className="ops-subpanel p-5">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0 flex-1">
-              <PriorityBadge level={incident.priority} />
+              <div className="flex flex-wrap items-center gap-3">
+                <PriorityBadge level={incident.priority} />
+              </div>
               <h3
                 className="mt-3 text-[2rem] font-semibold leading-tight tracking-[-0.03em] text-[#07111c]"
                 data-testid="selected-incident-title"
               >
                 {incident.title}
               </h3>
+              <SentinelInline incidentPackage={incidentPackage} />
               <p className="mt-3 text-[0.98rem] text-slate-600">
                 {location?.name ?? incident.locationLabel} •{" "}
                 {location ? formatZoneLayer(location.zoneLayer) : "Operations"} •{" "}
@@ -426,17 +448,19 @@ export function ActiveIncidentWorkspace({
 
         <div className="workspace-grid">
           <article className="ops-subpanel p-5">
-            <WorkspaceSectionTitle marker="C" title="Timeline" />
+            <WorkspaceSectionTitle marker="C" title="Recent activity" />
             <div className="space-y-4">
-              {copy.timelineSummary.map((entry, index) => (
+              {recentActivityEntries.map((entry, index) => (
                 <div
-                  key={`${incident.id}-timeline-${entry.message}`}
+                  key={entry.key}
                   className="grid grid-cols-[auto_1fr] items-start gap-4"
                 >
                   <div className="flex items-start gap-3">
                     <span
                       className={`mt-1 inline-flex h-3 w-3 rounded-full ${
-                        index === 0 ? "bg-rose-500" : "bg-slate-400"
+                        index === 0 && entry.markerClass === "bg-slate-400"
+                          ? "bg-rose-500"
+                          : entry.markerClass
                       }`}
                     />
                     <span className="text-sm text-slate-500">{entry.timestamp}</span>
@@ -444,29 +468,13 @@ export function ActiveIncidentWorkspace({
                   <p className="text-[1rem] text-slate-800">{entry.message}</p>
                 </div>
               ))}
-
-              {relevantTimeline
-                .filter((entry) => entry.type === "approved")
-                .slice(-1)
-                .map((entry) => (
-                  <div
-                    key={entry.id}
-                    className="grid grid-cols-[auto_1fr] items-start gap-4"
-                  >
-                    <div className="flex items-start gap-3">
-                      <span className="mt-1 inline-flex h-3 w-3 rounded-full bg-emerald-500" />
-                      <span className="text-sm text-slate-500">{entry.timestamp}</span>
-                    </div>
-                    <p className="text-[1rem] text-slate-800">Dispatch approved</p>
-                  </div>
-                ))}
             </div>
           </article>
 
           <article className="ops-subpanel p-5">
-            <WorkspaceSectionTitle marker="D" title="Evidence feed" />
+            <WorkspaceSectionTitle marker="D" title="Recent evidence" />
             <div className="space-y-4">
-              {copy.evidenceFeed.map((item) => (
+              {recentEvidence.map((item) => (
                 <div
                   key={`${incident.id}-feed-${item.message}`}
                   className="grid grid-cols-[auto_1fr_auto] items-start gap-4"
@@ -485,6 +493,12 @@ export function ActiveIncidentWorkspace({
                 </div>
               ))}
             </div>
+            <p
+              className="mt-4 text-sm text-slate-500"
+              data-testid="evidence-drawer-pointer"
+            >
+              Evidence reviewed — open drawer for full record.
+            </p>
           </article>
         </div>
 
@@ -511,30 +525,7 @@ export function ActiveIncidentWorkspace({
               <dd className="font-medium text-[#07111c] capitalize">{incident.status}</dd>
             </div>
           </dl>
-          {incidentPackage.staffUpdate ? (
-            <div className="mt-4 border-t border-slate-200 pt-4">
-              <p className="text-sm text-slate-500">Suggested staff update</p>
-              <p className="mt-1 text-sm text-[#07111c]">{incidentPackage.staffUpdate}</p>
-            </div>
-          ) : null}
         </article>
-
-        {/* Section F — Agent Reasoning */}
-        {incident.assumptions.length > 0 ? (
-          <article className="ops-subpanel p-5" data-testid="agent-reasoning-section">
-            <WorkspaceSectionTitle marker="F" title="Agent reasoning" />
-            <ul className="space-y-3">
-              {incident.assumptions.map((note, index) => (
-                <li
-                  key={`${incident.id}-assumption-${index}`}
-                  className="text-sm text-slate-700"
-                >
-                  {note}
-                </li>
-              ))}
-            </ul>
-          </article>
-        ) : null}
       </div>
     </section>
   );

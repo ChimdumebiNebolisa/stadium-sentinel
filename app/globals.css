@@ -278,7 +278,7 @@ textarea:focus-visible {
 
 .incident-drawer-content {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
   max-height: var(--drawer-height);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
@@ -293,7 +293,7 @@ textarea:focus-visible {
 }
 
 .incident-drawer-body {
-  max-height: calc(var(--drawer-height) - 3rem);
+  max-height: calc(var(--drawer-height) - 1rem);
   overflow-y: auto;
 }
 
