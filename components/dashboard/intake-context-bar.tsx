@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import type { ChangeSummary } from "@/lib/demo-agent-workflow";
 import { readIntakeComplete, readSourcesConnected } from "@/lib/intake-demo";
 
 type IntakeContextBarProps = {
@@ -9,6 +10,7 @@ type IntakeContextBarProps = {
   pullStatus: string | null;
   batchCount: number | null;
   topIncidentTitle: string | null;
+  changeSummary: ChangeSummary | null;
 };
 
 export function IntakeContextBar({
@@ -16,6 +18,7 @@ export function IntakeContextBar({
   pullStatus,
   batchCount,
   topIncidentTitle,
+  changeSummary,
 }: IntakeContextBarProps) {
   const [mounted, setMounted] = useState(false);
   const [intakeComplete, setIntakeComplete] = useState(false);
@@ -45,6 +48,19 @@ export function IntakeContextBar({
                   ? `${batchCount} incident${batchCount !== 1 ? "s" : ""} loaded. Highest priority: ${topIncidentTitle ?? "—"}.`
                   : "Demo intake completed."}
               </p>
+            </div>
+          ) : null}
+          {changeSummary ? (
+            <div
+              className="mt-3 rounded-md border border-sky-500/20 bg-sky-500/5 px-3 py-2"
+              data-testid="what-changed-summary"
+            >
+              <p className="text-sm font-semibold text-[#07111c]">What changed?</p>
+              <ul className="mt-1 space-y-0.5 text-sm text-slate-600">
+                {changeSummary.lines.map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
             </div>
           ) : null}
         </div>

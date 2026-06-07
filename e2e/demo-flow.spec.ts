@@ -302,6 +302,67 @@ test("no forbidden wording appears in Phase B UI text", async ({ page }) => {
   expect(bodyText).not.toMatch(/\bscore\b/i);
 });
 
+test("pull latest reports shows what changed summary", async ({ page }) => {
+  await page.goto("/command");
+  await page.evaluate(() => {
+    localStorage.setItem("stadium-sentinel-demo-sources-connected", "true");
+  });
+  await page.reload();
+
+  await page.getByTestId("pull-latest-reports").click();
+  await expect(page.getByTestId("pull-status")).toHaveText("Latest demo reports pulled.", {
+    timeout: 5_000,
+  });
+
+  const summary = page.getByTestId("what-changed-summary");
+  await expect(summary).toBeVisible();
+  await expect(summary.getByText("What changed?")).toBeVisible();
+  await expect(summary.getByText(/Top priority:/)).toBeVisible();
+});
+
+test("selected incident shows workflow cues", async ({ page }) => {
+  await page.goto("/command");
+
+  await expect(page.getByTestId("workflow-cues")).toBeVisible();
+  await expect(page.getByTestId("dispatch-message")).not.toBeEmpty();
+  await expect(page.getByTestId("follow-up-questions").locator("li")).toHaveCount(3);
+});
+
+test("report tab shows demo report draft and memory", async ({ page }) => {
+  await page.goto("/command");
+
+  await openWorkspace(page, "Report");
+  await expect(page.getByTestId("report-draft-headline")).toHaveText("Report draft ready");
+  await expect(page.getByTestId("report-draft-markdown")).toContainText(
+    "Operations Report Draft",
+  );
+  await expect(page.getByTestId("demo-memory-panel")).toBeVisible();
+  await expect(page.getByTestId("demo-memory-panel")).toContainText("demo incident");
+});
+
+test("phase 2 workflow cues avoid forbidden wording after pull", async ({ page }) => {
+  await page.goto("/command");
+  await page.evaluate(() => {
+    localStorage.setItem("stadium-sentinel-demo-sources-connected", "true");
+  });
+  await page.reload();
+
+  await page.getByTestId("pull-latest-reports").click();
+  await expect(page.getByTestId("pull-status")).toHaveText("Latest demo reports pulled.", {
+    timeout: 5_000,
+  });
+
+  await openSentinelPanel(page);
+  await openWorkspace(page, "Report");
+
+  const bodyText = (await page.locator("body").textContent()) ?? "";
+  expect(bodyText).not.toMatch(/\bCritical\b/);
+  expect(bodyText).not.toMatch(/\bLow\b(?!\s+operational)/i);
+  expect(bodyText).not.toMatch(/\bseverity\b/i);
+  expect(bodyText).not.toMatch(/\bconfidence\b/i);
+  expect(bodyText).not.toMatch(/\bscore\b/i);
+});
+
 test("backend-off mode keeps the deterministic api contract for the demo input", async ({
   page,
 }) => {

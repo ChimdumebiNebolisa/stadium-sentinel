@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import { ActiveIncidentWorkspace } from "@/components/dashboard/active-incident-workspace";
 import { CommandHeader } from "@/components/dashboard/command-header";
+import { DemoMemoryPanel } from "@/components/dashboard/demo-memory-panel";
 import { EvidencePanel } from "@/components/dashboard/evidence-panel";
 import { IncidentDrawer } from "@/components/dashboard/incident-drawer";
 import { IncidentList } from "@/components/dashboard/incident-list";
@@ -20,6 +21,12 @@ import {
   recordPull,
   saveDemoIncidentBatch,
 } from "@/lib/demo-incident-pool";
+import {
+  buildChangeSummary,
+  buildDemoReportDraft,
+  buildIncidentMemorySummary,
+  type ChangeSummary,
+} from "@/lib/demo-agent-workflow";
 import { buildDemoState } from "@/lib/demo";
 import { buildPostEventReport } from "@/lib/report";
 import type {
@@ -111,6 +118,8 @@ export function CommandCenter() {
     null,
   );
   const [pullStatus, setPullStatus] = useState<string | null>(null);
+  const [changeSummary, setChangeSummary] = useState<ChangeSummary | null>(null);
+  const [batchGeneratedAt, setBatchGeneratedAt] = useState<string | null>(null);
 
   // Read localStorage batch on mount (client-only — avoids hydration mismatch).
   // Falls back to buildDemoState() if no valid batch exists.
@@ -122,6 +131,7 @@ export function CommandCenter() {
     setIncidentPackages(packages);
     setSelectedIncidentId(packages[0].incident.id);
     setReportSummary(buildPostEventReport(packages, []));
+    setBatchGeneratedAt(batch.generatedAt);
   }, []);
 
   const selectedIncidentPackage =
@@ -192,18 +202,23 @@ export function CommandCenter() {
       setPullStatus("Incidents are up to date. Try again shortly.");
       return;
     }
+    const previousPackages = incidentPackages;
     const batch = generateDemoIncidentBatch();
     saveDemoIncidentBatch(batch);
     recordPull();
     const packages = batch.incidents.map(localStorageIncidentToPackage);
     if (packages.length === 0) return;
+    setChangeSummary(buildChangeSummary(previousPackages, packages));
+    setBatchGeneratedAt(batch.generatedAt);
     setIncidentPackages(packages);
     setSelectedIncidentId(packages[0].incident.id);
+    setTimeline([]);
     setReportSummary(buildPostEventReport(packages, []));
     setPullStatus("Latest demo reports pulled.");
   }
 
-  const topPriority = incidentPackages[0]?.incident.priority ?? "Monitor";  const latestEntry = selectedIncidentPackage
+  const topPriority = incidentPackages[0]?.incident.priority ?? "Monitor";
+  const latestEntry = selectedIncidentPackage
     ? [...timeline]
         .reverse()
         .find((entry) => entry.incidentId === selectedIncidentPackage.incident.id)
@@ -211,6 +226,17 @@ export function CommandCenter() {
   const latestSummary = getLatestDrawerText(
     selectedIncidentPackage?.incident.id,
     latestEntry,
+  );
+
+  const demoReportDraft = buildDemoReportDraft(
+    incidentPackages,
+    selectedIncidentPackage,
+    timeline,
+  );
+  const demoMemorySummary = buildIncidentMemorySummary(
+    incidentPackages,
+    pullStatus,
+    batchGeneratedAt,
   );
 
   function openWorkspace(view: WorkspaceView) {
@@ -234,6 +260,7 @@ export function CommandCenter() {
           pullStatus={pullStatus}
           batchCount={incidentPackages.length}
           topIncidentTitle={incidentPackages[0]?.incident.title ?? null}
+          changeSummary={changeSummary}
         />
 
         <section className="board-grid">
@@ -303,7 +330,11 @@ export function CommandCenter() {
                 onChange={setReport}
                 onSubmit={handleSubmit}
               />
-              <PostEventReportPanel reportSummary={reportSummary} />
+              <PostEventReportPanel
+                reportSummary={reportSummary}
+                demoReportDraft={demoReportDraft}
+                demoMemoryPanel={<DemoMemoryPanel memorySummary={demoMemorySummary} />}
+              />
             </>
           }
         />

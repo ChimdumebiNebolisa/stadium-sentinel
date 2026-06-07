@@ -1,5 +1,6 @@
 import { PriorityBadge } from "@/components/dashboard/priority-badge";
 import { SentinelInline } from "@/components/dashboard/sentinel-inline";
+import { WorkflowCues } from "@/components/dashboard/workflow-cues";
 import { getLocationRecord } from "@/lib/data";
 import type { IncidentPackage, TimelineEntry } from "@/lib/types";
 
@@ -379,6 +380,8 @@ export function ActiveIncidentWorkspace({
             })}
           </div>
         </article>
+
+        <WorkflowCues incidentPackage={incidentPackage} />
 
         <div className="workspace-grid">
           <article className="ops-subpanel p-5">
