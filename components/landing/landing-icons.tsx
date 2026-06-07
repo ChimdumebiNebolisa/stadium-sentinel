@@ -25,7 +25,7 @@ export function LockIcon() {
 export function MicIcon() {
   return (
     <svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M12 14a3 3 0 003-3V5a3 3 0 10-6 0v6a3 3 0 003 3zm5-3a5 5 0 01-10 0H5a7 7 0 0014 0h-2zm-5 7a7 7 0 006.06-3.5H19a9 9 0 01-18 0h.94A7 7 0 0012 18z" />
+      <path d="M12 2a3 3 0 013 3v6a3 3 0 11-6 0V5a3 3 0 013-3zm7 9a7 7 0 01-14 0H3a9 9 0 0018 0h-2z" />
     </svg>
   );
 }

@@ -16,7 +16,7 @@ export function ReportInput({
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
           <h2 className="ops-heading">Event report</h2>
-          <p className="mt-1 text-sm text-slate-300">
+          <p className="mt-1 text-sm text-slate-600">
             Paste the incoming call or report, then refresh the operations board.
           </p>
         </div>
@@ -24,7 +24,7 @@ export function ReportInput({
           type="button"
           disabled={isSubmitting}
           onClick={onSubmit}
-          className="shrink-0 rounded-md border border-amber-500/35 bg-amber-500/8 px-3 py-1.5 text-xs font-medium text-amber-100 transition-colors hover:bg-amber-500/14 disabled:cursor-not-allowed disabled:opacity-70"
+          className="shrink-0 rounded-md border border-amber-500/35 bg-amber-500/10 px-3 py-1.5 text-xs font-medium text-amber-900 transition-colors hover:bg-amber-500/15 disabled:cursor-not-allowed disabled:opacity-70"
         >
           {isSubmitting ? "Refreshing board..." : "Process report"}
         </button>
@@ -33,7 +33,7 @@ export function ReportInput({
         data-testid="report-input"
         value={report}
         onChange={(event) => onChange(event.target.value)}
-        className="h-40 w-full rounded-md border border-white/10 bg-[var(--panel-inset)] px-4 py-3 text-sm leading-7 text-slate-100 placeholder:text-slate-500"
+        className="h-40 w-full rounded-md border border-slate-200 bg-[var(--panel-inset)] px-4 py-3 text-sm leading-7 text-slate-800 placeholder:text-slate-400"
       />
       <p className="mt-3 text-xs leading-5 text-slate-500">
         The queue, workspace, and utility drawer will refresh to match the latest report.

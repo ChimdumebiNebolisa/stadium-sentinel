@@ -11,13 +11,13 @@ export function EvidencePanel({
   return (
     <section className="h-full pr-2" data-testid="evidence-panel">
       <p className="ops-label">Why this is flagged</p>
-      <p className="mt-1.5 text-sm leading-6 text-slate-300">
+      <p className="mt-1.5 text-sm leading-6 text-slate-600">
         {getPrioritySummary(incident)}
       </p>
 
-      <div className="mt-5 border-t border-white/8 pt-4">
+      <div className="mt-5 border-t border-slate-200 pt-4">
         <p className="ops-label">Operational evidence</p>
-        <div className="mt-2 divide-y divide-white/8">
+        <div className="mt-2 divide-y divide-slate-200">
           {evidence.map((item) => (
             <article
               key={item.sourceId}
@@ -26,11 +26,11 @@ export function EvidencePanel({
               <p className="ops-label">
                 {item.sourceType.replaceAll("_", " ")}
               </p>
-              <h3 className="mt-1 font-semibold text-white">{item.title}</h3>
-              <p className="mt-1.5 text-sm leading-6 text-slate-300">
+              <h3 className="mt-1 font-semibold text-[#07111c]">{item.title}</h3>
+              <p className="mt-1.5 text-sm leading-6 text-slate-600">
                 {item.excerpt}
               </p>
-              <p className="mt-2 text-xs leading-5 text-slate-400">
+              <p className="mt-2 text-xs leading-5 text-slate-500">
                 Why it matters: {item.rationale}
               </p>
             </article>
@@ -39,7 +39,7 @@ export function EvidencePanel({
       </div>
 
       {incident.assumptions.length > 0 ? (
-        <div className="mt-5 border-t border-white/8 pt-4">
+        <div className="mt-5 border-t border-slate-200 pt-4">
           <p className="ops-label">Reported context</p>
           <p className="mt-2 text-xs leading-5 text-slate-500">
             {incident.assumptions.join(" ")}

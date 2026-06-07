@@ -18,11 +18,11 @@ export function IntakeContextBar() {
       className="ops-panel ops-strip intake-context-bar"
       data-testid="intake-context-bar"
     >
-      <p className="text-sm text-slate-300">
+      <p className="text-sm text-slate-600">
         Sources synced: Guest Services · Security · Facilities · Radio Log
       </p>
       {mounted && intakeComplete ? (
-        <div className="mt-2 space-y-1 text-sm text-slate-400">
+        <div className="mt-2 space-y-1 text-sm text-slate-500">
           <p data-testid="intake-last-sync">Last sync: Demo intake completed</p>
           <p data-testid="intake-summary">
             1 staff report was consolidated into 3 incidents. Highest priority:

@@ -17,9 +17,9 @@ export function IncidentList({
       className="ops-panel flex h-full min-h-0 flex-col"
       data-testid="dispatch-queue"
     >
-      <div className="mb-4 flex items-center justify-between gap-3 border-b border-white/8 pb-4">
+      <div className="mb-4 flex items-center justify-between gap-3 border-b border-slate-200 pb-4">
         <h2 className="ops-heading">Dispatch queue</h2>
-        <span className="inline-flex h-9 min-w-9 items-center justify-center rounded-full bg-[var(--panel-muted)] px-2 text-sm font-semibold text-slate-200">
+        <span className="inline-flex h-9 min-w-9 items-center justify-center rounded-full bg-[var(--panel-muted)] px-2 text-sm font-semibold text-slate-700">
           {incidentPackages.length}
         </span>
       </div>

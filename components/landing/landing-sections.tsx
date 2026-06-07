@@ -178,7 +178,11 @@ export function FinalCtaSection() {
   return (
     <section className="landing-section landing-final-cta-section">
       <div className="landing-final-cta-panel">
-        <div className="landing-final-cta-bg" aria-hidden="true" />
+        <div className="landing-final-cta-bg" aria-hidden="true">
+          <span className="landing-cta-watermark landing-cta-watermark-dispatch">DISPATCH</span>
+          <span className="landing-cta-watermark landing-cta-watermark-command">COMMAND FILE</span>
+          <span className="landing-cta-watermark landing-cta-watermark-ops">OPS</span>
+        </div>
         <h2>Open the command center.</h2>
         <div className="landing-cta-row landing-final-cta-row">
           <Link

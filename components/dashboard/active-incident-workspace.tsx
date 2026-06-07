@@ -38,7 +38,7 @@ const WORKSPACE_COPY: Record<string, WorkspaceCopy> = {
       "Dispatch Guest Services",
       "Escort and resolve",
     ],
-    riskTags: ["Accessibility critical", "Crowd-flow risk"],
+    riskTags: ["Accessibility assist", "Crowd-flow risk"],
     teamName: "Guest Services",
     teamLabel: "Primary team",
     teamStatus: "2 staff • 2 min ETA",
@@ -73,7 +73,7 @@ const WORKSPACE_COPY: Record<string, WorkspaceCopy> = {
       "Dispatch Facilities",
       "Confirm reroute coverage",
     ],
-    riskTags: ["Accessibility critical", "Vertical access risk"],
+    riskTags: ["Accessibility assist", "Vertical access risk"],
     teamName: "Facilities",
     teamLabel: "Primary team",
     teamStatus: "2 staff • 4 min ETA",
@@ -158,35 +158,35 @@ function getChecklistStatus(approvedActionCount: number, index: number) {
     return {
       label: "Complete",
       badgeClass:
-        "border-emerald-400/30 bg-emerald-400/12 text-emerald-100",
-      markerClass: "bg-emerald-400 text-[var(--background)]",
+        "border-emerald-500/30 bg-emerald-500/10 text-emerald-800",
+      markerClass: "bg-emerald-500 text-white",
     };
   }
 
   if (index === approvedActionCount) {
     return {
       label: "In progress",
-      badgeClass: "border-blue-400/30 bg-blue-500/12 text-blue-100",
+      badgeClass: "border-blue-500/30 bg-blue-500/10 text-blue-800",
       markerClass: "bg-rose-500 text-white",
     };
   }
 
   return {
     label: "Pending",
-    badgeClass: "border-white/10 bg-white/[0.03] text-slate-300",
-    markerClass: "bg-[var(--panel-muted)] text-slate-200",
+    badgeClass: "border-slate-200 bg-slate-50 text-slate-500",
+    markerClass: "bg-slate-200 text-slate-600",
   };
 }
 
 function getFeedToneClass(tone: FeedItem["tone"]): string {
   switch (tone) {
     case "green":
-      return "bg-emerald-400/18 text-emerald-200";
+      return "bg-emerald-500/15 text-emerald-800";
     case "violet":
-      return "bg-violet-400/18 text-violet-200";
+      return "bg-violet-500/15 text-violet-800";
     case "blue":
     default:
-      return "bg-blue-400/18 text-blue-100";
+      return "bg-blue-500/15 text-blue-800";
   }
 }
 
@@ -238,7 +238,7 @@ function WorkspaceSectionTitle({
       <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-600/85 text-sm font-semibold text-white">
         {marker}
       </span>
-      <h3 className="text-[1.05rem] font-semibold tracking-tight text-white">
+      <h3 className="text-[1.05rem] font-semibold tracking-tight text-[#07111c]">
         {title}
       </h3>
     </div>
@@ -268,8 +268,8 @@ export function ActiveIncidentWorkspace({
       className="ops-panel flex h-full min-h-0 flex-col"
       data-testid="active-incident-workspace"
     >
-      <div className="mb-4 border-b border-white/8 pb-4">
-        <h2 className="text-[1.15rem] font-semibold tracking-tight text-white">
+      <div className="mb-4 border-b border-slate-200 pb-4">
+        <h2 className="text-[1.15rem] font-semibold tracking-tight text-[#07111c]">
           Active incident workspace
         </h2>
       </div>
@@ -280,12 +280,12 @@ export function ActiveIncidentWorkspace({
             <div className="min-w-0 flex-1">
               <PriorityBadge level={incident.priority} />
               <h3
-                className="mt-3 text-[2rem] font-semibold leading-tight tracking-[-0.03em] text-white"
+                className="mt-3 text-[2rem] font-semibold leading-tight tracking-[-0.03em] text-[#07111c]"
                 data-testid="selected-incident-title"
               >
                 {incident.title}
               </h3>
-              <p className="mt-3 text-[0.98rem] text-slate-300">
+              <p className="mt-3 text-[0.98rem] text-slate-600">
                 {location?.name ?? incident.locationLabel} •{" "}
                 {location ? formatZoneLayer(location.zoneLayer) : "Operations"} •{" "}
                 {teamName}
@@ -297,7 +297,7 @@ export function ActiveIncidentWorkspace({
                 {copy.riskTags.map((tag) => (
                   <span
                     key={tag}
-                    className="inline-flex items-center rounded-md border border-rose-500/30 bg-rose-500/8 px-3 py-2 text-sm font-medium text-rose-100"
+                    className="inline-flex items-center rounded-md border border-rose-500/30 bg-rose-500/8 px-3 py-2 text-sm font-medium text-rose-800"
                   >
                     {tag}
                   </span>
@@ -315,8 +315,8 @@ export function ActiveIncidentWorkspace({
                 aria-label={`${copy.actionLabels[0]}: ${primaryAction}`}
                 className={`rounded-md border px-5 py-3 text-sm font-semibold transition-colors ${
                   dispatchApproved
-                    ? "border-emerald-400/30 bg-emerald-400/12 text-emerald-100"
-                    : "border-blue-400/40 bg-blue-600 text-white hover:bg-blue-500 disabled:cursor-not-allowed"
+                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-800"
+                    : "border-blue-500/40 bg-blue-600 text-white hover:bg-blue-500 disabled:cursor-not-allowed"
                 }`}
               >
                 {dispatchApproved ? "Dispatch logged" : copy.actionLabels[0]}
@@ -338,8 +338,8 @@ export function ActiveIncidentWorkspace({
                   aria-label={`${copy.actionLabels[actionIndex]}: ${action}`}
                   className={`rounded-md border px-4 py-3 text-sm font-medium transition-colors ${
                     isApproved
-                      ? "border-emerald-400/25 bg-emerald-400/10 text-emerald-100"
-                      : "border-white/10 bg-[var(--panel-inset)] text-slate-100 hover:border-white/20 hover:bg-[var(--panel-hover)] disabled:cursor-not-allowed"
+                      ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-800"
+                      : "border-slate-200 bg-[var(--panel-inset)] text-slate-700 hover:border-slate-300 hover:bg-[var(--panel-hover)] disabled:cursor-not-allowed"
                   }`}
                 >
                   {isApproved ? "Logged" : copy.actionLabels[actionIndex]}
@@ -366,7 +366,7 @@ export function ActiveIncidentWorkspace({
                     >
                       {index + 1}
                     </span>
-                    <p className="text-[1rem] text-slate-100">{item}</p>
+                    <p className="text-[1rem] text-slate-800">{item}</p>
                     <span
                       className={`inline-flex rounded-md border px-3 py-1.5 text-sm font-medium ${status.badgeClass}`}
                     >
@@ -381,7 +381,7 @@ export function ActiveIncidentWorkspace({
           <article className="ops-subpanel p-5">
             <WorkspaceSectionTitle marker="B" title="Team assignment" />
             <div className="flex items-center gap-4">
-              <div className="flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-full bg-blue-500/14 text-2xl font-semibold text-blue-100">
+              <div className="flex h-[4.5rem] w-[4.5rem] items-center justify-center rounded-full bg-blue-500/10 text-2xl font-semibold text-blue-700">
                 {teamName
                   .split(" ")
                   .map((part) => part[0])
@@ -389,10 +389,10 @@ export function ActiveIncidentWorkspace({
                   .slice(0, 2)}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-[1.15rem] font-semibold text-white">{teamName}</p>
-                <p className="mt-1 text-[0.98rem] text-slate-300">{copy.teamLabel}</p>
+                <p className="text-[1.15rem] font-semibold text-[#07111c]">{teamName}</p>
+                <p className="mt-1 text-[0.98rem] text-slate-600">{copy.teamLabel}</p>
               </div>
-              <div className="text-right text-[0.98rem] text-slate-300">
+              <div className="text-right text-[0.98rem] text-slate-600">
                 {copy.teamStatus}
               </div>
             </div>
@@ -406,8 +406,8 @@ export function ActiveIncidentWorkspace({
               disabled={dispatchApproved || !primaryAction}
               className={`mt-6 w-full rounded-md border px-4 py-3 text-sm font-semibold transition-colors ${
                 dispatchApproved
-                  ? "border-emerald-400/30 bg-emerald-400/12 text-emerald-100"
-                  : "border-blue-400/40 bg-blue-600 text-white hover:bg-blue-500 disabled:cursor-not-allowed"
+                  ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-800"
+                  : "border-blue-500/40 bg-blue-600 text-white hover:bg-blue-500 disabled:cursor-not-allowed"
               }`}
             >
               {dispatchApproved ? "Team dispatched" : copy.teamButtonLabel}
@@ -427,12 +427,12 @@ export function ActiveIncidentWorkspace({
                   <div className="flex items-start gap-3">
                     <span
                       className={`mt-1 inline-flex h-3 w-3 rounded-full ${
-                        index === 0 ? "bg-rose-500" : "bg-slate-300"
+                        index === 0 ? "bg-rose-500" : "bg-slate-400"
                       }`}
                     />
-                    <span className="text-sm text-slate-400">{entry.timestamp}</span>
+                    <span className="text-sm text-slate-500">{entry.timestamp}</span>
                   </div>
-                  <p className="text-[1rem] text-slate-100">{entry.message}</p>
+                  <p className="text-[1rem] text-slate-800">{entry.message}</p>
                 </div>
               ))}
 
@@ -445,10 +445,10 @@ export function ActiveIncidentWorkspace({
                     className="grid grid-cols-[auto_1fr] items-start gap-4"
                   >
                     <div className="flex items-start gap-3">
-                      <span className="mt-1 inline-flex h-3 w-3 rounded-full bg-emerald-400" />
-                      <span className="text-sm text-slate-400">{entry.timestamp}</span>
+                      <span className="mt-1 inline-flex h-3 w-3 rounded-full bg-emerald-500" />
+                      <span className="text-sm text-slate-500">{entry.timestamp}</span>
                     </div>
-                    <p className="text-[1rem] text-slate-100">Dispatch approved</p>
+                    <p className="text-[1rem] text-slate-800">Dispatch approved</p>
                   </div>
                 ))}
             </div>
@@ -471,8 +471,8 @@ export function ActiveIncidentWorkspace({
                         ? "U"
                         : "R"}
                   </span>
-                  <p className="text-[1rem] text-slate-100">{item.message}</p>
-                  <span className="text-sm text-slate-400">{item.timestamp}</span>
+                  <p className="text-[1rem] text-slate-800">{item.message}</p>
+                  <span className="text-sm text-slate-500">{item.timestamp}</span>
                 </div>
               ))}
             </div>

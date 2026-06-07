@@ -38,7 +38,7 @@ export function IncidentCard({
         ? "border-amber-500/35"
         : incident.priority === "Moderate"
           ? "border-sky-500/35"
-          : "border-slate-500/35";
+          : "border-slate-400/35";
 
   return (
     <button
@@ -49,21 +49,21 @@ export function IncidentCard({
       className={`w-full rounded-xl border px-4 py-5 text-left transition-colors ${
         isSelected
           ? `${selectedBorder} bg-[var(--panel-hover)]`
-          : "border-white/8 bg-[var(--panel-elevated)] hover:border-white/14 hover:bg-[var(--panel-hover)]"
+          : "border-slate-200 bg-[var(--panel-elevated)] hover:border-slate-300 hover:bg-[var(--panel-hover)]"
       }`}
     >
       <div className="flex items-start gap-4">
-        <span className="ops-value inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-[var(--panel-inset)] text-base text-slate-100">
+        <span className="ops-value inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-[var(--panel-inset)] text-base text-slate-700">
           {sequenceNumber}
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">
-            <h3 className="text-[1.05rem] font-semibold leading-[1.25] tracking-tight text-white">
+            <h3 className="text-[1.05rem] font-semibold leading-[1.25] tracking-tight text-[#07111c]">
               {getQueueTitle(incident)}
             </h3>
             <PriorityBadge level={incident.priority} />
           </div>
-          <p className="mt-3 text-[0.98rem] font-medium text-slate-300">
+          <p className="mt-3 text-[0.98rem] font-medium text-slate-600">
             {leadTeam || "Operations"}
           </p>
         </div>

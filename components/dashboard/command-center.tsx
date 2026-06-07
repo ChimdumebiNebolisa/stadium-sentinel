@@ -215,7 +215,7 @@ export function CommandCenter() {
                 <h2 className="ops-heading text-lg">
                   No incidents matched the current report
                 </h2>
-                <p className="mt-2 max-w-[60ch] text-sm leading-6 text-slate-300">
+                <p className="mt-2 max-w-[60ch] text-sm leading-6 text-slate-600">
                   Use the demo scenario text to restore the dispatch queue,
                   active incident workspace, and utility drawer workflow.
                 </p>
@@ -233,7 +233,7 @@ export function CommandCenter() {
             selectedIncidentPackage ? (
               <EvidencePanel incidentPackage={selectedIncidentPackage} />
             ) : (
-              <div className="text-sm text-slate-400">
+              <div className="text-sm text-slate-500">
                 Evidence appears when an incident is selected.
               </div>
             )
@@ -242,7 +242,7 @@ export function CommandCenter() {
             selectedIncidentPackage ? (
               <StaffUpdatePanel staffUpdate={selectedIncidentPackage.staffUpdate} />
             ) : (
-              <div className="text-sm text-slate-400">
+              <div className="text-sm text-slate-500">
                 Staff update appears when an incident is selected.
               </div>
             )
