@@ -709,6 +709,44 @@ test("evidence panel shows optional elastic read path state", async ({ page }) =
   });
 });
 
+test("venue orientation stays collapsed by default and avoids forbidden map wording", async ({
+  page,
+}) => {
+  await page.goto("/command");
+
+  await expect(page.getByTestId("venue-orientation-section")).toBeVisible();
+  await expect(page.getByTestId("venue-orientation-toggle")).toHaveAttribute(
+    "aria-expanded",
+    "false",
+  );
+  await expect(page.getByTestId("venue-orientation-panel")).toHaveCount(0);
+  await expect(page.getByText("Venue map")).toHaveCount(0);
+  await expect(page.getByText("Seat map")).toHaveCount(0);
+});
+
+test("venue orientation highlights selected incident anchor when expanded", async ({
+  page,
+}) => {
+  await page.goto("/command");
+
+  await page.getByTestId("venue-orientation-toggle").click();
+  await expect(page.getByTestId("venue-orientation-panel")).toBeVisible();
+  await expect(page.getByTestId("venue-anchor-section-112")).toHaveAttribute(
+    "data-selected",
+    "true",
+  );
+
+  await page.getByRole("button", { name: /Gate B backed up/i }).click();
+  await expect(page.getByTestId("venue-anchor-gate-b")).toHaveAttribute(
+    "data-selected",
+    "true",
+  );
+  await expect(page.getByTestId("venue-anchor-section-112")).toHaveAttribute(
+    "data-selected",
+    "false",
+  );
+});
+
 test("backend-off mode keeps the deterministic api contract for the demo input", async ({
   page,
 }) => {

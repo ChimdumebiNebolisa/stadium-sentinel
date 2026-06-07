@@ -4,6 +4,7 @@ import {
   buildVenueSchematicModel,
   getActiveLocationIdsFromPackages,
   getSchematicAnchorForLocation,
+  resolveOrientationSelection,
 } from "@/lib/venue-schematic";
 import { buildDemoState } from "@/lib/demo";
 
@@ -35,11 +36,14 @@ describe("venue schematic anchor model", () => {
     expect(labels).not.toMatch(/venue map/);
   });
 
-  it("resolves active queue location ids for orientation sync", () => {
+  it("resolves orientation selection against active queue anchors", () => {
     const demo = buildDemoState();
-    const ids = getActiveLocationIdsFromPackages(demo.incidentPackages);
+    const activeIds = getActiveLocationIdsFromPackages(demo.incidentPackages);
+    const selection = resolveOrientationSelection("gate-b", activeIds);
 
-    expect(ids).toContain("section-112");
-    expect(ids.length).toBeGreaterThanOrEqual(3);
+    expect(selection.selectedAnchor?.id).toBe("gate-b");
+    expect(selection.activeAnchorIds).toEqual(
+      expect.arrayContaining(["gate-b", "section-112", "elevator-4"]),
+    );
   });
 });
