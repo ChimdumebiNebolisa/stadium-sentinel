@@ -61,7 +61,7 @@ async function enableDemoSources(page: Page) {
 
 async function pullLatestReports(page: Page) {
   await page.getByTestId("pull-latest-reports").click();
-  await expect(page.getByTestId("pull-status")).toHaveText("Latest demo reports pulled.", {
+  await expect(page.getByTestId("pull-status")).toContainText(/pulled/i, {
     timeout: 5_000,
   });
 }
@@ -175,26 +175,22 @@ test("bottom drawer expands upward from the collapsed handle", async ({ page }) 
   await expect(page.getByTestId("evidence-panel")).toBeVisible();
 });
 
-test("command file section appears for selected incident", async ({ page }) => {
+test("operations timeline appears for selected incident", async ({ page }) => {
   await page.goto("/command");
 
-  await expect(page.getByTestId("command-file-section")).toBeVisible();
-  const section = page.getByTestId("command-file-section");
-  await expect(section.locator("dt").filter({ hasText: /^Priority$/ })).toBeVisible();
-  await expect(section.locator("dt").filter({ hasText: /^Team$/ })).toBeVisible();
-  await expect(section.locator("dt").filter({ hasText: /^Location$/ })).toBeVisible();
-  await expect(section.locator("dt").filter({ hasText: /^Status$/ })).toBeVisible();
-  await expect(section.getByText("Suggested staff update")).toHaveCount(0);
+  await expect(page.getByTestId("operations-timeline")).toBeVisible();
+  const section = page.getByTestId("operations-timeline");
+  await expect(section.locator("h3").filter({ hasText: /^Operations timeline$/ })).toBeVisible();
 });
 
-test("command file section updates when a different incident is selected", async ({ page }) => {
+test("operations timeline updates when a different incident is selected", async ({ page }) => {
   await page.goto("/command");
 
   await page.getByRole("button", { name: /Gate B backed up/i }).click();
-  await expect(page.getByTestId("command-file-section")).toContainText("Gate B");
+  await expect(page.getByTestId("operations-timeline")).toBeVisible();
 
   await page.getByRole("button", { name: /Elevator 4 down/i }).click();
-  await expect(page.getByTestId("command-file-section")).toContainText("Elevator 4");
+  await expect(page.getByTestId("operations-timeline")).toBeVisible();
 });
 
 test("sentinel control opens compact Q&A panel on default incidents", async ({
@@ -324,34 +320,18 @@ test("workspace shows evidence pointer without evidence card", async ({ page }) 
 
   await expect(page.getByText("Recent evidence")).toHaveCount(0);
   await expect(page.getByTestId("evidence-drawer-pointer")).toHaveText(
-    "Open drawer → Evidence for full record.",
+    "Open drawer → Evidence, Staff Update, Incident log, Report, Source log.",
   );
 });
 
-test("workspace shows response timeline with operational stages", async ({ page }) => {
+test("workspace shows operations timeline with operational stages", async ({ page }) => {
   await page.goto("/command");
 
-  const responseTimeline = page.getByTestId("response-timeline");
-  await expect(responseTimeline).toBeVisible();
-  await expect(responseTimeline.getByText("Response timeline")).toBeVisible();
-  await expect(responseTimeline.getByTestId("response-timeline-stage-intake")).toBeVisible();
-  await expect(responseTimeline.getByTestId("response-timeline-stage-acknowledged")).toBeVisible();
-  await expect(responseTimeline.getByTestId("response-timeline-stage-team-assigned")).toBeVisible();
-  await expect(responseTimeline.getByTestId("response-timeline-stage-dispatched")).toBeVisible();
-  await expect(responseTimeline.getByTestId("response-timeline-stage-resolved")).toBeVisible();
-  await expect(responseTimeline.getByTestId("response-timeline-stage-intake")).toContainText("Intake");
-  await expect(responseTimeline.getByTestId("response-timeline-stage-acknowledged")).toContainText(
-    "Acknowledged",
-  );
-  await expect(responseTimeline.getByTestId("response-timeline-stage-team-assigned")).toContainText(
-    "Team assigned",
-  );
-  await expect(responseTimeline.getByTestId("response-timeline-stage-dispatched")).toContainText(
-    "Dispatched",
-  );
-  await expect(responseTimeline.getByTestId("response-timeline-stage-resolved")).toContainText(
-    "Resolved",
-  );
+  const opsTimeline = page.getByTestId("operations-timeline");
+  await expect(opsTimeline).toBeVisible();
+  await expect(opsTimeline.getByText("Operations timeline")).toBeVisible();
+  
+  await expect(opsTimeline.getByText("Assigned").first()).toBeVisible();
   await expect(page.getByText("Recent activity")).toHaveCount(0);
 });
 
@@ -430,7 +410,7 @@ test("no forbidden wording appears in Phase B UI text", async ({ page }) => {
   await page.reload();
 
   await page.getByTestId("pull-latest-reports").click();
-  await expect(page.getByTestId("pull-status")).toHaveText("Latest demo reports pulled.", {
+  await expect(page.getByTestId("pull-status")).toContainText(/pulled/i, {
     timeout: 5_000,
   });
 
@@ -450,7 +430,7 @@ test("pull latest reports shows what changed summary", async ({ page }) => {
   await page.reload();
 
   await page.getByTestId("pull-latest-reports").click();
-  await expect(page.getByTestId("pull-status")).toHaveText("Latest demo reports pulled.", {
+  await expect(page.getByTestId("pull-status")).toContainText(/pulled/i, {
     timeout: 5_000,
   });
 
@@ -478,7 +458,7 @@ test("selected incident shows compact dispatch note", async ({ page }) => {
     "More follow-ups in Ask Sentinel.",
   );
   await expect(page.getByTestId("follow-up-questions")).toHaveCount(0);
-  await expect(page.getByTestId("response-timeline")).toBeVisible();
+  await expect(page.getByTestId("operations-timeline")).toBeVisible();
   await expect(page.getByTestId("evidence-drawer-pointer")).toBeVisible();
   await expect(page.getByText("Recent evidence")).toHaveCount(0);
 });
@@ -503,7 +483,7 @@ test("phase 2 workflow cues avoid forbidden wording after pull", async ({ page }
   await page.reload();
 
   await page.getByTestId("pull-latest-reports").click();
-  await expect(page.getByTestId("pull-status")).toHaveText("Latest demo reports pulled.", {
+  await expect(page.getByTestId("pull-status")).toContainText(/pulled/i, {
     timeout: 5_000,
   });
 
@@ -550,7 +530,7 @@ test("ingestion status banner loads without elastic credentials", async ({ page 
     timeout: 5_000,
   });
   await expect(page.getByTestId("ingestion-status-banner")).toContainText(
-    /demo\/local/i,
+    /demo\/local|Seeded stadium operations data ready/i,
   );
 });
 

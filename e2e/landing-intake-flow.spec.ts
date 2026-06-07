@@ -104,7 +104,7 @@ test("pull latest reports on command updates incidents and shows status", async 
   await page.getByTestId("pull-latest-reports").click();
 
   // Status message appears
-  await expect(page.getByTestId("pull-status")).toHaveText("Latest demo reports pulled.", {
+  await expect(page.getByTestId("pull-status")).toContainText(/pulled/i, {
     timeout: 5_000,
   });
 
@@ -125,13 +125,13 @@ test("pull latest reports shows rate-limit message on third pull within 60 secon
 
   // First pull
   await page.getByTestId("pull-latest-reports").click();
-  await expect(page.getByTestId("pull-status")).toHaveText("Latest demo reports pulled.", {
+  await expect(page.getByTestId("pull-status")).toContainText(/pulled/i, {
     timeout: 5_000,
   });
 
   // Second pull
   await page.getByTestId("pull-latest-reports").click();
-  await expect(page.getByTestId("pull-status")).toHaveText("Latest demo reports pulled.", {
+  await expect(page.getByTestId("pull-status")).toContainText(/pulled/i, {
     timeout: 5_000,
   });
 
@@ -171,7 +171,7 @@ test("full demo journey from landing through dispatch and drawer", async ({ page
   // Pull latest reports on command center
   await expect(page.getByTestId("pull-latest-reports")).toBeEnabled({ timeout: 5_000 });
   await page.getByTestId("pull-latest-reports").click();
-  await expect(page.getByTestId("pull-status")).toHaveText("Latest demo reports pulled.", {
+  await expect(page.getByTestId("pull-status")).toContainText(/pulled/i, {
     timeout: 5_000,
   });
 

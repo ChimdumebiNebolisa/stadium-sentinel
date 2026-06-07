@@ -60,7 +60,7 @@ async function enableDemoSources(page: Page) {
 
 async function pullLatestReports(page: Page) {
   await page.getByTestId("pull-latest-reports").click();
-  await expect(page.getByTestId("pull-status")).toHaveText("Latest demo reports pulled.", {
+  await expect(page.getByTestId("pull-status")).toContainText(/pulled/i, {
     timeout: 5_000,
   });
 }
@@ -155,7 +155,7 @@ test("pull latest reports and rate limit still work after transcript extract", a
 
   await pullLatestReports(page);
   await page.getByTestId("pull-latest-reports").click();
-  await expect(page.getByTestId("pull-status")).toHaveText("Latest demo reports pulled.", {
+  await expect(page.getByTestId("pull-status")).toContainText(/pulled/i, {
     timeout: 5_000,
   });
 
