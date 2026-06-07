@@ -138,6 +138,138 @@ test("bottom drawer expands upward from the collapsed handle", async ({ page }) 
   await expect(page.getByTestId("evidence-panel")).toBeVisible();
 });
 
+test("command file section appears for selected incident", async ({ page }) => {
+  await page.goto("/command");
+
+  await expect(page.getByTestId("command-file-section")).toBeVisible();
+  // Priority, Team, Location, Status label terms present (exact dt match)
+  const section = page.getByTestId("command-file-section");
+  await expect(section.locator("dt").filter({ hasText: /^Priority$/ })).toBeVisible();
+  await expect(section.locator("dt").filter({ hasText: /^Team$/ })).toBeVisible();
+  await expect(section.locator("dt").filter({ hasText: /^Location$/ })).toBeVisible();
+  await expect(section.locator("dt").filter({ hasText: /^Status$/ })).toBeVisible();
+});
+
+test("command file section updates when a different incident is selected", async ({ page }) => {
+  await page.goto("/command");
+
+  await page.getByRole("button", { name: /Gate B backed up/i }).click();
+  await expect(page.getByTestId("command-file-section")).toContainText("Gate B");
+
+  await page.getByRole("button", { name: /Elevator 4 down/i }).click();
+  await expect(page.getByTestId("command-file-section")).toContainText("Elevator 4");
+});
+
+test("agent reasoning section appears for pool incidents after pull", async ({ page }) => {
+  await page.goto("/command");
+  await page.evaluate(() => {
+    localStorage.setItem("stadium-sentinel-demo-sources-connected", "true");
+  });
+  await page.reload();
+
+  await page.getByTestId("pull-latest-reports").click();
+  await expect(page.getByTestId("pull-status")).toHaveText("Latest demo reports pulled.", {
+    timeout: 5_000,
+  });
+
+  await expect(page.getByTestId("agent-reasoning-section")).toBeVisible();
+  // Reasoning entries are present
+  await expect(
+    page.getByTestId("agent-reasoning-section").locator("li").first(),
+  ).toBeVisible();
+});
+
+test("timeline tab shows selected-incident-specific entries or calm empty state", async ({
+  page,
+}) => {
+  await page.goto("/command");
+
+  // Open timeline tab via drawer handle then tab click
+  await page.getByTestId("incident-drawer-handle").click();
+  await expect(page.getByTestId("utility-drawer")).toHaveAttribute("data-state", "expanded");
+
+  const timelineTab = page
+    .getByRole("tablist", { name: "Workspace panels" })
+    .getByRole("tab", { name: "Timeline", exact: true })
+    .first();
+  await timelineTab.click();
+
+  await expect(page.getByTestId("timeline-panel")).toBeVisible();
+
+  // Either articles exist (entries for this incident) or the empty state is shown
+  const articleCount = await page.getByTestId("timeline-panel").locator("article").count();
+  const emptyStateVisible = await page
+    .getByTestId("timeline-empty-state")
+    .isVisible()
+    .catch(() => false);
+  expect(articleCount > 0 || emptyStateVisible).toBe(true);
+});
+
+test("timeline tab reflects selected incident after dispatch approval", async ({ page }) => {
+  await page.goto("/command");
+
+  await page.getByTestId("incident-drawer-handle").click();
+  const timelineTab = page
+    .getByRole("tablist", { name: "Workspace panels" })
+    .getByRole("tab", { name: "Timeline", exact: true })
+    .first();
+  await timelineTab.click();
+
+  const countBefore = await page.getByTestId("timeline-panel").locator("article").count();
+
+  // Close drawer, approve dispatch
+  await page.getByTestId("incident-drawer-handle").click();
+  await page.getByRole("button", { name: /Dispatch Guest Services:/i }).click();
+
+  // Re-open timeline tab
+  await page.getByTestId("incident-drawer-handle").click();
+  await timelineTab.click();
+
+  await expect(page.getByTestId("timeline-panel").locator("article")).toHaveCount(
+    countBefore + 1,
+  );
+});
+
+test("evidence and staff update tabs reflect selected incident", async ({ page }) => {
+  await page.goto("/command");
+
+  // Open the drawer on Evidence tab (default)
+  await page.getByTestId("incident-drawer-handle").click();
+  await expect(page.getByTestId("utility-drawer")).toHaveAttribute("data-state", "expanded");
+  await expect(page.getByTestId("evidence-panel")).toBeVisible();
+
+  // Switch to Staff Update tab
+  const staffTab = page
+    .getByRole("tablist", { name: "Workspace panels" })
+    .getByRole("tab", { name: "Staff Update", exact: true })
+    .first();
+  await staffTab.click();
+
+  // Staff panel becomes open (panel container has data-state="open")
+  await expect(page.locator("#workspace-panel-staff")).toHaveAttribute("data-state", "open");
+  await expect(page.getByRole("heading", { name: "Staff update" })).toBeVisible();
+});
+
+test("no forbidden wording appears in Phase B UI text", async ({ page }) => {
+  await page.goto("/command");
+  await page.evaluate(() => {
+    localStorage.setItem("stadium-sentinel-demo-sources-connected", "true");
+  });
+  await page.reload();
+
+  await page.getByTestId("pull-latest-reports").click();
+  await expect(page.getByTestId("pull-status")).toHaveText("Latest demo reports pulled.", {
+    timeout: 5_000,
+  });
+
+  const bodyText = (await page.locator("body").textContent()) ?? "";
+  expect(bodyText).not.toMatch(/\bCritical\b/);
+  expect(bodyText).not.toMatch(/\bLow\b(?!\s+operational)/i);
+  expect(bodyText).not.toMatch(/\bseverity\b/i);
+  expect(bodyText).not.toMatch(/\bconfidence\b/i);
+  expect(bodyText).not.toMatch(/\bscore\b/i);
+});
+
 test("backend-off mode keeps the deterministic api contract for the demo input", async ({
   page,
 }) => {

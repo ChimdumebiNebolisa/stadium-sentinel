@@ -192,37 +192,46 @@ function getFeedToneClass(tone: FeedItem["tone"]): string {
 
 function getFallbackWorkspaceCopy(incidentPackage: IncidentPackage): WorkspaceCopy {
   const teamName = incidentPackage.incident.assignedRole || "Operations";
+  const actions = incidentPackage.incident.recommendedActions;
+
+  const actionLabels: [string, string, string] = [
+    actions[0] ?? "Dispatch team",
+    actions[1] ?? "Route details",
+    actions[2] ?? "Radio handoff",
+  ];
+
+  const checklist: [string, string, string] =
+    actions.length >= 3
+      ? [actions[0], actions[1], actions[2]]
+      : ["Acknowledge", "Dispatch team", "Resolve incident"];
+
+  const evidenceFeed: FeedItem[] =
+    incidentPackage.evidence.length > 0
+      ? incidentPackage.evidence.slice(0, 3).map((e, i) => ({
+          message: e.excerpt,
+          timestamp: "—",
+          tone: (["blue", "green", "violet"] as const)[i % 3],
+        }))
+      : [
+          { message: incidentPackage.incident.title, timestamp: "—", tone: "blue" },
+          { message: `${teamName} reviewing the incident package`, timestamp: "—", tone: "green" },
+          { message: "Operations awaiting next update", timestamp: "—", tone: "violet" },
+        ];
 
   return {
-    actionLabels: ["Dispatch team", "Route details", "Radio handoff"],
-    checklist: ["Acknowledge", "Dispatch team", "Resolve incident"],
+    actionLabels,
+    checklist,
     riskTags: [],
     teamName,
     teamLabel: "Primary team",
-    teamStatus: "1 staff • Awaiting ETA",
+    teamStatus: "Awaiting ETA",
     teamButtonLabel: "Dispatch team",
     timelineSummary: [
-      { timestamp: "11:42 AM", message: "Incident created" },
-      { timestamp: "11:43 AM", message: "Acknowledged" },
-      { timestamp: "11:44 AM", message: "Response queued" },
+      { timestamp: "—", message: incidentPackage.incident.rawText || "Incident received" },
+      { timestamp: "—", message: `${teamName} assigned` },
+      { timestamp: "—", message: "Response queued" },
     ],
-    evidenceFeed: [
-      {
-        message: incidentPackage.incident.title,
-        timestamp: "11:42 AM",
-        tone: "blue",
-      },
-      {
-        message: `${teamName} reviewing the incident package`,
-        timestamp: "11:43 AM",
-        tone: "green",
-      },
-      {
-        message: "Operations awaiting next update",
-        timestamp: "11:44 AM",
-        tone: "violet",
-      },
-    ],
+    evidenceFeed,
   };
 }
 
@@ -478,6 +487,54 @@ export function ActiveIncidentWorkspace({
             </div>
           </article>
         </div>
+
+        {/* Section E — Command File */}
+        <article className="ops-subpanel p-5" data-testid="command-file-section">
+          <WorkspaceSectionTitle marker="E" title="Command file" />
+          <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
+            <div>
+              <dt className="text-slate-500">Priority</dt>
+              <dd className="font-medium text-[#07111c]">{incident.priority}</dd>
+            </div>
+            <div>
+              <dt className="text-slate-500">Team</dt>
+              <dd className="font-medium text-[#07111c]">{incident.assignedRole}</dd>
+            </div>
+            <div>
+              <dt className="text-slate-500">Location</dt>
+              <dd className="font-medium text-[#07111c]">
+                {location?.name ?? incident.locationLabel}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-slate-500">Status</dt>
+              <dd className="font-medium text-[#07111c] capitalize">{incident.status}</dd>
+            </div>
+          </dl>
+          {incidentPackage.staffUpdate ? (
+            <div className="mt-4 border-t border-slate-200 pt-4">
+              <p className="text-sm text-slate-500">Suggested staff update</p>
+              <p className="mt-1 text-sm text-[#07111c]">{incidentPackage.staffUpdate}</p>
+            </div>
+          ) : null}
+        </article>
+
+        {/* Section F — Agent Reasoning */}
+        {incident.assumptions.length > 0 ? (
+          <article className="ops-subpanel p-5" data-testid="agent-reasoning-section">
+            <WorkspaceSectionTitle marker="F" title="Agent reasoning" />
+            <ul className="space-y-3">
+              {incident.assumptions.map((note, index) => (
+                <li
+                  key={`${incident.id}-assumption-${index}`}
+                  className="text-sm text-slate-700"
+                >
+                  {note}
+                </li>
+              ))}
+            </ul>
+          </article>
+        ) : null}
       </div>
     </section>
   );

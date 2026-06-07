@@ -289,7 +289,12 @@ export function CommandCenter() {
               </div>
             )
           }
-          timelinePanel={<TimelinePanel timeline={timeline} />}
+          timelinePanel={
+            <TimelinePanel
+              timeline={timeline}
+              incidentId={selectedIncidentPackage?.incident.id}
+            />
+          }
           reportPanel={
             <>
               <ReportInput
