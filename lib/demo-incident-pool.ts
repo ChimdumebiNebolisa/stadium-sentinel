@@ -38,7 +38,7 @@ type PullHistory = {
   pulls: number[];
 };
 
-const POOL: DemoStoredIncident[] = [
+export const DEMO_INCIDENT_POOL: DemoStoredIncident[] = [
   {
     id: "incident-section-112",
     title: "Section 112 assist",
@@ -247,7 +247,7 @@ function pickBatch(pool: DemoStoredIncident[]): DemoStoredIncident[] {
 
   const hasImmediate = selected.some((i) => i.priority === "Immediate");
   if (!hasImmediate) {
-    const immediates = pool.filter((i) => i.priority === "Immediate");
+    const immediates = DEMO_INCIDENT_POOL.filter((i) => i.priority === "Immediate");
     if (immediates.length > 0) {
       selected[selected.length - 1] = immediates[Math.floor(Math.random() * immediates.length)];
     }
@@ -264,11 +264,11 @@ export function generateDemoIncidentBatch(): DemoIncidentBatch {
   const previous = loadDemoIncidentBatch();
   const previousKey = previous ? sortedIdKey(previous.incidents) : null;
 
-  let selected = pickBatch(POOL);
+  let selected = pickBatch(DEMO_INCIDENT_POOL);
   let attempts = 0;
 
   while (attempts < 3 && previousKey !== null && sortedIdKey(selected) === previousKey) {
-    selected = pickBatch(POOL);
+    selected = pickBatch(DEMO_INCIDENT_POOL);
     attempts++;
   }
 
@@ -431,5 +431,9 @@ export function localStorageIncidentToPackage(stored: DemoStoredIncident): Incid
     })),
     staffUpdate: stored.summary,
   };
+}
+
+export function getPoolIncidentById(id: string): DemoStoredIncident | undefined {
+  return DEMO_INCIDENT_POOL.find((incident) => incident.id === id);
 }
 

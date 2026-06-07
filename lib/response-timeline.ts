@@ -71,7 +71,7 @@ function findPoolLine(
 }
 
 function buildStageCompletions(input: BuildResponseTimelineInput) {
-  const { incidentPackage, timeline, poolTimeline } = input;
+  const { incidentPackage, timeline, poolTimeline, transcriptLine } = input;
   const { incident } = incidentPackage;
   const incidentTimeline = timeline.filter((entry) => entry.incidentId === incident.id);
   const reportedEntry = incidentTimeline.find((entry) => entry.type === "reported");
@@ -105,8 +105,9 @@ function buildStageCompletions(input: BuildResponseTimelineInput) {
     intakePool,
     acknowledgedPool,
     teamPool,
+    transcriptLine,
     completed: [
-      Boolean(reportedEntry || intakePool || incident.id),
+      Boolean(reportedEntry || intakePool || transcriptLine || incident.id),
       Boolean(acknowledgedPool || suggestedEntry),
       Boolean(suggestedEntry || teamPool || incident.assignedRole),
       dispatchApproved,
@@ -128,13 +129,17 @@ function getStageDetails(
     intakePool,
     acknowledgedPool,
     teamPool,
+    transcriptLine,
   } = context;
 
   switch (stageId) {
     case "intake":
       if (state === "done") {
         return {
-          statusText: intakePool?.message ?? reportedEntry?.message ?? "Report received",
+          statusText:
+            transcriptLine !== null && transcriptLine !== undefined
+              ? `Radio report received: ${transcriptLine}`
+              : intakePool?.message ?? reportedEntry?.message ?? "Report received",
           time: intakePool?.time ?? reportedEntry?.timestamp ?? "Pending",
         };
       }

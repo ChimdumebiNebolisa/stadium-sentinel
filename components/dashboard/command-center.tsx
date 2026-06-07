@@ -28,6 +28,18 @@ import {
   type ChangeSummary,
 } from "@/lib/demo-agent-workflow";
 import { buildDemoState } from "@/lib/demo";
+import {
+  appendTranscriptTimelineEntries,
+  buildExtractionStatusMessage,
+  enrichPackagesWithTranscriptEvidence,
+  extractTranscriptIncidents,
+  loadRadioTranscriptRecord,
+  mergeAddedIncidentsIntoBatch,
+  rebuildTimelineFromPersistedState,
+  saveRadioTranscriptRecord,
+  sortIncidentPackages,
+  type RadioTranscriptRecord,
+} from "@/lib/radio-transcript-intake";
 import { buildPostEventReport } from "@/lib/report";
 import type { CommandState } from "@/lib/sentinel-command-agent";
 import type {
@@ -121,17 +133,53 @@ export function CommandCenter() {
   const [pullStatus, setPullStatus] = useState<string | null>(null);
   const [changeSummary, setChangeSummary] = useState<ChangeSummary | null>(null);
   const [batchGeneratedAt, setBatchGeneratedAt] = useState<string | null>(null);
+  const [latestTranscriptRecord, setLatestTranscriptRecord] =
+    useState<RadioTranscriptRecord | null>(null);
+  const [transcriptExtractStatus, setTranscriptExtractStatus] = useState<string | null>(
+    null,
+  );
 
   // Read localStorage batch on mount (client-only — avoids hydration mismatch).
   // Falls back to buildDemoState() if no valid batch exists.
   useEffect(() => {
     const batch = loadDemoIncidentBatch();
-    if (!batch) return;
+    const transcriptRecord = loadRadioTranscriptRecord();
+    setLatestTranscriptRecord(transcriptRecord);
+
+    if (!batch) {
+      if (transcriptRecord) {
+        setTimeline((current) =>
+          rebuildTimelineFromPersistedState(
+            initialDemoState.incidentPackages,
+            current,
+            transcriptRecord,
+          ),
+        );
+      }
+      return;
+    }
+
     const packages = batch.incidents.map(localStorageIncidentToPackage);
     if (packages.length === 0) return;
-    setIncidentPackages(packages);
-    setSelectedIncidentId(packages[0].incident.id);
-    setReportSummary(buildPostEventReport(packages, []));
+    const enrichedPackages = transcriptRecord
+      ? enrichPackagesWithTranscriptEvidence(
+          packages,
+          transcriptRecord.matchedLines,
+          transcriptRecord.extractedIncidentIds,
+        )
+      : packages;
+    const sortedPackages = sortIncidentPackages(enrichedPackages);
+    setIncidentPackages(sortedPackages);
+    setSelectedIncidentId(sortedPackages[0]?.incident.id ?? "");
+    setTimeline(
+      rebuildTimelineFromPersistedState(sortedPackages, [], transcriptRecord),
+    );
+    setReportSummary(
+      buildPostEventReport(
+        sortedPackages,
+        rebuildTimelineFromPersistedState(sortedPackages, [], transcriptRecord),
+      ),
+    );
     setBatchGeneratedAt(batch.generatedAt);
   }, []);
 
@@ -209,13 +257,103 @@ export function CommandCenter() {
     recordPull();
     const packages = batch.incidents.map(localStorageIncidentToPackage);
     if (packages.length === 0) return;
-    setChangeSummary(buildChangeSummary(previousPackages, packages));
+    const enrichedPackages = latestTranscriptRecord
+      ? enrichPackagesWithTranscriptEvidence(
+          packages,
+          latestTranscriptRecord.matchedLines,
+          latestTranscriptRecord.extractedIncidentIds.filter((id) =>
+            packages.some(({ incident }) => incident.id === id),
+          ),
+        )
+      : packages;
+    const sortedPackages = sortIncidentPackages(enrichedPackages);
+    const nextTimeline = rebuildTimelineFromPersistedState(
+      sortedPackages,
+      [],
+      latestTranscriptRecord,
+    );
+    setChangeSummary(buildChangeSummary(previousPackages, sortedPackages));
     setBatchGeneratedAt(batch.generatedAt);
-    setIncidentPackages(packages);
-    setSelectedIncidentId(packages[0].incident.id);
-    setTimeline([]);
-    setReportSummary(buildPostEventReport(packages, []));
+    setIncidentPackages(sortedPackages);
+    setSelectedIncidentId(sortedPackages[0]?.incident.id ?? "");
+    setTimeline(nextTimeline);
+    setReportSummary(buildPostEventReport(sortedPackages, nextTimeline));
     setPullStatus("Latest demo reports pulled.");
+  }
+
+  function handleExtractTranscript(text: string, presetId?: string) {
+    if (!text.trim()) {
+      setTranscriptExtractStatus(
+        "No reports matched this transcript. Try a preset or add location and team details.",
+      );
+      return;
+    }
+
+    const activeIncidentIds = incidentPackages.map(({ incident }) => incident.id);
+    const extraction = extractTranscriptIncidents({
+      text,
+      activeIncidentIds,
+      sourceLabel: presetId ? "Preset" : "Manual paste",
+      presetId,
+    });
+    const currentBatch = loadDemoIncidentBatch();
+    let nextPackages = [...incidentPackages];
+
+    if (extraction.addedIncidents.length > 0) {
+      nextPackages = sortIncidentPackages([
+        ...nextPackages,
+        ...extraction.addedIncidents.map(localStorageIncidentToPackage),
+      ]);
+      const mergedBatch = mergeAddedIncidentsIntoBatch(
+        currentBatch,
+        incidentPackages,
+        extraction.addedIncidents,
+      );
+      if (mergedBatch) {
+        saveDemoIncidentBatch(mergedBatch);
+        setBatchGeneratedAt(mergedBatch.generatedAt);
+      }
+    }
+
+    nextPackages = enrichPackagesWithTranscriptEvidence(
+      nextPackages,
+      extraction.record.matchedLines,
+      extraction.record.extractedIncidentIds,
+    );
+    nextPackages = sortIncidentPackages(nextPackages);
+
+    const activeIdSet = new Set(nextPackages.map(({ incident }) => incident.id));
+    const filteredRecord: RadioTranscriptRecord = {
+      ...extraction.record,
+      logSnippets: extraction.record.logSnippets.filter((snippet) =>
+        activeIdSet.has(snippet.incidentId),
+      ),
+    };
+
+    const nextTimeline = appendTranscriptTimelineEntries(
+      timeline,
+      filteredRecord.logSnippets,
+      filteredRecord.matchedLines,
+      filteredRecord.addedIncidentIds,
+    );
+
+    saveRadioTranscriptRecord(filteredRecord);
+    setLatestTranscriptRecord(filteredRecord);
+
+    if (extraction.addedIncidents.length > 0) {
+      setChangeSummary(buildChangeSummary(incidentPackages, nextPackages));
+    }
+
+    setIncidentPackages(nextPackages);
+    setSelectedIncidentId(nextPackages[0]?.incident.id ?? selectedIncidentId);
+    setTimeline(nextTimeline);
+    setReportSummary(buildPostEventReport(nextPackages, nextTimeline));
+    setTranscriptExtractStatus(
+      buildExtractionStatusMessage(
+        extraction.addedIds.length,
+        extraction.matchedIncidentIds.length,
+      ),
+    );
   }
 
   const topPriority = incidentPackages[0]?.incident.priority ?? "Monitor";
@@ -287,6 +425,9 @@ export function CommandCenter() {
           batchCount={incidentPackages.length}
           topIncidentTitle={incidentPackages[0]?.incident.title ?? null}
           changeSummary={changeSummary}
+          onExtractTranscript={handleExtractTranscript}
+          transcriptExtractStatus={transcriptExtractStatus}
+          latestTranscriptRecord={latestTranscriptRecord}
         />
 
         <section className="board-grid">
@@ -304,6 +445,11 @@ export function CommandCenter() {
                 incidentPackage={selectedIncidentPackage}
                 commandState={commandState}
                 timeline={timeline}
+                transcriptLine={
+                  latestTranscriptRecord?.matchedLines[
+                    selectedIncidentPackage.incident.id
+                  ] ?? null
+                }
                 onApprove={handleApprove}
               />
             ) : (

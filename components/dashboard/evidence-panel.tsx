@@ -1,5 +1,13 @@
 import { getPrioritySummary } from "@/lib/priority";
-import type { IncidentPackage } from "@/lib/types";
+import type { EvidenceSourceType, IncidentPackage } from "@/lib/types";
+
+function formatEvidenceSourceType(sourceType: EvidenceSourceType): string {
+  if (sourceType === "radio_log") {
+    return "Radio log";
+  }
+
+  return sourceType.replaceAll("_", " ");
+}
 
 export function EvidencePanel({
   incidentPackage,
@@ -24,7 +32,7 @@ export function EvidencePanel({
               className="py-3"
             >
               <p className="ops-label">
-                {item.sourceType.replaceAll("_", " ")}
+                {formatEvidenceSourceType(item.sourceType)}
               </p>
               <h3 className="mt-1 font-semibold text-[#07111c]">{item.title}</h3>
               <p className="mt-1.5 text-sm leading-6 text-slate-600">

@@ -5,6 +5,7 @@ type ResponseTimelineProps = {
   incidentPackage: IncidentPackage;
   timeline: TimelineEntry[];
   poolTimeline?: string[] | null;
+  transcriptLine?: string | null;
 };
 
 function getStageMarkerClass(state: "done" | "active" | "pending"): string {
@@ -35,12 +36,13 @@ export function ResponseTimeline({
   incidentPackage,
   timeline,
   poolTimeline,
+  transcriptLine = null,
 }: ResponseTimelineProps) {
   const stages = buildResponseTimeline({
     incidentPackage,
     timeline,
     poolTimeline,
-    transcriptLine: null,
+    transcriptLine,
   });
 
   return (

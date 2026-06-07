@@ -51,6 +51,14 @@ async function assertNoForbiddenWording(text: string) {
   expect(text).not.toMatch(/\bscore\b/i);
 }
 
+async function extractStandardTranscriptPreset(page: Page) {
+  await page.getByTestId("radio-transcript-toggle").click();
+  await expect(page.getByTestId("radio-transcript-input")).toBeVisible();
+  await page.getByTestId("transcript-preset-standard").click();
+  await page.getByTestId("extract-transcript").click();
+  await expect(page.getByTestId("transcript-extract-summary")).toBeVisible();
+}
+
 async function enableDemoSources(page: Page) {
   await page.evaluate(() => {
     localStorage.setItem("stadium-sentinel-demo-sources-connected", "true");
@@ -478,6 +486,87 @@ test("phase 2 workflow cues avoid forbidden wording after pull", async ({ page }
   expect(bodyText).not.toMatch(/\bseverity\b/i);
   expect(bodyText).not.toMatch(/\bconfidence\b/i);
   expect(bodyText).not.toMatch(/\bscore\b/i);
+});
+
+test("radio transcript panel stays collapsed until opened", async ({ page }) => {
+  await page.goto("/command");
+
+  await expect(page.getByTestId("radio-transcript-panel")).toBeVisible();
+  await expect(page.getByTestId("radio-transcript-toggle")).toHaveAttribute("aria-expanded", "false");
+  await expect(page.getByTestId("radio-transcript-input")).toHaveCount(0);
+});
+
+test("standard transcript preset matches current queue without adding incidents", async ({
+  page,
+}) => {
+  await page.goto("/command");
+
+  const queueCountBefore = await page.getByTestId("incident-card").count();
+  await extractStandardTranscriptPreset(page);
+
+  await expect(page.getByTestId("incident-card")).toHaveCount(queueCountBefore);
+  await expect(page.getByTestId("transcript-extract-summary")).toContainText(
+    "Radio transcript processed. 3 reports matched in the current queue.",
+  );
+});
+
+test("transcript extract adds radio_log evidence and incident log entries", async ({ page }) => {
+  await page.goto("/command");
+  await extractStandardTranscriptPreset(page);
+
+  await page.getByTestId("incident-drawer-handle").click();
+  await openWorkspace(page, "Evidence");
+  await expect(
+    page.getByTestId("evidence-panel").getByRole("heading", { name: "Radio log excerpt" }),
+  ).toBeVisible();
+
+  await openWorkspace(page, "Incident log");
+  await expect(page.getByTestId("timeline-panel")).toContainText("Radio report received");
+});
+
+test("pull latest reports and rate limit still work after transcript extract", async ({
+  page,
+}) => {
+  await page.goto("/command");
+  await enableDemoSources(page);
+  await extractStandardTranscriptPreset(page);
+
+  await pullLatestReports(page);
+  await expect(page.getByTestId("pull-status")).toHaveText("Latest demo reports pulled.", {
+    timeout: 5_000,
+  });
+
+  await page.getByTestId("pull-latest-reports").click();
+  await expect(page.getByTestId("pull-status")).toHaveText("Latest demo reports pulled.", {
+    timeout: 5_000,
+  });
+
+  await page.getByTestId("pull-latest-reports").click();
+  await expect(page.getByTestId("pull-status")).toHaveText(
+    "Incidents are up to date. Try again shortly.",
+    { timeout: 5_000 },
+  );
+});
+
+test("pull after transcript extract filters stale log snippets from removed incidents", async ({
+  page,
+}) => {
+  await page.goto("/command");
+  await enableDemoSources(page);
+
+  await page.getByTestId("radio-transcript-toggle").click();
+  await page.getByTestId("transcript-preset-restroom").click();
+  await page.getByTestId("extract-transcript").click();
+  await expect(page.getByTestId("transcript-extract-summary")).toContainText(
+    /new report added/i,
+  );
+
+  await pullLatestReports(page);
+
+  await page.getByTestId("incident-drawer-handle").click();
+  await openWorkspace(page, "Incident log");
+  const logText = (await page.getByTestId("timeline-panel").textContent()) ?? "";
+  expect(logText).not.toContain("West Concourse restroom is out of order.");
 });
 
 test("backend-off mode keeps the deterministic api contract for the demo input", async ({

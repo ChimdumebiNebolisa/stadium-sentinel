@@ -125,7 +125,8 @@ export type EvidenceSourceType =
   | "runbook"
   | "historical_incident"
   | "location"
-  | "staff_rule";
+  | "staff_rule"
+  | "radio_log";
 
 export type OperationalKnowledgeDocument = {
   id: string;

@@ -10,6 +10,7 @@ type ActiveIncidentWorkspaceProps = {
   incidentPackage: IncidentPackage;
   commandState: CommandState;
   timeline: TimelineEntry[];
+  transcriptLine?: string | null;
   onApprove: (incidentId: string, action: string, actionIndex: number) => void;
 };
 
@@ -179,6 +180,7 @@ export function ActiveIncidentWorkspace({
   incidentPackage,
   commandState,
   timeline,
+  transcriptLine = null,
   onApprove,
 }: ActiveIncidentWorkspaceProps) {
   const { incident } = incidentPackage;
@@ -357,6 +359,7 @@ export function ActiveIncidentWorkspace({
           incidentPackage={incidentPackage}
           timeline={timeline}
           poolTimeline={poolTimeline}
+          transcriptLine={transcriptLine}
         />
 
         <article className="ops-subpanel p-5" data-testid="command-file-section">

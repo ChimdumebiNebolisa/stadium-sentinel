@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 
+import { RadioTranscriptPanel } from "@/components/dashboard/radio-transcript-panel";
 import type { ChangeSummary } from "@/lib/demo-agent-workflow";
 import { readIntakeComplete, readSourcesConnected } from "@/lib/intake-demo";
+import type { RadioTranscriptRecord } from "@/lib/radio-transcript-intake";
 
 type IntakeContextBarProps = {
   onPullReports: () => void;
@@ -11,6 +13,9 @@ type IntakeContextBarProps = {
   batchCount: number | null;
   topIncidentTitle: string | null;
   changeSummary: ChangeSummary | null;
+  onExtractTranscript: (text: string, presetId?: string) => void;
+  transcriptExtractStatus: string | null;
+  latestTranscriptRecord: RadioTranscriptRecord | null;
 };
 
 export function IntakeContextBar({
@@ -19,6 +24,9 @@ export function IntakeContextBar({
   batchCount,
   topIncidentTitle,
   changeSummary,
+  onExtractTranscript,
+  transcriptExtractStatus,
+  latestTranscriptRecord,
 }: IntakeContextBarProps) {
   const [mounted, setMounted] = useState(false);
   const [intakeComplete, setIntakeComplete] = useState(false);
@@ -87,6 +95,12 @@ export function IntakeContextBar({
           ) : null}
         </div>
       </div>
+
+      <RadioTranscriptPanel
+        onExtract={onExtractTranscript}
+        extractStatus={transcriptExtractStatus}
+        latestRecord={latestTranscriptRecord}
+      />
     </section>
   );
 }
