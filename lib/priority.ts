@@ -110,11 +110,11 @@ export function getPriorityLevel(incident: Incident): PriorityLevel {
 export function getPriorityRationale(incident: Incident): string {
   switch (incident.incidentType) {
     case "facility-outage":
-      return "Infrastructure outage at a critical movement point. Preserve access and reroute now.";
+      return "Infrastructure outage at a primary movement point. Preserve access and reroute now.";
     case "accessibility-assist":
-      return "Guest assistance is tied to a critical access point. Acknowledge and escort now.";
+      return "Guest assistance is tied to a primary access point. Acknowledge and escort now.";
     case "queue-congestion":
-      return "Crowd pressure is building in a circulation-critical zone. Contain it before it cascades.";
+      return "Crowd pressure is building in a high-traffic circulation zone. Contain it before it spreads.";
     default:
       return "Operational issue flagged for response.";
   }
@@ -123,7 +123,7 @@ export function getPriorityRationale(incident: Incident): string {
 export function getPrioritySummary(incident: Incident): string {
   switch (incident.incidentType) {
     case "facility-outage":
-      return "Critical access is degraded. Dispatch Facilities and hold the reroute path.";
+      return "Primary access is degraded. Dispatch Facilities and hold the reroute path.";
     case "accessibility-assist":
       return "Guest needs escorted support through a sensitive venue path. Guest Services should respond now.";
     case "queue-congestion":

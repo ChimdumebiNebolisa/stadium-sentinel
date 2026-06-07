@@ -1,10 +1,9 @@
 "use client";
 
 import { useMemo } from "react";
+
 import {
   buildVenueSchematicModel,
-  formatZoneLayerLabel,
-  resolveOrientationSelection,
   type VenueSchematicAnchor,
 } from "@/lib/venue-schematic";
 
@@ -19,11 +18,10 @@ function SchematicAnchorDot({
   anchor: VenueSchematicAnchor;
   isSelected: boolean;
 }) {
-  // Hide inactive anchors to keep it focused on the selected incident only
   if (!isSelected) {
     return (
-      <g data-testid={`venue-anchor-${anchor.id}`} aria-label={anchor.label}>
-        <circle cx={anchor.x} cy={anchor.y} r={1.5} fill="#94a3b8" />
+      <g data-testid={`venue-anchor-${anchor.id}`} data-selected="false" aria-label={anchor.label}>
+        <circle cx={anchor.x} cy={anchor.y} r={1.2} fill="#94a3b8" />
       </g>
     );
   }
@@ -34,44 +32,25 @@ function SchematicAnchorDot({
       data-selected="true"
       aria-label={anchor.label}
     >
-      {/* Incident pulsing ring effect */}
       <circle
         cx={anchor.x}
         cy={anchor.y}
-        r={7}
+        r={6}
         fill="none"
         stroke="#ef4444"
-        strokeWidth={1}
-        opacity={0.3}
+        strokeWidth={1.2}
+        opacity={0.28}
         className="animate-pulse"
       />
-      <circle
-        cx={anchor.x}
-        cy={anchor.y}
-        r={4.5}
-        fill="none"
-        stroke="#ef4444"
-        strokeWidth={1.5}
-        opacity={0.8}
-      />
-      <circle cx={anchor.x} cy={anchor.y} r={2.5} fill="#ef4444" />
-
-      {/* Incident Location Label Box */}
-      <rect
-        x={anchor.x - 22}
-        y={anchor.y - 12}
-        width={44}
-        height={8}
-        rx={1.5}
-        fill="#ef4444"
-      />
+      <circle cx={anchor.x} cy={anchor.y} r={3.4} fill="#ef4444" />
+      <rect x={anchor.x - 18} y={anchor.y - 11} width={36} height={7} rx={1.5} fill="#ef4444" />
       <text
         x={anchor.x}
         y={anchor.y - 6}
         textAnchor="middle"
-        className="fill-white text-[3.5px] font-bold uppercase tracking-wider"
+        className="fill-white text-[3px] font-bold uppercase tracking-wider"
       >
-        INCIDENT LOCATION
+        INCIDENT
       </text>
     </g>
   );
@@ -81,84 +60,98 @@ export function VenueContextCard({
   selectedLocationId = null,
 }: VenueContextCardProps) {
   const model = useMemo(() => buildVenueSchematicModel(), []);
-  const { selectedAnchor } = useMemo(
-    () => resolveOrientationSelection(selectedLocationId, [], model),
-    [selectedLocationId, model]
-  );
 
   return (
-    <article className="ops-subpanel p-4 flex flex-col" data-testid="venue-context-card">
+    <article className="ops-subpanel flex flex-col p-4" data-testid="venue-context-card">
       <div className="mb-2">
-        <h3 className="text-sm font-semibold tracking-tight text-[#07111c]">
-          Venue Context
-        </h3>
+        <h3 className="text-sm font-semibold tracking-tight text-[#07111c]">Venue Context</h3>
       </div>
 
-      <div className="flex-1 flex items-center justify-center min-h-[160px] bg-slate-100 rounded-md border border-slate-200/60 p-2 relative overflow-hidden">
-        {/* Elevator info panel to the right, as seen in the mockup */}
-        <div className="absolute right-3 top-1/2 -translate-y-1/2 flex flex-col gap-3">
-            <div className="text-center">
-                <span className="block text-[0.6rem] font-bold text-slate-500 uppercase tracking-widest mb-1">Elevators</span>
-                <div className="flex items-center gap-1.5 justify-center border border-slate-200 bg-white rounded-sm px-1.5 py-1 shadow-sm">
-                    <span className="text-[0.65rem] font-bold text-slate-700">↑↓</span>
-                    <span className="text-[0.65rem] font-medium text-slate-600">North</span>
-                </div>
-                <div className="flex items-center gap-1.5 justify-center border border-slate-200 bg-white rounded-sm px-1.5 py-1 shadow-sm mt-1">
-                    <span className="text-[0.65rem] font-bold text-slate-700">↑↓</span>
-                    <span className="text-[0.65rem] font-medium text-slate-600">South</span>
-                </div>
+      <div className="relative flex min-h-[220px] flex-1 items-center justify-center overflow-hidden rounded-md border border-slate-200/60 bg-slate-100 p-3">
+        <div className="absolute right-3 top-3 z-10 flex flex-col gap-2">
+          <div className="rounded-md border border-slate-200 bg-white/95 px-2 py-1 shadow-sm">
+            <span className="block text-[0.6rem] font-bold uppercase tracking-widest text-slate-500">
+              Elevators
+            </span>
+            <div className="mt-1 flex items-center gap-1 text-[0.7rem] text-slate-600">
+              <span className="font-semibold text-slate-700">Up / Down</span>
+              <span>North</span>
             </div>
-            <div className="text-center">
-                <span className="block text-[0.6rem] font-bold text-slate-500 uppercase tracking-widest mb-1">Sections</span>
-                <div className="flex items-center gap-1.5 justify-center border border-slate-200 bg-white rounded-sm px-1.5 py-1 shadow-sm">
-                    <span className="text-[0.65rem] font-bold text-slate-700">☰</span>
-                </div>
+            <div className="mt-1 flex items-center gap-1 text-[0.7rem] text-slate-600">
+              <span className="font-semibold text-slate-700">Up / Down</span>
+              <span>South</span>
             </div>
+          </div>
+          <div className="rounded-md border border-slate-200 bg-white/95 px-2 py-1 text-center shadow-sm">
+            <span className="block text-[0.6rem] font-bold uppercase tracking-widest text-slate-500">
+              Sections
+            </span>
+            <span className="mt-1 block text-[0.8rem] text-slate-700">List</span>
+          </div>
         </div>
 
         <svg
-          viewBox="0 0 100 62"
+          viewBox="6 8 88 48"
           role="img"
           aria-label="Venue context schematic"
-          className="w-full h-full max-w-[200px]"
+          className="h-full w-full"
           data-testid="venue-context-schematic"
         >
-          {/* Base shape */}
           <path
             d="M20,10 L80,10 A15,15 0 0,1 95,25 L95,37 A15,15 0 0,1 80,52 L20,52 A15,15 0 0,1 5,37 L5,25 A15,15 0 0,1 20,10 Z"
             fill="#94a3b8"
             stroke="#cbd5e1"
-            strokeWidth="0.5"
-            opacity="0.9"
+            strokeWidth="0.6"
+            opacity="0.95"
           />
-          {/* Inner ring */}
           <path
             d="M25,18 L75,18 A10,10 0 0,1 85,28 L85,34 A10,10 0 0,1 75,44 L25,44 A10,10 0 0,1 15,34 L15,28 A10,10 0 0,1 25,18 Z"
             fill="#cbd5e1"
             stroke="#e2e8f0"
-            strokeWidth="0.5"
+            strokeWidth="0.6"
           />
-          {/* Pitch */}
           <rect
             x="32"
             y="24"
             width="36"
             height="14"
             rx="2"
-            fill="#f1f5f9"
+            fill="#f8fafc"
             stroke="#e2e8f0"
-            strokeWidth="0.5"
+            strokeWidth="0.6"
           />
+          <circle cx="50" cy="31" r="1.4" fill="#94a3b8" />
 
-          <text x="12" y="32" className="fill-white font-bold text-[3px] uppercase tracking-wider" transform="rotate(-90 12,32)">Gates A</text>
-          <text x="88" y="32" className="fill-white font-bold text-[3px] uppercase tracking-wider" transform="rotate(90 88,32)">Gates B</text>
+          <text
+            x="12"
+            y="32"
+            className="fill-white font-bold text-[3px] uppercase tracking-wider"
+            transform="rotate(-90 12,32)"
+          >
+            GATES A
+          </text>
+          <text
+            x="88"
+            y="32"
+            className="fill-white font-bold text-[3px] uppercase tracking-wider"
+            transform="rotate(90 88,32)"
+          >
+            GATES B
+          </text>
 
-          <text x="25" y="16" className="fill-white font-bold text-[3px]">A</text>
-          <text x="75" y="16" className="fill-white font-bold text-[3px]">B</text>
-          <text x="25" y="48" className="fill-white font-bold text-[3px]">C</text>
-          <text x="75" y="48" className="fill-white font-bold text-[3px]">D</text>
+          <text x="25" y="16" className="fill-white font-bold text-[3px]">
+            A
+          </text>
+          <text x="75" y="16" className="fill-white font-bold text-[3px]">
+            B
+          </text>
+          <text x="25" y="48" className="fill-white font-bold text-[3px]">
+            C
+          </text>
+          <text x="75" y="48" className="fill-white font-bold text-[3px]">
+            D
+          </text>
 
-          {/* Just render the dots. Highlight selected anchor. */}
           {model.anchors.map((anchor) => (
             <SchematicAnchorDot
               key={anchor.id}

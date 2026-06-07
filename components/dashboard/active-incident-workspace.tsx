@@ -1,11 +1,9 @@
-import { PriorityBadge } from "@/components/dashboard/priority-badge";
 import { OperationsTimeline } from "@/components/dashboard/operations-timeline";
-import { SentinelInline } from "@/components/dashboard/sentinel-inline";
+import { PriorityBadge } from "@/components/dashboard/priority-badge";
 import { VenueContextCard } from "@/components/dashboard/venue-context-card";
 import { WorkflowCues } from "@/components/dashboard/workflow-cues";
 import { getLocationRecord } from "@/lib/data";
 import type { CommandState } from "@/lib/sentinel-command-agent";
-import type { SentinelRecommendedAction } from "@/lib/agent/sentinel-schema";
 import type { IncidentPackage, TimelineEntry } from "@/lib/types";
 
 type ActiveIncidentWorkspaceProps = {
@@ -15,7 +13,6 @@ type ActiveIncidentWorkspaceProps = {
   activeLocationIds?: string[];
   transcriptLine?: string | null;
   onApprove: (incidentId: string, action: string, actionIndex: number) => void;
-  onApplySentinelRecommendation?: (recommendation: SentinelRecommendedAction) => void;
 };
 
 type WorkspaceCopy = {
@@ -26,16 +23,11 @@ type WorkspaceCopy = {
   teamLabel: string;
   teamStatus: string;
   teamButtonLabel: string;
-  timelineSummary: Array<{ timestamp: string; message: string }>;
 };
 
 const WORKSPACE_COPY: Record<string, WorkspaceCopy> = {
   "incident-section-112": {
-    actionLabels: [
-      "Dispatch Guest Services",
-      "Route details",
-      "Radio handoff",
-    ],
+    actionLabels: ["Dispatch Guest Services", "Route details", "Radio handoff"],
     checklist: [
       "Acknowledge and assess",
       "Dispatch Guest Services",
@@ -44,13 +36,8 @@ const WORKSPACE_COPY: Record<string, WorkspaceCopy> = {
     riskTags: ["Accessibility assist", "Crowd-flow risk"],
     teamName: "Guest Services",
     teamLabel: "Primary team",
-    teamStatus: "2 staff • 2 min ETA",
+    teamStatus: "2 staff | 2 min ETA",
     teamButtonLabel: "Dispatch team",
-    timelineSummary: [
-      { timestamp: "11:42 AM", message: "Incident created" },
-      { timestamp: "11:43 AM", message: "Acknowledged" },
-      { timestamp: "11:44 AM", message: "Team notified" },
-    ],
   },
   "incident-elevator-4": {
     actionLabels: ["Send Facilities", "Accessible reroute", "Ops update"],
@@ -62,13 +49,8 @@ const WORKSPACE_COPY: Record<string, WorkspaceCopy> = {
     riskTags: ["Accessibility assist", "Vertical access risk"],
     teamName: "Facilities",
     teamLabel: "Primary team",
-    teamStatus: "2 staff • 4 min ETA",
+    teamStatus: "2 staff | 4 min ETA",
     teamButtonLabel: "Dispatch team",
-    timelineSummary: [
-      { timestamp: "11:41 AM", message: "Incident created" },
-      { timestamp: "11:42 AM", message: "Operations acknowledged" },
-      { timestamp: "11:44 AM", message: "Facilities notified" },
-    ],
   },
   "incident-gate-b": {
     actionLabels: ["Dispatch Security", "Queue routing", "Gate advisory"],
@@ -80,13 +62,8 @@ const WORKSPACE_COPY: Record<string, WorkspaceCopy> = {
     riskTags: ["Crowd-flow risk", "Ingress delay"],
     teamName: "Security",
     teamLabel: "Primary team",
-    teamStatus: "3 staff • 3 min ETA",
+    teamStatus: "3 staff | 3 min ETA",
     teamButtonLabel: "Dispatch team",
-    timelineSummary: [
-      { timestamp: "11:38 AM", message: "Incident created" },
-      { timestamp: "11:39 AM", message: "Queue escalation confirmed" },
-      { timestamp: "11:41 AM", message: "Security notified" },
-    ],
   },
 };
 
@@ -109,8 +86,7 @@ function getChecklistStatus(approvedActionCount: number, index: number) {
   if (index < approvedActionCount) {
     return {
       label: "Complete",
-      badgeClass:
-        "border-emerald-500/30 bg-emerald-500/10 text-emerald-800",
+      badgeClass: "border-emerald-500/30 bg-emerald-500/10 text-emerald-800",
       markerClass: "bg-emerald-500 text-white",
     };
   }
@@ -153,11 +129,6 @@ function getFallbackWorkspaceCopy(incidentPackage: IncidentPackage): WorkspaceCo
     teamLabel: "Primary team",
     teamStatus: "Awaiting ETA",
     teamButtonLabel: "Dispatch team",
-    timelineSummary: [
-      { timestamp: "—", message: incidentPackage.incident.rawText || "Incident received" },
-      { timestamp: "—", message: `${teamName} assigned` },
-      { timestamp: "—", message: "Response queued" },
-    ],
   };
 }
 
@@ -173,9 +144,7 @@ function WorkspaceSectionTitle({
       <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-blue-600/85 text-xs font-semibold text-white">
         {marker}
       </span>
-      <h3 className="text-sm font-semibold tracking-tight text-[#07111c]">
-        {title}
-      </h3>
+      <h3 className="text-sm font-semibold tracking-tight text-[#07111c]">{title}</h3>
     </div>
   );
 }
@@ -184,25 +153,16 @@ export function ActiveIncidentWorkspace({
   incidentPackage,
   commandState,
   timeline,
-  activeLocationIds = [],
-  transcriptLine = null,
   onApprove,
-  onApplySentinelRecommendation,
 }: ActiveIncidentWorkspaceProps) {
   const { incident } = incidentPackage;
   const location = getLocationRecord(incident.locationId);
-  const copy =
-    WORKSPACE_COPY[incident.id] ?? getFallbackWorkspaceCopy(incidentPackage);
+  const copy = WORKSPACE_COPY[incident.id] ?? getFallbackWorkspaceCopy(incidentPackage);
   const teamName = location?.defaultTeams[0] ?? copy.teamName;
   const primaryAction = incident.recommendedActions[0];
   const secondaryActions = incident.recommendedActions.slice(1, 3);
   const approvedActionCount = incident.approvedActionIds.length;
-  const dispatchApproved = incident.approvedActionIds.includes(
-    `${incident.id}-action-0`,
-  );
-  const poolTimeline = copy.timelineSummary.map(
-    (entry) => `${entry.timestamp} — ${entry.message}`,
-  );
+  const dispatchApproved = incident.approvedActionIds.includes(`${incident.id}-action-0`);
 
   return (
     <section
@@ -228,14 +188,9 @@ export function ActiveIncidentWorkspace({
               >
                 {incident.title}
               </h3>
-              <SentinelInline
-                commandState={commandState}
-                onApplyRecommendation={onApplySentinelRecommendation}
-              />
               <p className="mt-2 text-sm text-slate-600">
-                {location?.name ?? incident.locationLabel} •{" "}
-                {location ? formatZoneLayer(location.zoneLayer) : "Operations"} •{" "}
-                {teamName}
+                {location?.name ?? incident.locationLabel} |{" "}
+                {location ? formatZoneLayer(location.zoneLayer) : "Operations"} | {teamName}
               </p>
             </div>
 
@@ -296,7 +251,7 @@ export function ActiveIncidentWorkspace({
           </div>
         </article>
 
-        <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-3">
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1.5fr_1fr]">
           <VenueContextCard selectedLocationId={incident.locationId} />
 
           <div className="flex flex-col gap-3">
@@ -328,7 +283,7 @@ export function ActiveIncidentWorkspace({
               </div>
             </article>
 
-            <article className="ops-subpanel p-4 flex-1">
+            <article className="ops-subpanel flex-1 p-4">
               <WorkspaceSectionTitle marker="B" title="Team assignment" />
               <div className="flex items-center gap-3">
                 <div className="flex h-11 w-11 items-center justify-center rounded-full bg-blue-500/10 text-lg font-semibold text-blue-700">
@@ -342,9 +297,7 @@ export function ActiveIncidentWorkspace({
                   <p className="text-sm font-semibold text-[#07111c]">{teamName}</p>
                   <p className="mt-0.5 text-xs text-slate-600">{copy.teamLabel}</p>
                 </div>
-                <div className="text-right text-xs text-slate-600">
-                  {copy.teamStatus}
-                </div>
+                <div className="text-right text-xs text-slate-600">{copy.teamStatus}</div>
               </div>
               <button
                 type="button"
@@ -374,8 +327,10 @@ export function ActiveIncidentWorkspace({
 
         <WorkflowCues incidentPackage={incidentPackage} />
 
-        <div className="flex items-center justify-between text-xs text-slate-500 px-1 pt-1">
-          <p data-testid="evidence-drawer-pointer">Open drawer → Evidence, Staff Update, Incident log, Report, Source log.</p>
+        <div className="flex items-center justify-between px-1 pt-1 text-xs text-slate-500">
+          <p data-testid="evidence-drawer-pointer">
+            Open drawer: Evidence, Staff Update, Incident log, Report, Source log.
+          </p>
         </div>
       </div>
     </section>

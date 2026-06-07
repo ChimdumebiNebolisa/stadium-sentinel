@@ -20,7 +20,7 @@ function buildFallbackExplanation(pkg: IncidentPackage): SentinelExplanation {
     whyEvidence:
       evidence[0]?.excerpt ??
       incident.rawText ??
-      "Based on simulated intake from demo sources.",
+      "Based on the current incident file.",
     nextAction:
       incident.recommendedActions[0] ??
       "Review the incident package and confirm the next dispatch step.",

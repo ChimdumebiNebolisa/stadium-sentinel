@@ -25,7 +25,11 @@ const capabilityIcons = {
 } as const;
 
 function StatusPill({ status }: { status: "DISPATCHED" | "PENDING" | "RESOLVED" }) {
-  return <span className={`landing-status-pill landing-status-${status.toLowerCase()}`}>{status}</span>;
+  return (
+    <span className={`landing-status-pill landing-status-${status.toLowerCase()}`}>
+      {status}
+    </span>
+  );
 }
 
 export function DispatchQueueSection() {
@@ -33,9 +37,7 @@ export function DispatchQueueSection() {
     <section className="landing-section landing-dispatch-section">
       <div className="landing-section-heading">
         <h2>Active dispatch queue</h2>
-        <p>
-          Monitor simulated incidents across demo sources in a single pane of glass.
-        </p>
+        <p>Monitor current incidents in one focused operations command center.</p>
       </div>
 
       <div className="landing-sticky landing-sticky-amber landing-sticky-filter">
@@ -191,7 +193,7 @@ export function FinalCtaSection() {
             data-testid="final-cta-intake-demo"
           >
             <PlayIcon />
-            Run intake demo
+            Open operations intake
           </Link>
           <Link
             href="/command"
@@ -217,7 +219,7 @@ export function LandingFooter() {
           <p className="landing-footer-brand">Stadium Sentinel</p>
           <p className="landing-footer-copy">&copy; 2026 Stadium Sentinel</p>
           <p className="landing-footer-disclaimer">
-            Demo simulation only — mock source connections, not live CRM integrations.
+            Command center preview for soccer-stadium incident operations.
           </p>
         </div>
         <div className="landing-footer-links">

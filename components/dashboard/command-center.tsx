@@ -11,6 +11,11 @@ import { IncidentList } from "@/components/dashboard/incident-list";
 import { IntakeContextBar } from "@/components/dashboard/intake-context-bar";
 import { PostEventReportPanel } from "@/components/dashboard/post-event-report-panel";
 import { ReportInput } from "@/components/dashboard/report-input";
+import {
+  SentinelInline,
+  type SentinelActionTrace,
+  type SentinelUiState,
+} from "@/components/dashboard/sentinel-inline";
 import { SourceLogPanel } from "@/components/dashboard/source-log-panel";
 import { StaffUpdatePanel } from "@/components/dashboard/staff-update-panel";
 import { TimelinePanel } from "@/components/dashboard/timeline-panel";
@@ -61,13 +66,16 @@ import {
 } from "@/lib/intake-demo";
 import { fetchIngestBootstrap } from "@/lib/ingest-bootstrap-client";
 import { fetchIngestPull } from "@/lib/ingest-pull-client";
-import { isElasticPullEnabled, isRealDemoFlowEnabled } from "@/lib/feature-flags";
+import {
+  isElasticPullEnabled,
+  isRealDemoFlowEnabled,
+  isSentinelVoiceEnabled,
+} from "@/lib/feature-flags";
 import {
   fetchManualIngestionResult,
   planManualReportIngestion,
 } from "@/lib/manual-report-ingestion";
 import { writeApprovedTimelineEntry } from "@/lib/timeline-write-client";
-import type { SentinelRecommendedAction } from "@/lib/agent/sentinel-schema";
 import { buildPostEventReport } from "@/lib/report";
 import { buildResponseTimeline } from "@/lib/response-timeline";
 import type { NormalizedIngestionResult } from "@/lib/source-mode";
@@ -79,19 +87,38 @@ import {
   loadSourceAuditEvents,
   type SourceAuditEvent,
 } from "@/lib/source-audit";
+import { askSentinel } from "@/lib/sentinel-agent-client";
+import {
+  buildDefaultSentinelBrief,
+  buildSentinelActionFailureMessage,
+  buildSentinelReportDraft,
+  interpretSentinelCommand,
+  type CommandState,
+  type SentinelCommandProposal,
+} from "@/lib/sentinel-command-agent";
+import {
+  createSpeechRecognitionSession,
+  type SpeechRecognitionStatus,
+} from "@/lib/sentinel-voice";
+import { SENTINEL_MOCK_VOICE_QUESTION } from "@/lib/sentinel-voice-shell";
 import { getActiveLocationIdsFromPackages } from "@/lib/venue-schematic";
-import type { CommandState } from "@/lib/sentinel-command-agent";
 import type {
+  EvidenceResult,
   IncidentPackage,
   ReportSummary,
   TimelineEntry,
 } from "@/lib/types";
 
 const realDemoFlowEnabled = isRealDemoFlowEnabled();
+const sentinelVoiceEnabled = isSentinelVoiceEnabled();
 const initialCommandState = realDemoFlowEnabled
   ? buildEmptyCommandState()
   : buildDemoState();
 type WorkspaceView = "evidence" | "staff" | "timeline" | "report" | "source";
+type ApprovalResult = {
+  result: string;
+  writebackStatus: string | null;
+};
 
 function resolveTranscriptTitle(
   incidentId: string,
@@ -164,6 +191,23 @@ function updateIncidentPackages(
   });
 }
 
+function buildCommandStripSummary(options: {
+  operationsConnected: boolean;
+  incidentCount: number;
+  topIncidentTitle: string | null;
+  pullStatus: string | null;
+}): string {
+  if (!options.operationsConnected) {
+    return "Connect stadium operations data and review current incident reports.";
+  }
+
+  if (options.incidentCount === 0) {
+    return "Elastic operations data connected. Pull latest reports to load incidents.";
+  }
+
+  return `Elastic operations data connected. ${options.incidentCount} incidents pulled. Top priority: ${options.topIncidentTitle ?? "Operations review"}.`;
+}
+
 export function CommandCenter() {
   const [report, setReport] = useState(() => initialCommandState.report);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -210,11 +254,51 @@ export function CommandCenter() {
   const [pullLoading, setPullLoading] = useState(false);
   const [ingestionRefreshKey, setIngestionRefreshKey] = useState(0);
   const pullInFlightRef = useRef(false);
+  const [sentinelOpen, setSentinelOpen] = useState(false);
+  const [sentinelQuestion, setSentinelQuestion] = useState("");
+  const [sentinelAnswer, setSentinelAnswer] = useState<string | null>(null);
+  const [sentinelEvidence, setSentinelEvidence] = useState<EvidenceResult[]>([]);
+  const [sentinelStatusMessage, setSentinelStatusMessage] = useState<string | null>(
+    null,
+  );
+  const [sentinelUiState, setSentinelUiState] = useState<SentinelUiState>("idle");
+  const [sentinelActionTrace, setSentinelActionTrace] =
+    useState<SentinelActionTrace | null>(null);
+  const [sentinelPendingAction, setSentinelPendingAction] =
+    useState<SentinelCommandProposal | null>(null);
+  const [sentinelVoiceStatus, setSentinelVoiceStatus] =
+    useState<SpeechRecognitionStatus>("ready");
+  const voiceSessionRef = useRef<ReturnType<typeof createSpeechRecognitionSession> | null>(
+    null,
+  );
+  const trackedSentinelIncidentId = useRef<string | null>(null);
 
   useEffect(() => {
     setSourcesConnected(readSourcesConnected());
     setOperationsConnected(readOperationsConnected());
   }, []);
+
+  useEffect(() => {
+    const incidentId = selectedIncidentId || null;
+    if (trackedSentinelIncidentId.current === null) {
+      trackedSentinelIncidentId.current = incidentId;
+      return;
+    }
+
+    if (trackedSentinelIncidentId.current === incidentId) {
+      return;
+    }
+
+    trackedSentinelIncidentId.current = incidentId;
+    setSentinelOpen(false);
+    setSentinelQuestion("");
+    setSentinelAnswer(null);
+    setSentinelEvidence([]);
+    setSentinelStatusMessage(null);
+    setSentinelUiState("idle");
+    setSentinelActionTrace(null);
+    setSentinelPendingAction(null);
+  }, [selectedIncidentId]);
 
   const automaticIngestGate = useMemo(
     () =>
@@ -336,7 +420,7 @@ export function CommandCenter() {
     });
 
     if (plan.type === "needs_confirmation") {
-      return;
+      return { status: "needs_confirmation" as const };
     }
 
     setIsSubmitting(true);
@@ -344,22 +428,29 @@ export function CommandCenter() {
     try {
       const result = await fetchManualIngestionResult(report);
       applyNormalizedIngestion(result);
+      return { status: "processed" as const };
     } finally {
       setIsSubmitting(false);
     }
   }
 
-  function handleApprove(
+  async function handleApprove(
     incidentId: string,
     action: string,
     actionIndex: number,
     options?: { sentinelRecommendationId?: string },
-  ) {
+  ): Promise<ApprovalResult> {
     const nextIncidentPackages = updateIncidentPackages(
       incidentPackages,
       incidentId,
       actionIndex,
     );
+    if (nextIncidentPackages === incidentPackages) {
+      return {
+        result: "Action already recorded for this incident.",
+        writebackStatus: "No additional write-back needed.",
+      };
+    }
     const entryId = `${incidentId}-approved-${actionIndex}`;
     const nextTimeline = timeline.some((entry) => entry.id === entryId)
       ? timeline
@@ -383,47 +474,45 @@ export function CommandCenter() {
       ({ incident }) => incident.id === incidentId,
     );
     if (!approvedPackage) {
-      return;
+      return {
+        result: "Action target is no longer available.",
+        writebackStatus: "Command file not updated.",
+      };
     }
 
-    void writeApprovedTimelineEntry({
-      incidentId,
-      actionIndex,
-      actionLabel: action,
-      actor: "Operations Lead",
-      sentinelRecommendationId: options?.sentinelRecommendationId,
-      incidentPackage: approvedPackage,
-    })
-      .then((result) => {
-        recordSourceAudit(
-          result.elasticWritten ? "elastic" : "demo",
-          result.sourceAuditSummary,
-          result.elasticWritten ? "success" : "fallback",
-          1,
-        );
-      })
-      .catch(() => {
-        recordSourceAudit(
-          "demo",
-          `Local approval recorded for ${incidentId}; Elastic write-back unavailable.`,
-          "fallback",
-          1,
-        );
+    try {
+      const result = await writeApprovedTimelineEntry({
+        incidentId,
+        actionIndex,
+        actionLabel: action,
+        actor: "Operations Lead",
+        sentinelRecommendationId: options?.sentinelRecommendationId,
+        incidentPackage: approvedPackage,
       });
-  }
-
-  function handleApplySentinelRecommendation(recommendation: SentinelRecommendedAction) {
-    const selected = selectedIncidentPackage;
-    if (!selected || recommendation.actionIndex === undefined) {
-      return;
+      recordSourceAudit(
+        result.elasticWritten ? "elastic" : "demo",
+        result.sourceAuditSummary,
+        result.elasticWritten ? "success" : "fallback",
+        1,
+      );
+      return {
+        result: `${action} recorded for ${approvedPackage.incident.title}.`,
+        writebackStatus: result.elasticWritten
+          ? "Elastic write-back complete."
+          : "Recorded in the local command file.",
+      };
+    } catch {
+      recordSourceAudit(
+        "demo",
+        `Local approval recorded for ${incidentId}; Elastic write-back unavailable.`,
+        "fallback",
+        1,
+      );
+      return {
+        result: `${action} recorded for ${approvedPackage.incident.title}.`,
+        writebackStatus: "Recorded locally while external write-back was unavailable.",
+      };
     }
-
-    const action =
-      selected.incident.recommendedActions[recommendation.actionIndex] ??
-      recommendation.label;
-    handleApprove(selected.incident.id, action, recommendation.actionIndex, {
-      sentinelRecommendationId: recommendation.label,
-    });
   }
 
   async function handleConnectOperationsData() {
@@ -446,9 +535,7 @@ export function CommandCenter() {
       }
 
       if (result.outcome === "unconfigured") {
-        setConnectStatus(
-          "Elastic is not configured. Local fallback remains available.",
-        );
+        setConnectStatus("Operations data is unavailable right now.");
         return;
       }
 
@@ -456,9 +543,7 @@ export function CommandCenter() {
         result.errorSummary ?? "Could not connect stadium operations data.",
       );
     } catch {
-      setConnectStatus(
-        "Could not connect stadium operations data. Local fallback remains available.",
-      );
+      setConnectStatus("Could not connect stadium operations data.");
     } finally {
       setConnectLoading(false);
     }
@@ -512,7 +597,7 @@ export function CommandCenter() {
             setSourceMode("elastic");
             setLastIngestionSummary(elasticPull.ingestionSummary);
             setPullStatus(
-              `Seeded operations data pulled from Elastic (${sortedPackages.length} incidents).`,
+              `Elastic operations data refreshed (${sortedPackages.length} incidents).`,
             );
             recordSourceAudit(
               "elastic",
@@ -554,7 +639,7 @@ export function CommandCenter() {
       );
       setTimeline(nextTimeline);
       setReportSummary(buildPostEventReport(sortedPackages, nextTimeline));
-      setPullStatus("Latest demo reports pulled.");
+      setPullStatus(`Current incident reports loaded (${sortedPackages.length} incidents).`);
       recordSourceAudit(
         "demo",
         `Demo pull loaded ${sortedPackages.length} incident package(s).`,
@@ -685,6 +770,12 @@ export function CommandCenter() {
     selectedIncidentPackage?.incident.id,
     latestEntry,
   );
+  const commandStripSummary = buildCommandStripSummary({
+    operationsConnected: realDemoFlowEnabled ? operationsConnected : sourcesConnected,
+    incidentCount: incidentPackages.length,
+    topIncidentTitle: incidentPackages[0]?.incident.title ?? null,
+    pullStatus,
+  });
 
   const demoReportDraft = buildDemoReportDraft(
     incidentPackages,
@@ -751,6 +842,334 @@ export function CommandCenter() {
     ],
   );
 
+  function getVoiceSession() {
+    if (typeof window === "undefined") {
+      return {
+        isSupported: false,
+        start: () => {},
+        stop: () => {},
+      };
+    }
+
+    if (!voiceSessionRef.current) {
+      voiceSessionRef.current = createSpeechRecognitionSession({
+        onTranscript: (text) => {
+          setSentinelQuestion(text);
+          setSentinelUiState("transcribing");
+          setSentinelStatusMessage("Transcript ready. Review and ask.");
+        },
+        onStatusChange: (status, message) => {
+          setSentinelVoiceStatus(status);
+          if (status === "listening") {
+            setSentinelUiState("listening");
+          }
+          setSentinelStatusMessage(message);
+        },
+      });
+    }
+
+    return voiceSessionRef.current;
+  }
+
+  function openSentinel() {
+    if (!selectedIncidentPackage) {
+      return;
+    }
+
+    setSentinelOpen(true);
+    if (!sentinelVoiceEnabled) {
+      setSentinelUiState("idle");
+      setSentinelStatusMessage(buildDefaultSentinelBrief(commandState));
+      return;
+    }
+
+    const session = getVoiceSession();
+    if (!session.isSupported) {
+      setSentinelUiState("action_failed");
+      setSentinelStatusMessage("Voice is unavailable in this browser. Type instead.");
+      return;
+    }
+
+    setSentinelUiState("listening");
+    setSentinelStatusMessage("Listening for an incident command.");
+    session.start();
+  }
+
+  function closeSentinel() {
+    voiceSessionRef.current?.stop();
+    setSentinelOpen(false);
+    setSentinelUiState("idle");
+    setSentinelPendingAction(null);
+  }
+
+  function toggleSentinel() {
+    if (sentinelOpen) {
+      closeSentinel();
+      return;
+    }
+
+    openSentinel();
+  }
+
+  function startSentinelVoice() {
+    setSentinelOpen(true);
+    const session = getVoiceSession();
+    if (!session.isSupported) {
+      setSentinelUiState("action_failed");
+      setSentinelStatusMessage("Voice is unavailable in this browser. Type instead.");
+      return;
+    }
+
+    setSentinelUiState("listening");
+    setSentinelStatusMessage("Listening for an incident command.");
+    session.start();
+  }
+
+  function stopSentinelVoice() {
+    voiceSessionRef.current?.stop();
+  }
+
+  function buildActionTrace(
+    interpretedCommand: string,
+    proposal: SentinelCommandProposal,
+    result: string,
+    writebackStatus?: string | null,
+  ): SentinelActionTrace {
+    return {
+      interpretedCommand,
+      selectedAction: proposal.label,
+      target: proposal.targetLabel,
+      result,
+      writebackStatus: writebackStatus ?? null,
+    };
+  }
+
+  async function executeSentinelAction(
+    proposal: SentinelCommandProposal,
+    interpretedCommand: string,
+  ) {
+    setSentinelPendingAction(null);
+    setSentinelUiState("action_executing");
+    setSentinelStatusMessage("Applying Sentinel action.");
+
+    try {
+      switch (proposal.type) {
+        case "open_evidence":
+          openWorkspace("evidence");
+          setSentinelActionTrace(
+            buildActionTrace(
+              interpretedCommand,
+              proposal,
+              "Evidence opened for the selected incident.",
+            ),
+          );
+          setSentinelUiState("action_complete");
+          return;
+        case "open_source_log":
+          openWorkspace("source");
+          setSentinelActionTrace(
+            buildActionTrace(
+              interpretedCommand,
+              proposal,
+              "Source log opened in the workspace drawer.",
+            ),
+          );
+          setSentinelUiState("action_complete");
+          return;
+        case "open_report":
+          openWorkspace("report");
+          setSentinelActionTrace(
+            buildActionTrace(
+              interpretedCommand,
+              proposal,
+              "Report opened in the workspace drawer.",
+            ),
+          );
+          setSentinelUiState("action_complete");
+          return;
+        case "draft_report": {
+          const draft =
+            proposal.draftText ?? buildSentinelReportDraft(commandState, sentinelAnswer);
+          setReport(draft);
+          openWorkspace("report");
+          setSentinelActionTrace(
+            buildActionTrace(
+              interpretedCommand,
+              proposal,
+              "Report draft added to the visible report field.",
+            ),
+          );
+          setSentinelUiState("action_complete");
+          return;
+        }
+        case "process_report": {
+          const draft =
+            proposal.draftText ?? buildSentinelReportDraft(commandState, sentinelAnswer);
+          setReport(draft);
+          openWorkspace("report");
+          const result = await handleSubmit({ confirmedReplace: true });
+          const resultText =
+            result?.status === "processed"
+              ? "Report processed and the command board refreshed."
+              : "Report is ready for review in the visible report field.";
+          setSentinelActionTrace(buildActionTrace(interpretedCommand, proposal, resultText));
+          setSentinelUiState("action_complete");
+          return;
+        }
+        case "dispatch_team":
+        case "advance_checklist": {
+          const selected = selectedIncidentPackage;
+          if (!selected || proposal.actionIndex === undefined) {
+            throw new Error("No action target is selected.");
+          }
+
+          const action =
+            selected.incident.recommendedActions[proposal.actionIndex] ?? proposal.label;
+          const approval = await handleApprove(
+            selected.incident.id,
+            action,
+            proposal.actionIndex,
+          );
+          openWorkspace("timeline");
+          setSentinelActionTrace(
+            buildActionTrace(
+              interpretedCommand,
+              proposal,
+              approval.result,
+              approval.writebackStatus,
+            ),
+          );
+          setSentinelUiState("action_complete");
+          return;
+        }
+        case "select_top_incident": {
+          const topIncident = incidentPackages[0];
+          if (!topIncident) {
+            throw new Error("No incidents are available.");
+          }
+          setSelectedIncidentId(topIncident.incident.id);
+          setSentinelActionTrace(
+            buildActionTrace(
+              interpretedCommand,
+              proposal,
+              `${topIncident.incident.title} is now highlighted in the queue.`,
+            ),
+          );
+          setSentinelUiState("action_complete");
+          return;
+        }
+        case "recommend_next_action": {
+          const selected = selectedIncidentPackage;
+          const actionLabel =
+            selected && proposal.actionIndex !== undefined
+              ? selected.incident.recommendedActions[proposal.actionIndex] ?? proposal.label
+              : proposal.label;
+          setSentinelActionTrace(
+            buildActionTrace(
+              interpretedCommand,
+              proposal,
+              `Next action: ${actionLabel}.`,
+            ),
+          );
+          setSentinelUiState("action_complete");
+          return;
+        }
+        default:
+          throw new Error("Sentinel action is not supported.");
+      }
+    } catch {
+      setSentinelActionTrace(
+        buildActionTrace(
+          interpretedCommand,
+          proposal,
+          buildSentinelActionFailureMessage(commandState),
+        ),
+      );
+      setSentinelUiState("action_failed");
+    }
+  }
+
+  async function submitSentinelQuestion(questionOverride?: string) {
+    const selected = selectedIncidentPackage;
+    const interpretedCommand = (questionOverride ?? sentinelQuestion).trim();
+    if (!selected || !interpretedCommand) {
+      return;
+    }
+
+    setSentinelQuestion(interpretedCommand);
+    setSentinelOpen(true);
+    setSentinelPendingAction(null);
+    setSentinelActionTrace(null);
+    setSentinelUiState("thinking");
+    setSentinelStatusMessage("Sentinel is reviewing the current command state.");
+
+    try {
+      const response = await askSentinel({
+        question: interpretedCommand,
+        incidentId: selected.incident.id,
+        context: {
+          incidentPackage: selected,
+          timeline: commandState.timeline.filter(
+            (entry) => entry.incidentId === selected.incident.id,
+          ),
+          queueTitles: commandState.incidentPackages
+            .slice(0, 8)
+            .map(({ incident }) => incident.title),
+          sourceMode: commandState.sourceMode,
+          pullStatus: commandState.pullStatus,
+        },
+      });
+
+      setSentinelAnswer(response.answer);
+      setSentinelEvidence(response.evidence);
+
+      const proposal = interpretSentinelCommand(
+        interpretedCommand,
+        commandState,
+        response.answer,
+      );
+      if (proposal) {
+        if (proposal.requiresConfirmation) {
+          setSentinelPendingAction(proposal);
+          setSentinelActionTrace(
+            buildActionTrace(
+              interpretedCommand,
+              proposal,
+              "Ready to apply in the current workspace.",
+            ),
+          );
+          setSentinelUiState("action_proposed");
+          setSentinelStatusMessage("Review the proposed action and apply when ready.");
+          return;
+        }
+
+        await executeSentinelAction(proposal, interpretedCommand);
+        return;
+      }
+
+      setSentinelUiState("idle");
+      setSentinelStatusMessage(
+        response.meta.geminiMode === "live"
+          ? "Live response ready."
+          : "Review response ready.",
+      );
+    } catch {
+      const fallback = buildDefaultSentinelBrief(commandState);
+      setSentinelAnswer(fallback);
+      setSentinelEvidence(selected.evidence);
+      setSentinelUiState("action_failed");
+      setSentinelStatusMessage("Sentinel returned a review response. Type or retry the command.");
+    }
+  }
+
+  async function applyPendingSentinelAction() {
+    if (!sentinelPendingAction) {
+      return;
+    }
+
+    await executeSentinelAction(sentinelPendingAction, sentinelQuestion);
+  }
+
   function openWorkspace(view: WorkspaceView) {
     setActiveWorkspace(view);
   }
@@ -776,22 +1195,37 @@ export function CommandCenter() {
           onPullReports={handlePullLatestReports}
           pullStatus={pullStatus}
           batchCount={incidentPackages.length}
-          topIncidentTitle={incidentPackages[0]?.incident.title ?? null}
-          changeSummary={changeSummary}
-          onExtractTranscript={handleExtractTranscript}
-          transcriptExtractStatus={transcriptExtractStatus}
-          latestTranscriptRecord={latestTranscriptRecord}
-          ingestionFallbackMessage={ingestionFallbackMessage}
-          automaticIngestEnabled={automaticIngestGate.enabled}
-          automaticIngestReason={automaticIngestGate.reason}
-          onAutomaticIngest={handleAutomaticIngest}
-          automaticIngestStatus={automaticIngestStatus}
           operationsConnected={operationsConnected}
           onConnectOperations={() => void handleConnectOperationsData()}
           connectStatus={connectStatus}
           connectLoading={connectLoading}
           pullLoading={pullLoading}
-          ingestionRefreshKey={ingestionRefreshKey}
+          sourceSummary={commandStripSummary}
+          onExtractTranscript={handleExtractTranscript}
+          transcriptExtractStatus={transcriptExtractStatus}
+          latestTranscriptRecord={latestTranscriptRecord}
+          sentinelControl={
+            <SentinelInline
+              available={Boolean(selectedIncidentPackage)}
+              open={sentinelOpen}
+              voiceEnabled={sentinelVoiceEnabled}
+              voiceUnsupported={sentinelVoiceStatus === "unsupported"}
+              state={sentinelUiState}
+              statusMessage={sentinelStatusMessage}
+              questionInput={sentinelQuestion}
+              answer={sentinelAnswer}
+              evidence={sentinelEvidence}
+              actionTrace={sentinelActionTrace}
+              canApplyAction={Boolean(sentinelPendingAction)}
+              onToggle={toggleSentinel}
+              onQuestionChange={setSentinelQuestion}
+              onSubmit={() => void submitSentinelQuestion()}
+              onStartVoice={startSentinelVoice}
+              onStopVoice={stopSentinelVoice}
+              onMockVoice={() => setSentinelQuestion(SENTINEL_MOCK_VOICE_QUESTION)}
+              onApplyAction={() => void applyPendingSentinelAction()}
+            />
+          }
         />
 
         <section className="board-grid">
@@ -820,8 +1254,9 @@ export function CommandCenter() {
                     selectedIncidentPackage.incident.id
                   ] ?? null
                 }
-                onApprove={handleApprove}
-                onApplySentinelRecommendation={handleApplySentinelRecommendation}
+                onApprove={(incidentId, action, actionIndex) => {
+                  void handleApprove(incidentId, action, actionIndex);
+                }}
               />
             ) : (
               <section className="ops-panel flex h-full min-h-0 flex-col overflow-hidden">
@@ -833,7 +1268,7 @@ export function CommandCenter() {
                 <p className="mt-2 max-w-[60ch] text-sm leading-6 text-slate-600">
                   {realDemoFlowEnabled
                     ? getRealDemoWorkspaceEmptyBody(operationsConnected)
-                    : "Use the demo scenario text to restore the dispatch queue, active incident workspace, and utility drawer workflow."}
+                    : "Use the current report to restore the dispatch queue, active incident workspace, and utility drawer workflow."}
                 </p>
               </section>
             )}

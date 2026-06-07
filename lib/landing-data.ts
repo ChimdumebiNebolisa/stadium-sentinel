@@ -132,8 +132,8 @@ export const SWIMLANE_TIME_MARKS = ["13:30", "13:45", "14:00", "NOW"] as const;
 export const CAPABILITY_CARDS = [
   {
     icon: "mic" as const,
-    title: "Mock Intake",
-    body: "Simulated staff reports and radio notes for demo intake.",
+    title: "Operations intake",
+    body: "Connect stadium operations data and review current incident reports.",
   },
   {
     icon: "folder" as const,

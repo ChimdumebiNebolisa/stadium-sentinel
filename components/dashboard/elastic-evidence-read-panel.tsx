@@ -49,8 +49,7 @@ export function ElasticEvidenceReadPanel({
             evidence: incidentPackage.evidence,
             retrievalMode: "local",
             elasticConfigured: false,
-            fallbackMessage:
-              "Elastic evidence read unavailable. Showing on-file incident evidence.",
+            fallbackMessage: "On-file evidence is shown below for review.",
           });
         }
       })
@@ -67,43 +66,42 @@ export function ElasticEvidenceReadPanel({
 
   const modeLabel =
     payload?.retrievalMode === "elastic"
-      ? "Elastic search"
+      ? "Elastic context"
       : payload?.elasticConfigured
-        ? "Local fallback"
-        : "Local knowledge";
+        ? "Command context"
+        : "On-file context";
 
   return (
-    <div
-      className="mt-4 border-t border-slate-200 pt-4"
+    <details
+      className="mt-5 rounded-md border border-slate-200 bg-slate-50 px-3 py-2"
       data-testid="elastic-evidence-read-panel"
     >
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="ops-label">Evidence read path</p>
-        <span
-          className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[0.7rem] font-medium text-slate-700"
-          data-testid="evidence-read-mode"
-        >
-          {loading ? "Checking…" : modeLabel}
-        </span>
+      <summary className="cursor-pointer text-xs font-semibold uppercase tracking-[0.03em] text-slate-700">
+        Source trace
+      </summary>
+      <div className="mt-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs text-slate-500">Evidence support trace</p>
+          <span
+            className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[0.7rem] font-medium text-slate-700"
+            data-testid="evidence-read-mode"
+          >
+            {loading ? "Checking..." : modeLabel}
+          </span>
+        </div>
+        {payload?.fallbackMessage ? (
+          <p className="mt-2 text-xs leading-5 text-slate-500">{payload.fallbackMessage}</p>
+        ) : null}
+        {!loading && payload && payload.evidence.length > 0 ? (
+          <ul className="mt-2 space-y-1.5 text-sm text-slate-600">
+            {payload.evidence.slice(0, 2).map((item) => (
+              <li key={item.sourceId}>
+                <span className="font-medium text-slate-800">{item.title}</span>: {item.excerpt}
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </div>
-      <p className="mt-1 text-xs leading-5 text-slate-500">
-        Optional Elastic read path. Page load and incident packages do not depend
-        on Elastic credentials.
-      </p>
-      {payload?.fallbackMessage ? (
-        <p className="mt-2 text-xs leading-5 text-amber-900">{payload.fallbackMessage}</p>
-      ) : null}
-      {!loading && payload && payload.evidence.length > 0 ? (
-        <ul className="mt-2 space-y-1.5 text-sm text-slate-600">
-          {payload.evidence.slice(0, 2).map((item) => (
-            <li key={item.sourceId}>
-              <span className="font-medium text-slate-800">{item.title}</span>
-              {" · "}
-              {item.excerpt}
-            </li>
-          ))}
-        </ul>
-      ) : null}
-    </div>
+    </details>
   );
 }

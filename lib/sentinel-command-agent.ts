@@ -36,6 +36,26 @@ export type CommandState = {
   sourceAuditExcerpts: string[];
 };
 
+export type SentinelCommandActionType =
+  | "open_evidence"
+  | "open_source_log"
+  | "open_report"
+  | "draft_report"
+  | "process_report"
+  | "dispatch_team"
+  | "advance_checklist"
+  | "recommend_next_action"
+  | "select_top_incident";
+
+export type SentinelCommandProposal = {
+  type: SentinelCommandActionType;
+  label: string;
+  targetLabel: string;
+  requiresConfirmation: boolean;
+  actionIndex?: number;
+  draftText?: string;
+};
+
 export type SentinelContext = {
   explanation: ReturnType<typeof buildSentinelExplanation> | null;
   dispatchMessage: string | null;
@@ -52,6 +72,16 @@ function normalizeQuestion(question: string): string {
 
 function formatLabel(value: string): string {
   return value.replace(/-/g, " ");
+}
+
+function formatIncidentSummaryLine(state: CommandState): string {
+  const selected = state.selectedIncidentPackage;
+  if (!selected) {
+    return "No incident is currently selected.";
+  }
+
+  const { incident } = selected;
+  return `${incident.title} at ${incident.locationLabel} with ${incident.priority} priority.`;
 }
 
 function formatTitleList(titles: string[]): string {
@@ -116,7 +146,7 @@ export function buildSuggestedSentinelQuestions(state: CommandState): string[] {
   const questions: string[] = [
     "What should I do first?",
     "Why this priority?",
-    "What evidence supports this?",
+    "Show me evidence",
   ];
 
   if (state.sourceAuditExcerpts.length > 0) {
@@ -138,6 +168,41 @@ export function buildSuggestedSentinelQuestions(state: CommandState): string[] {
   return questions.slice(0, 5);
 }
 
+export function buildSentinelReportDraft(
+  state: CommandState,
+  answer?: string | null,
+): string {
+  const selected = state.selectedIncidentPackage;
+  if (!selected) {
+    return state.demoReportDraft.markdown;
+  }
+
+  const { incident, staffUpdate, evidence } = selected;
+  const evidenceLine = evidence
+    .slice(0, 2)
+    .map((item) => `${item.title}: ${item.excerpt}`)
+    .join(" ");
+  const latestLog =
+    state.timeline
+      .filter((entry) => entry.incidentId === incident.id)
+      .at(-1)?.message ?? "Incident received and under review.";
+  const answerLine = answer?.trim() ? `Sentinel summary: ${answer.trim()}` : null;
+
+  return [
+    `Operations report for ${incident.title}.`,
+    `${incident.priority} priority at ${incident.locationLabel}.`,
+    `Assigned team: ${incident.assignedRole}.`,
+    `Status: ${formatLabel(incident.status)}.`,
+    `Recommended actions: ${incident.recommendedActions.join("; ")}.`,
+    `Staff update: ${staffUpdate}.`,
+    `Latest incident log: ${latestLog}`,
+    evidenceLine ? `Evidence used: ${evidenceLine}` : null,
+    answerLine,
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+}
+
 type QuestionIntent =
   | "transcript-added"
   | "transcript-missing"
@@ -157,9 +222,72 @@ type QuestionIntent =
   | "summary"
   | "ask-staff"
   | "source-history"
+  | "open-evidence"
+  | "open-source-log"
+  | "open-report"
+  | "draft-report"
+  | "process-report"
+  | "dispatch-team"
+  | "advance-checklist"
+  | "select-top-incident"
   | "unknown";
 
 function classifyQuestion(normalized: string): QuestionIntent {
+  if (
+    normalized.includes("show me evidence") ||
+    normalized.includes("open evidence") ||
+    normalized.includes("why was this flagged")
+  ) {
+    return "open-evidence";
+  }
+  if (
+    normalized.includes("open source log") ||
+    normalized.includes("show source log") ||
+    normalized.includes("show me the source log")
+  ) {
+    return "open-source-log";
+  }
+  if (
+    normalized.includes("open report") ||
+    normalized.includes("show report")
+  ) {
+    return "open-report";
+  }
+  if (
+    normalized.includes("write a report") ||
+    normalized.includes("draft a report") ||
+    normalized.includes("draft report")
+  ) {
+    return "draft-report";
+  }
+  if (
+    normalized.includes("draft and process") ||
+    normalized.includes("process report") ||
+    normalized.includes("submit report")
+  ) {
+    return "process-report";
+  }
+  if (
+    normalized.includes("dispatch assigned team") ||
+    normalized.includes("dispatch team") ||
+    normalized.includes("send the team")
+  ) {
+    return "dispatch-team";
+  }
+  if (
+    normalized.includes("advance checklist") ||
+    normalized.includes("next checklist step") ||
+    normalized.includes("advance the checklist")
+  ) {
+    return "advance-checklist";
+  }
+  if (
+    normalized.includes("select highest priority") ||
+    normalized.includes("highlight highest priority") ||
+    normalized.includes("highest priority incident")
+  ) {
+    return "select-top-incident";
+  }
   if (
     normalized.includes("what did the radio log add") ||
     normalized.includes("radio log add") ||
@@ -385,7 +513,7 @@ function answerQueueFirst(state: CommandState): string {
     return "No incidents are loaded in the current queue.";
   }
 
-  return `${top.incident.title} needs action first — ${top.incident.priority} priority at ${top.incident.locationLabel}.`;
+  return `${top.incident.title} needs action first. ${top.incident.priority} priority at ${top.incident.locationLabel}.`;
 }
 
 function answerTimelineProgress(state: CommandState): string {
@@ -396,7 +524,7 @@ function answerTimelineProgress(state: CommandState): string {
 
   const activeStage = stages.find((stage) => stage.state === "active");
   if (activeStage) {
-    return `${activeStage.label} is the active stage — ${activeStage.statusText}.`;
+    return `${activeStage.label} is the active stage. ${activeStage.statusText}.`;
   }
 
   if (stages.every((stage) => stage.state === "done")) {
@@ -623,4 +751,121 @@ export function answerSentinelQuestion(
         answer: `${buildDefaultSentinelBrief(state)} Try a suggested question below.`,
       };
   }
+}
+
+export function interpretSentinelCommand(
+  question: string,
+  state: CommandState,
+  answer?: string | null,
+): SentinelCommandProposal | null {
+  const normalized = normalizeQuestion(question);
+  if (!normalized) {
+    return null;
+  }
+
+  const selected = state.selectedIncidentPackage;
+  const nextActionIndex = selected
+    ? selected.incident.recommendedActions.findIndex(
+        (_, index) =>
+          !selected.incident.approvedActionIds.includes(
+            `${selected.incident.id}-action-${index}`,
+          ),
+      )
+    : -1;
+  const nextAction =
+    selected && nextActionIndex >= 0
+      ? selected.incident.recommendedActions[nextActionIndex]
+      : null;
+
+  switch (classifyQuestion(normalized)) {
+    case "open-evidence":
+      return {
+        type: "open_evidence",
+        label: "Open Evidence",
+        targetLabel: selected?.incident.title ?? "Evidence",
+        requiresConfirmation: false,
+      };
+    case "open-source-log":
+      return {
+        type: "open_source_log",
+        label: "Open Source log",
+        targetLabel: "Source log",
+        requiresConfirmation: false,
+      };
+    case "open-report":
+      return {
+        type: "open_report",
+        label: "Open Report",
+        targetLabel: "Report",
+        requiresConfirmation: false,
+      };
+    case "draft-report":
+      return {
+        type: "draft_report",
+        label: "Draft a report",
+        targetLabel: selected?.incident.title ?? "Report",
+        requiresConfirmation: false,
+        draftText: buildSentinelReportDraft(state, answer),
+      };
+    case "process-report":
+      return {
+        type: "process_report",
+        label: "Process report",
+        targetLabel: "Report",
+        requiresConfirmation: true,
+        draftText: buildSentinelReportDraft(state, answer),
+      };
+    case "dispatch-team":
+      if (!selected || !nextAction) {
+        return null;
+      }
+      return {
+        type: "dispatch_team",
+        label: "Dispatch assigned team",
+        targetLabel: selected.incident.title,
+        requiresConfirmation: true,
+        actionIndex: nextActionIndex,
+      };
+    case "advance-checklist":
+      if (!selected || !nextAction) {
+        return null;
+      }
+      return {
+        type: "advance_checklist",
+        label: "Advance checklist step",
+        targetLabel: selected.incident.title,
+        requiresConfirmation: true,
+        actionIndex: nextActionIndex,
+      };
+    case "queue-first":
+    case "select-top-incident":
+      if (!state.incidentPackages[0]) {
+        return null;
+      }
+      return {
+        type: "select_top_incident",
+        label: "Select highest-priority incident",
+        targetLabel: state.incidentPackages[0].incident.title,
+        requiresConfirmation: false,
+      };
+    case "do-first":
+    case "why-first":
+    case "unresolved":
+      if (!selected || !nextAction) {
+        return null;
+      }
+      return {
+        type: "recommend_next_action",
+        label: "Recommend next action",
+        targetLabel: selected.incident.title,
+        requiresConfirmation: false,
+        actionIndex: nextActionIndex,
+      };
+    default:
+      return null;
+  }
+}
+
+export function buildSentinelActionFailureMessage(state: CommandState): string {
+  return `${formatIncidentSummaryLine(state)} Sentinel kept the command in review mode.`;
 }

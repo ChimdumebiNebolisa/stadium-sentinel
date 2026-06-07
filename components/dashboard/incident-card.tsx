@@ -9,19 +9,6 @@ type IncidentCardProps = {
   onSelect: () => void;
 };
 
-function getQueueTitle(incident: IncidentPackage["incident"]): string {
-  switch (incident.incidentType) {
-    case "accessibility-assist":
-      return "Section 112 assist";
-    case "facility-outage":
-      return "Elevator 4 down";
-    case "queue-congestion":
-      return "Gate B backed up";
-    default:
-      return incident.title;
-  }
-}
-
 export function IncidentCard({
   incidentPackage,
   sequenceNumber,
@@ -59,7 +46,7 @@ export function IncidentCard({
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">
             <h3 className="text-[1.05rem] font-semibold leading-[1.25] tracking-tight text-[#07111c]">
-              {getQueueTitle(incident)}
+              {incident.title}
             </h3>
             <PriorityBadge level={incident.priority} />
           </div>

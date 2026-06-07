@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+
 import type { CommandState } from "@/lib/sentinel-command-agent";
 import type { IncidentPackage, TimelineEntry } from "@/lib/types";
 
@@ -13,48 +14,91 @@ type TimelineRow = {
   incidents: IncidentPackage[];
 };
 
+type TimelineBlock = {
+  label: string;
+  state: "done" | "pending";
+};
+
+function simplifyIncidentLabel(title: string): string {
+  switch (title) {
+    case "Lost child report":
+      return "Lost child";
+    case "Section 112 assist":
+      return "Section 112";
+    case "Guest medical assist":
+      return "Medical assist";
+    case "Elevator 4 down":
+      return "Elevator 4";
+    case "Restroom out of order":
+      return "Restroom";
+    case "North concourse crowding":
+      return "North concourse";
+    case "Gate B backed up":
+      return "Gate B";
+    default:
+      return title;
+  }
+}
+
 function getIncidentStatusBlocks(
   incidentPackage: IncidentPackage,
-  timeline: TimelineEntry[]
-) {
+  timeline: TimelineEntry[],
+): TimelineBlock[] {
   const { incident } = incidentPackage;
-  const incidentTimeline = timeline.filter((e) => e.incidentId === incident.id);
-
-  // Basic heuristics for timeline stages based on data
-  const isReported = incidentTimeline.some((e) => e.type === "reported") || true;
-  const isAcknowledged = incidentTimeline.some((e) => e.type === "suggested");
-  const isAssigned = incident.assignedRole !== "Operations";
+  const incidentTimeline = timeline.filter((entry) => entry.incidentId === incident.id);
   const dispatchActionId = `${incident.id}-action-0`;
   const isDispatched = incident.approvedActionIds.includes(dispatchActionId);
   const isResolved =
     incident.recommendedActions.length > 0 &&
     incident.recommendedActions.every((_, index) =>
-      incident.approvedActionIds.includes(`${incident.id}-action-${index}`)
+      incident.approvedActionIds.includes(`${incident.id}-action-${index}`),
     );
+  const isAssigned =
+    incident.assignedRole !== "Operations" ||
+    incidentTimeline.some((entry) => entry.type === "suggested");
 
-  const blocks = [];
+  const blocks: TimelineBlock[] = [
+    {
+      label: simplifyIncidentLabel(incident.title || "Reported"),
+      state: "done",
+    },
+  ];
 
-  // Intake block
-  blocks.push({
-    label: incident.title || "Reported",
-    state: "done",
-  });
-
-  // Action / State block
   if (isResolved) {
     blocks.push({ label: "Resolved", state: "done" });
-  } else if (isDispatched) {
-    blocks.push({ label: "Dispatched", state: "done" });
-    blocks.push({ label: "Pending update", state: "pending" });
-  } else if (isAssigned || isAcknowledged) {
-    blocks.push({ label: "Assigned", state: "done" });
-    blocks.push({ label: "Dispatch pending", state: "pending" });
-  } else {
-    blocks.push({ label: "Acknowledged", state: "done" });
-    blocks.push({ label: "Assigning", state: "pending" });
+    return blocks;
   }
 
+  if (isDispatched) {
+    blocks.push({ label: "Dispatched", state: "done" });
+    blocks.push({ label: "Pending", state: "pending" });
+    return blocks;
+  }
+
+  if (isAssigned) {
+    blocks.push({ label: "Assigned", state: "done" });
+    blocks.push({ label: "Pending", state: "pending" });
+    return blocks;
+  }
+
+  blocks.push({ label: "Assigned", state: "done" });
+  blocks.push({ label: "Pending", state: "pending" });
   return blocks;
+}
+
+function rankIncident(incidentPackage: IncidentPackage, selectedIncidentId?: string) {
+  const { incident } = incidentPackage;
+  const priorityWeight =
+    incident.priority === "Immediate"
+      ? 0
+      : incident.priority === "High"
+        ? 1
+        : incident.priority === "Moderate"
+          ? 2
+          : 3;
+  const selectedWeight = incident.id === selectedIncidentId ? -1 : 0;
+
+  return selectedWeight * 10 + priorityWeight;
 }
 
 export function OperationsTimeline({
@@ -70,17 +114,24 @@ export function OperationsTimeline({
       existing.push(pkg);
       grouped.set(team, existing);
     }
+
     const result: TimelineRow[] = [];
     for (const [team, incidents] of grouped.entries()) {
-      result.push({ team, incidents });
+      result.push({
+        team,
+        incidents: [...incidents]
+          .sort((a, b) => rankIncident(a, selectedIncidentId) - rankIncident(b, selectedIncidentId))
+          .slice(0, 3),
+      });
     }
+
     return result.sort((a, b) => a.team.localeCompare(b.team));
-  }, [commandState.incidentPackages]);
+  }, [commandState.incidentPackages, selectedIncidentId]);
 
   if (commandState.incidentPackages.length === 0) {
     return (
-      <section className="ops-subpanel mt-3 flex-1 flex items-center justify-center p-8 border border-slate-200">
-        <p className="text-sm text-slate-500 font-medium">
+      <section className="ops-subpanel mt-3 flex flex-1 items-center justify-center border border-slate-200 p-8">
+        <p className="text-sm font-medium text-slate-500">
           {commandState.pullStatus === null
             ? "Connect operations data to load current incidents."
             : "Pull latest reports to build the operations timeline."}
@@ -90,65 +141,67 @@ export function OperationsTimeline({
   }
 
   return (
-    <section className="ops-subpanel mt-3 flex-1 flex flex-col min-h-[250px] overflow-hidden" data-testid="operations-timeline">
+    <section
+      className="ops-subpanel mt-3 flex min-h-[280px] flex-1 flex-col overflow-hidden"
+      data-testid="operations-timeline"
+    >
       <div className="flex items-center justify-between border-b border-slate-200/60 bg-slate-50/50 px-4 py-2">
         <h3 className="text-sm font-semibold tracking-tight text-[#07111c]">
           Operations timeline
         </h3>
-        <div className="flex items-center gap-16 text-[0.7rem] font-medium uppercase tracking-wider text-slate-400">
+        <div className="flex items-center gap-12 text-[0.7rem] font-medium uppercase tracking-wider text-slate-400">
           <span>13:30</span>
           <span>13:45</span>
           <span>14:00</span>
-          <span className="text-blue-600 font-semibold">NOW</span>
+          <span className="font-semibold text-blue-600">NOW</span>
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto p-4 relative" style={{
-        backgroundImage: "linear-gradient(to right, rgba(124, 146, 170, 0.08) 1px, transparent 1px), linear-gradient(to bottom, rgba(124, 146, 170, 0.08) 1px, transparent 1px)",
-        backgroundSize: "2rem 2rem"
-      }}>
-        {rows.map((row) => (
-          <div key={row.team} className="mb-6 last:mb-0 relative">
-            <div className="flex">
-              <div className="w-32 flex-shrink-0 pt-1.5">
+      <div
+        className="flex-1 px-4 py-4"
+        style={{
+          backgroundImage:
+            "linear-gradient(to right, rgba(124, 146, 170, 0.08) 1px, transparent 1px), linear-gradient(to bottom, rgba(124, 146, 170, 0.08) 1px, transparent 1px)",
+          backgroundSize: "2rem 2rem",
+        }}
+      >
+        <div className="space-y-4">
+          {rows.map((row) => (
+            <div key={row.team} className="grid gap-3 md:grid-cols-[9rem_1fr]">
+              <div className="pt-1">
                 <span className="text-xs font-semibold uppercase tracking-wider text-slate-600">
                   {row.team}
                 </span>
               </div>
-              <div className="flex-1 relative min-h-[2.5rem]">
-                {row.incidents.map((pkg, i) => {
-                  const isSelected = pkg.incident.id === selectedIncidentId;
+              <div className="space-y-2">
+                {row.incidents.map((pkg) => {
                   const blocks = getIncidentStatusBlocks(pkg, timeline);
+                  const isSelected = pkg.incident.id === selectedIncidentId;
 
                   return (
                     <div
                       key={pkg.incident.id}
-                      className={`flex items-center absolute top-0 ${i > 0 ? "mt-12" : ""} ${isSelected ? "opacity-100 z-10" : "opacity-60 hover:opacity-100 z-0"} transition-opacity duration-200`}
-                      style={{ left: `${i * 10}%` }}
+                      className={`flex flex-wrap items-center gap-2 ${isSelected ? "opacity-100" : "opacity-80"}`}
                     >
-                      {blocks.map((block, idx) => (
-                        <div key={idx} className="flex items-center">
-                          {/* Connector from previous */}
-                          {idx > 0 && (
-                            <div
-                              className={`h-0.5 w-16 md:w-32 ${block.state === "pending" ? "border-t border-dashed border-slate-300" : "bg-slate-800"}`}
-                            />
-                          )}
-
-                          {/* Block */}
-                          <div
-                            className={`flex items-center justify-center px-3 py-1.5 text-xs font-semibold rounded-sm border ${
-                              idx === 0
-                                ? "bg-white border-slate-800 text-slate-800 shadow-sm" // First block (incident name)
+                      {blocks.map((block, index) => (
+                        <div key={`${pkg.incident.id}-${block.label}-${index}`} className="flex items-center gap-2">
+                          {index > 0 ? (
+                            <span className="h-0.5 w-6 bg-slate-300" aria-hidden="true" />
+                          ) : null}
+                          <span
+                            className={`max-w-[11rem] truncate rounded-md border px-3 py-1.5 text-xs font-semibold ${
+                              index === 0
+                                ? isSelected
+                                  ? "border-blue-500/30 bg-white text-slate-900 ring-2 ring-blue-500/20"
+                                  : "border-slate-300 bg-white text-slate-900"
                                 : block.state === "pending"
-                                  ? "bg-indigo-50/50 border-indigo-200 text-indigo-800" // Pending
-                                  : block.label === "Resolved" || block.label === "Cleared"
-                                    ? "bg-emerald-50/50 border-emerald-300 text-emerald-700" // Resolved
-                                    : "bg-slate-900 border-slate-900 text-white" // Done action
-                            } ${isSelected && idx === 0 ? "ring-2 ring-blue-500/30 ring-offset-1" : ""}`}
+                                  ? "border-indigo-200 bg-indigo-50 text-indigo-800"
+                                  : "border-slate-900 bg-slate-900 text-white"
+                            }`}
+                            title={block.label}
                           >
                             {block.label}
-                          </div>
+                          </span>
                         </div>
                       ))}
                     </div>
@@ -156,8 +209,8 @@ export function OperationsTimeline({
                 })}
               </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </section>
   );

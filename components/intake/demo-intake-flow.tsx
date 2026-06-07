@@ -46,7 +46,9 @@ export function DemoIntakeFlow() {
   }, [allConnected, realDemoFlow]);
 
   async function startAutoConnect() {
-    if (isConnecting.current) return;
+    if (isConnecting.current) {
+      return;
+    }
     isConnecting.current = true;
 
     for (const source of DEMO_SOURCES) {
@@ -70,20 +72,16 @@ export function DemoIntakeFlow() {
         markOperationsConnected();
         markIntakeComplete();
         setOperationsConnected(true);
-        setConnectStatus("Seeded stadium operations data connected.");
+        setConnectStatus("Operations data connected.");
         return;
       }
 
       if (result.outcome === "unconfigured") {
-        setConnectStatus(
-          "Elastic is not configured. Open the command center to use local fallback.",
-        );
+        setConnectStatus("Operations data is unavailable right now.");
         return;
       }
 
-      setConnectStatus(
-        result.errorSummary ?? "Could not connect stadium operations data.",
-      );
+      setConnectStatus(result.errorSummary ?? "Could not connect stadium operations data.");
     } catch {
       setConnectStatus("Could not connect stadium operations data.");
     } finally {
@@ -106,14 +104,14 @@ export function DemoIntakeFlow() {
                 href="/"
                 className="text-sm text-slate-500 transition-colors hover:text-[#07111c]"
               >
-                ← Back to landing
+                Back to landing
               </Link>
               <h1 className="mt-3 text-2xl font-semibold tracking-tight text-[#07111c]">
                 Stadium operations intake
               </h1>
               <p className="mt-2 max-w-[52ch] text-sm leading-5 text-slate-600">
                 Connect stadium operations data, then open the command center to pull
-                latest reports from Elastic.
+                current incident reports.
               </p>
             </div>
           </header>
@@ -121,8 +119,8 @@ export function DemoIntakeFlow() {
           <section className="ops-panel">
             <h2 className="ops-heading mb-3 text-sm">Connect stadium operations data</h2>
             <p className="text-sm text-slate-600">
-              Loads seeded stadium operations incidents, policies, roster, and radio
-              transcripts into Elastic when configured.
+              Loads current incidents, policies, roster, and radio transcripts when
+              Elastic is available.
             </p>
 
             <div className="mt-6 flex flex-wrap items-center gap-3">
@@ -134,7 +132,7 @@ export function DemoIntakeFlow() {
                   disabled={connectLoading}
                   onClick={() => void handleConnectOperationsData()}
                 >
-                  {connectLoading ? "Connecting…" : "Connect stadium operations data"}
+                  {connectLoading ? "Connecting..." : "Connect operations data"}
                 </button>
               ) : (
                 <button
@@ -167,19 +165,19 @@ export function DemoIntakeFlow() {
               href="/"
               className="text-sm text-slate-500 transition-colors hover:text-[#07111c]"
             >
-              ← Back to landing
+              Back to landing
             </Link>
             <h1 className="mt-3 text-2xl font-semibold tracking-tight text-[#07111c]">
-              Simulated intake demo
+              Operations intake
             </h1>
             <p className="mt-2 max-w-[52ch] text-sm leading-5 text-slate-600">
-              Connect demo sources, then open the command center to pull reports.
+              Connect operations sources, then open the command center to pull reports.
             </p>
           </div>
         </header>
 
         <section className="ops-panel">
-          <h2 className="ops-heading mb-3 text-sm">Connect demo sources</h2>
+          <h2 className="ops-heading mb-3 text-sm">Connect operations sources</h2>
           <ul className="intake-source-list">
             {DEMO_SOURCES.map((source) => {
               const status = sourceStatus[source.id];
@@ -188,7 +186,7 @@ export function DemoIntakeFlow() {
                 <li key={source.id} className="intake-source-row">
                   <div>
                     <p className="font-medium text-[#07111c]">{source.label}</p>
-                    <p className="mt-0.5 text-xs text-slate-500">Mock connection</p>
+                    <p className="mt-0.5 text-xs text-slate-500">Operations source</p>
                   </div>
                   <span
                     className={`intake-status-badge ${
@@ -220,7 +218,7 @@ export function DemoIntakeFlow() {
                 disabled={isConnectingInProgress}
                 onClick={() => void startAutoConnect()}
               >
-                Connect demo sources
+                Connect operations sources
               </button>
             ) : (
               <button

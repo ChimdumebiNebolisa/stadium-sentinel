@@ -127,7 +127,7 @@ export function buildDispatchMessage(incidentPackage: IncidentPackage): string {
     `${incident.priority} priority`,
     incident.locationLabel,
     action,
-  ].join(" · ");
+  ].join(" | ");
 }
 
 export function buildIncidentMemorySummary(
@@ -140,20 +140,18 @@ export function buildIncidentMemorySummary(
   const top = incidentPackages[0]?.incident;
 
   const lines = [
-    `${count} demo incident${count === 1 ? "" : "s"} in the current mock batch.`,
-    top
-      ? `Highest priority: ${top.title} (${top.priority}).`
-      : "No incidents loaded.",
+    `${count} incident${count === 1 ? "" : "s"} in the current command batch.`,
+    top ? `Highest priority: ${top.title} (${top.priority}).` : "No incidents loaded.",
     teams.length > 0 ? `Teams in play: ${teams.join(", ")}.` : "No teams assigned.",
     batchGeneratedAt
-      ? `Batch saved from simulated intake at ${new Date(batchGeneratedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}.`
-      : "Using default demo scenario until the next pull.",
-    pullStatus ? `Last pull: ${pullStatus}` : "Pull latest reports to refresh the demo batch.",
-    "Demo memory only — not live ingestion or venue integration.",
+      ? `Batch saved at ${new Date(batchGeneratedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}.`
+      : "Pull latest reports to populate the current command batch.",
+    pullStatus ? `Last pull: ${pullStatus}` : "Pull latest reports to refresh the command batch.",
+    "Command memory updates after each report pull or response action.",
   ];
 
   return {
-    headline: "Recent demo memory",
+    headline: "Recent command memory",
     lines,
   };
 }
@@ -165,7 +163,7 @@ export function buildDemoReportDraft(
 ): DemoReportDraft {
   const incidentLines = incidentPackages.map(
     ({ incident }) =>
-      `- ${incident.priority}: ${incident.title} at ${incident.locationLabel} — ${incident.assignedRole}`,
+      `- ${incident.priority}: ${incident.title} at ${incident.locationLabel} | ${incident.assignedRole}`,
   );
 
   const selectedSection = selectedIncidentPackage
@@ -224,7 +222,7 @@ export function buildDemoReportDraft(
   const markdown = [
     "# Operations Report Draft",
     "",
-    "_Generated from demo sources and simulated intake — not live ingestion._",
+    "_Generated from the current operations command state._",
     "",
     "## Active incidents",
     ...(incidentLines.length > 0 ? incidentLines : ["- None loaded."]),

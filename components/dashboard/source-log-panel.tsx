@@ -1,18 +1,16 @@
-import type { SourceAuditEvent } from "@/lib/source-audit";
-import { formatSourceAuditTimestamp } from "@/lib/source-audit";
+import { formatSourceAuditTimestamp, type SourceAuditEvent } from "@/lib/source-audit";
 
 export function SourceLogPanel({ events }: { events: SourceAuditEvent[] }) {
   return (
     <section className="h-full pr-2" data-testid="source-log-panel">
       <h2 className="ops-heading">Source log</h2>
       <p className="mt-1 text-sm text-slate-600">
-        Recent ingestion events for the command file. Inspect only — workspace
-        actions stay in the main board.
+        Recent operations data updates for the current command file.
       </p>
 
       {events.length === 0 ? (
         <p className="mt-3 text-sm text-slate-500" data-testid="source-log-empty">
-          No ingestion events recorded yet.
+          No source updates recorded yet.
         </p>
       ) : (
         <ol className="mt-3 space-y-2">
@@ -32,7 +30,7 @@ export function SourceLogPanel({ events }: { events: SourceAuditEvent[] }) {
               </div>
               <p className="mt-1 text-sm leading-5 text-slate-700">{event.summary}</p>
               <p className="mt-1 text-xs text-slate-500">
-                {event.incidentCount} incident{event.incidentCount === 1 ? "" : "s"} ·{" "}
+                {event.incidentCount} incident{event.incidentCount === 1 ? "" : "s"} |{" "}
                 {event.outcome}
               </p>
             </li>

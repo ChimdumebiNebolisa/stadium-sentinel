@@ -54,8 +54,8 @@ export const DEMO_INCIDENT_POOL: DemoStoredIncident[] = [
       "Accessibility route via Gate D confirmed",
     ],
     timeline: [
-      "11:42 AM — Incident created",
-      "11:43 AM — Guest Services notified",
+      "11:42 AM: Incident created",
+      "11:43 AM: Guest Services notified",
     ],
   },
   {
@@ -73,8 +73,8 @@ export const DEMO_INCIDENT_POOL: DemoStoredIncident[] = [
       "Accessible reroute via Elevator 3 available",
     ],
     timeline: [
-      "11:41 AM — Outage reported",
-      "11:42 AM — Facilities dispatched",
+      "11:41 AM: Outage reported",
+      "11:42 AM: Facilities dispatched",
     ],
   },
   {
@@ -92,8 +92,8 @@ export const DEMO_INCIDENT_POOL: DemoStoredIncident[] = [
       "Secondary gate routing available",
     ],
     timeline: [
-      "11:38 AM — Congestion reported",
-      "11:41 AM — Security notified",
+      "11:38 AM: Congestion reported",
+      "11:41 AM: Security notified",
     ],
   },
   {
@@ -111,8 +111,8 @@ export const DEMO_INCIDENT_POOL: DemoStoredIncident[] = [
       "Nearest alternate restroom at Section 210",
     ],
     timeline: [
-      "11:45 AM — Outage reported",
-      "11:46 AM — Facilities en route",
+      "11:45 AM: Outage reported",
+      "11:46 AM: Facilities en route",
     ],
   },
   {
@@ -130,8 +130,8 @@ export const DEMO_INCIDENT_POOL: DemoStoredIncident[] = [
       "Wet floor signage kit available in closet C2",
     ],
     timeline: [
-      "11:50 AM — Spill reported by usher",
-      "11:51 AM — Cleanup crew dispatched",
+      "11:50 AM: Spill reported by usher",
+      "11:51 AM: Cleanup crew dispatched",
     ],
   },
   {
@@ -149,8 +149,8 @@ export const DEMO_INCIDENT_POOL: DemoStoredIncident[] = [
       "Family services station at Gate A staffed",
     ],
     timeline: [
-      "11:55 AM — Report received",
-      "11:56 AM — Security and Guest Services alerted",
+      "11:55 AM: Report received",
+      "11:56 AM: Security and Guest Services alerted",
     ],
   },
   {
@@ -168,8 +168,8 @@ export const DEMO_INCIDENT_POOL: DemoStoredIncident[] = [
       "Backup cold storage available in loading dock",
     ],
     timeline: [
-      "11:48 AM — Alarm triggered",
-      "11:49 AM — Facilities notified",
+      "11:48 AM: Alarm triggered",
+      "11:49 AM: Facilities notified",
     ],
   },
   {
@@ -187,8 +187,8 @@ export const DEMO_INCIDENT_POOL: DemoStoredIncident[] = [
       "Concourse relief route via Service Corridor B available",
     ],
     timeline: [
-      "11:44 AM — Congestion flagged",
-      "11:45 AM — Crowd flow team en route",
+      "11:44 AM: Congestion flagged",
+      "11:45 AM: Crowd flow team en route",
     ],
   },
   {
@@ -200,14 +200,14 @@ export const DEMO_INCIDENT_POOL: DemoStoredIncident[] = [
     team: "Guest Services",
     location: "Section 318",
     status: "new",
-    summary: "Guest in Section 318 reporting dizziness — medical response requested.",
+    summary: "Guest in Section 318 reporting dizziness. Medical response requested.",
     evidence: [
       "Medical response runbook active",
       "First-aid station at Section 300 concourse staffed",
     ],
     timeline: [
-      "11:52 AM — Medical request received",
-      "11:53 AM — First aid dispatched",
+      "11:52 AM: Medical request received",
+      "11:53 AM: First aid dispatched",
     ],
   },
   {
@@ -225,8 +225,8 @@ export const DEMO_INCIDENT_POOL: DemoStoredIncident[] = [
       "Exit 8 available as overflow route",
     ],
     timeline: [
-      "11:47 AM — Radio report received",
-      "11:48 AM — Security routing to location",
+      "11:47 AM: Radio report received",
+      "11:48 AM: Security routing to location",
     ],
   },
 ];
@@ -394,14 +394,14 @@ function actionsForTeam(team: string): string[] {
 function buildAssumptions(stored: DemoStoredIncident): string[] {
   const priorityReason: Record<PriorityLevel, string> = {
     Immediate:
-      "Triaged as Immediate — guest safety or accessibility requires an immediate response.",
-    High: "Triaged as High — operational disruption affecting multiple guests or a key area.",
-    Moderate: "Triaged as Moderate — localized issue with a known resolution path.",
-    Monitor: "Triaged as Monitor — low operational impact; tracking for escalation.",
+      "Triaged as Immediate. Guest safety or accessibility requires an immediate response.",
+    High: "Triaged as High. Operational disruption is affecting multiple guests or a key area.",
+    Moderate: "Triaged as Moderate. Localized issue with a known resolution path.",
+    Monitor: "Triaged as Monitor. Limited operational impact; continue tracking for escalation.",
   };
   const firstAction = actionsForTeam(stored.team)[0];
   const teamReason = firstAction
-    ? `${stored.team} assigned — best match for this incident type based on dispatch runbook.`
+    ? `${stored.team} assigned. Best match for this incident type based on the dispatch runbook.`
     : "Operations team assigned as default responder.";
   const evidenceReason = stored.evidence[0]
     ? `Supporting evidence: ${stored.evidence[0]}.`
@@ -435,7 +435,7 @@ export function localStorageIncidentToPackage(stored: DemoStoredIncident): Incid
       title: e,
       sourceType: "policy" as const,
       excerpt: e,
-      rationale: "Simulated demo evidence",
+      rationale: "On-file incident evidence",
       sourceId: `demo-${stored.id}-${index}`,
     })),
     staffUpdate: stored.summary,

@@ -94,7 +94,7 @@ export function RadioTranscriptPanel({
       {open ? (
         <div className="mt-2 space-y-2">
           <p className="text-xs text-slate-500">
-            Simulated radio log intake — paste ops lines or use a preset.
+            Add operations radio lines or use a preset.
           </p>
 
           <div className="flex flex-wrap gap-1.5">

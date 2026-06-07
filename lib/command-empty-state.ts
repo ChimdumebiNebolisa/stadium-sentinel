@@ -42,5 +42,5 @@ export function getRealDemoWorkspaceEmptyBody(operationsConnected: boolean): str
     return "Connect stadium operations data, then pull latest reports to load the dispatch queue.";
   }
 
-  return "Pull latest reports to load seeded stadium operations incidents from Elastic.";
+  return "Pull latest reports to load current stadium operations incidents from Elastic.";
 }

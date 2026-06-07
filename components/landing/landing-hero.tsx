@@ -10,10 +10,9 @@ export function LandingHero() {
         Make every stadium report easy to understand and act on.
       </h1>
       <p className="landing-subtext">
-        Stadium Sentinel brings simulated reports from guest services, security,
-        facilities, and radio notes into one command file, then turns them into
-        assigned incidents with priorities, next actions, timelines, and report
-        output.
+        Stadium Sentinel brings guest services, security, facilities, and radio
+        updates into one command file, then turns them into assigned incidents
+        with priorities, next actions, timelines, and report output.
       </p>
       <div className="landing-cta-row">
         <Link
@@ -22,7 +21,7 @@ export function LandingHero() {
           data-testid="hero-cta-intake-demo"
         >
           <PlayIcon />
-          Run intake demo
+          Open operations intake
         </Link>
         <Link
           href="/command"
