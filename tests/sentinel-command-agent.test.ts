@@ -2,6 +2,13 @@ import { describe, expect, it } from "vitest";
 
 import { buildChangeSummary } from "@/lib/demo-agent-workflow";
 import { buildDemoState } from "@/lib/demo";
+import { getPoolIncidentById } from "@/lib/demo-incident-pool";
+import {
+  extractTranscriptIncidents,
+  getCanonicalActiveIncidentIds,
+  TRANSCRIPT_PRESETS,
+} from "@/lib/radio-transcript-intake";
+import { buildResponseTimeline } from "@/lib/response-timeline";
 import {
   answerSentinelQuestion,
   buildDefaultSentinelBrief,
@@ -29,8 +36,62 @@ function buildCommandState(overrides: Partial<CommandState> = {}): CommandState 
       headline: "Recent demo memory",
       lines: ["Demo memory line."],
     },
+    latestTranscript: null,
+    transcriptAddedTitles: [],
+    transcriptMatchedTitles: [],
+    selectedResponseStages: selected
+      ? buildResponseTimeline({
+          incidentPackage: selected,
+          timeline: demo.timeline,
+        })
+      : [],
     ...overrides,
   };
+}
+
+function buildMatchedTranscriptState() {
+  const demo = buildDemoState();
+  const extraction = extractTranscriptIncidents({
+    text: TRANSCRIPT_PRESETS[0]!.text,
+    activeIncidentIds: getCanonicalActiveIncidentIds(),
+    sourceLabel: "Preset",
+    presetId: "standard",
+  });
+  const selected = demo.incidentPackages[0]!;
+
+  return buildCommandState({
+    latestTranscript: extraction.record,
+    transcriptAddedTitles: [],
+    transcriptMatchedTitles: extraction.matchedIncidentIds.map(
+      (id) =>
+        demo.incidentPackages.find(({ incident }) => incident.id === id)?.incident.title ??
+        getPoolIncidentById(id)?.title ??
+        id,
+    ),
+    selectedResponseStages: buildResponseTimeline({
+      incidentPackage: selected,
+      timeline: demo.timeline,
+      transcriptLine: extraction.record.matchedLines[selected.incident.id] ?? null,
+    }),
+  });
+}
+
+function buildMixedTranscriptState() {
+  const demo = buildDemoState();
+  const extraction = extractTranscriptIncidents({
+    text: `${TRANSCRIPT_PRESETS[0]!.text}\n${TRANSCRIPT_PRESETS[1]!.text}`,
+    activeIncidentIds: getCanonicalActiveIncidentIds(),
+    sourceLabel: "Preset",
+    presetId: "standard",
+  });
+
+  return buildCommandState({
+    latestTranscript: extraction.record,
+    transcriptAddedTitles: extraction.addedIncidents.map((incident) => incident.title),
+    transcriptMatchedTitles: extraction.matchedIncidentIds.map(
+      (id) => getPoolIncidentById(id)?.title ?? id,
+    ),
+  });
 }
 
 describe("sentinel command agent", () => {
@@ -51,6 +112,15 @@ describe("sentinel command agent", () => {
     expect(questions.length).toBeLessThanOrEqual(5);
     expect(questions).toContain("What should I do first?");
     expect(questions).toContain("Why this priority?");
+  });
+
+  it("includes transcript questions when a radio transcript is extracted", () => {
+    const state = buildMatchedTranscriptState();
+    const questions = buildSuggestedSentinelQuestions(state);
+
+    expect(questions).toContain("What did the radio log add?");
+    expect(questions).toContain("What should I ask the radio operator?");
+    expect(questions.length).toBeLessThanOrEqual(5);
   });
 
   it("includes change question when change summary exists", () => {
@@ -101,18 +171,69 @@ describe("sentinel command agent", () => {
     expect(answer).toContain(state.selectedIncidentPackage!.incident.locationLabel);
   });
 
-  it("avoids forbidden wording in answers", () => {
+  it("answers transcript-added with matched-only language", () => {
+    const state = buildMatchedTranscriptState();
+    const { answer } = answerSentinelQuestion("What did the radio log add?", state);
+
+    expect(answer).toContain("recognized");
+    expect(answer).toContain("matched reports already in the current queue");
+    expect(answer).not.toContain("added Restroom");
+  });
+
+  it("answers transcript-added with mixed added and matched language", () => {
+    const state = buildMixedTranscriptState();
+    const { answer } = answerSentinelQuestion("What did the radio log add?", state);
+
+    expect(answer).toContain("added");
+    expect(answer).toContain("matched");
+    expect(answer).toContain("Restroom out of order");
+  });
+
+  it("answers transcript-operator with follow-up questions", () => {
     const state = buildCommandState();
+    const { answer } = answerSentinelQuestion("What should I ask the radio operator?", state);
+
+    expect(answer).toMatch(/1\./);
+  });
+
+  it("answers transcript-missing, queue-first, and timeline-progress intents", () => {
+    const matchedState = buildMatchedTranscriptState();
+    const missingAnswer = answerSentinelQuestion(
+      "Did the transcript mention anything missing from the queue?",
+      matchedState,
+    ).answer;
+    const queueAnswer = answerSentinelQuestion(
+      "Which report needs action first?",
+      matchedState,
+    ).answer;
+    const timelineAnswer = answerSentinelQuestion(
+      "What stage is this incident?",
+      matchedState,
+    ).answer;
+
+    expect(missingAnswer).toContain("represented in the current queue");
+    expect(queueAnswer).toContain("needs action first");
+    expect(timelineAnswer).toMatch(/active stage|pending stage|complete/i);
+  });
+
+  it("avoids forbidden wording in answers", () => {
+    const matchedState = buildMatchedTranscriptState();
     const prompts = [
       "What should I do first?",
       "Why this priority?",
       "What evidence supports this?",
       "Draft a radio update.",
       "Show me the current incident summary.",
+      "What did the radio log add?",
+      "What should I ask the radio operator?",
+      "Which report needs action first?",
+      "What stage is this incident?",
+      "Is anything from the transcript unresolved?",
+      "Turn this into a staff update.",
     ];
 
     for (const prompt of prompts) {
-      const { answer } = answerSentinelQuestion(prompt, state);
+      const { answer } = answerSentinelQuestion(prompt, matchedState);
       expect(answer).not.toMatch(/\bCritical\b/);
       expect(answer).not.toMatch(/\bseverity\b/i);
       expect(answer).not.toMatch(/\bconfidence\b/i);

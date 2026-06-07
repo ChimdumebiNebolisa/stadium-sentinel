@@ -5,12 +5,16 @@ import {
   type DemoReportDraft,
   type IncidentMemorySummary,
 } from "@/lib/demo-agent-workflow";
+import type { RadioTranscriptRecord } from "@/lib/radio-transcript-intake";
+import type { ResponseTimelineStage } from "@/lib/response-timeline";
 import { buildSentinelExplanation } from "@/lib/sentinel-explanation";
 import type {
   IncidentPackage,
   ReportSummary,
   TimelineEntry,
 } from "@/lib/types";
+
+export type ResponseStage = ResponseTimelineStage;
 
 export type CommandState = {
   incidentPackages: IncidentPackage[];
@@ -22,6 +26,10 @@ export type CommandState = {
   reportSummary: ReportSummary;
   demoReportDraft: DemoReportDraft;
   demoMemorySummary: IncidentMemorySummary;
+  latestTranscript: RadioTranscriptRecord | null;
+  transcriptAddedTitles: string[];
+  transcriptMatchedTitles: string[];
+  selectedResponseStages: ResponseStage[];
 };
 
 export type SentinelContext = {
@@ -40,6 +48,22 @@ function normalizeQuestion(question: string): string {
 
 function formatLabel(value: string): string {
   return value.replace(/-/g, " ");
+}
+
+function formatTitleList(titles: string[]): string {
+  if (titles.length === 0) {
+    return "none";
+  }
+
+  if (titles.length === 1) {
+    return titles[0]!;
+  }
+
+  if (titles.length === 2) {
+    return `${titles[0]} and ${titles[1]}`;
+  }
+
+  return `${titles.slice(0, -1).join(", ")}, and ${titles.at(-1)}`;
 }
 
 export function buildSentinelContext(state: CommandState): SentinelContext {
@@ -91,7 +115,10 @@ export function buildSuggestedSentinelQuestions(state: CommandState): string[] {
     "What evidence supports this?",
   ];
 
-  if (state.changeSummary) {
+  if (state.latestTranscript?.extractionStatus === "extracted") {
+    questions.push("What did the radio log add?");
+    questions.push("What should I ask the radio operator?");
+  } else if (state.changeSummary) {
     questions.push("What changed after the latest pull?");
   } else {
     questions.push("Draft a radio update.");
@@ -106,6 +133,13 @@ export function buildSuggestedSentinelQuestions(state: CommandState): string[] {
 }
 
 type QuestionIntent =
+  | "transcript-added"
+  | "transcript-missing"
+  | "transcript-operator"
+  | "transcript-staff-update"
+  | "transcript-unresolved"
+  | "queue-first"
+  | "timeline-progress"
   | "do-first"
   | "why-first"
   | "priority"
@@ -119,6 +153,50 @@ type QuestionIntent =
   | "unknown";
 
 function classifyQuestion(normalized: string): QuestionIntent {
+  if (
+    normalized.includes("what did the radio log add") ||
+    normalized.includes("radio log add") ||
+    (normalized.includes("radio log") && normalized.includes("add"))
+  ) {
+    return "transcript-added";
+  }
+  if (
+    normalized.includes("missing from the queue") ||
+    normalized.includes("mention anything missing") ||
+    (normalized.includes("transcript") && normalized.includes("missing"))
+  ) {
+    return "transcript-missing";
+  }
+  if (
+    normalized.includes("radio operator") ||
+    normalized.includes("ask the operator") ||
+    normalized.includes("ask radio operator")
+  ) {
+    return "transcript-operator";
+  }
+  if (
+    normalized.includes("turn this into a staff update") ||
+    (normalized.includes("staff update") && normalized.includes("turn"))
+  ) {
+    return "transcript-staff-update";
+  }
+  if (normalized.includes("transcript") && normalized.includes("unresolved")) {
+    return "transcript-unresolved";
+  }
+  if (
+    normalized.includes("which report needs action first") ||
+    normalized.includes("needs action first")
+  ) {
+    return "queue-first";
+  }
+  if (
+    normalized.includes("where are we on response") ||
+    normalized.includes("what stage is this incident") ||
+    normalized.includes("response stage") ||
+    normalized.includes("timeline progress")
+  ) {
+    return "timeline-progress";
+  }
   if (
     normalized.includes("do first") ||
     normalized.includes("first step") ||
@@ -179,11 +257,143 @@ function classifyQuestion(normalized: string): QuestionIntent {
     normalized.includes("ask staff") ||
     normalized.includes("follow-up") ||
     normalized.includes("staff question") ||
-    normalized.includes("what should i ask")
+    (normalized.includes("what should i ask") && !normalized.includes("operator"))
   ) {
     return "ask-staff";
   }
   return "unknown";
+}
+
+function answerTranscriptAdded(state: CommandState): string {
+  const transcript = state.latestTranscript;
+  if (!transcript || transcript.extractionStatus !== "extracted") {
+    return "Extract a radio transcript first, then ask again about what the radio log added.";
+  }
+
+  const added = state.transcriptAddedTitles;
+  const matched = state.transcriptMatchedTitles;
+
+  if (added.length === 0 && matched.length > 0) {
+    return `The radio log recognized ${formatTitleList(matched)}. All ${matched.length} matched reports already in the current queue.`;
+  }
+
+  if (added.length > 0 && matched.length === 0) {
+    return `The radio log added ${formatTitleList(added)}.`;
+  }
+
+  if (added.length > 0 && matched.length > 0) {
+    return `The radio log added ${formatTitleList(added)} and matched ${formatTitleList(matched)} in the current queue.`;
+  }
+
+  return "The radio log did not add or match any reports in the current queue.";
+}
+
+function answerTranscriptMissing(state: CommandState): string {
+  const transcript = state.latestTranscript;
+  if (!transcript) {
+    return "No radio transcript is loaded yet.";
+  }
+
+  if (transcript.extractionStatus === "empty") {
+    return transcript.followUpQuestions.length > 0
+      ? transcript.followUpQuestions.join(" ")
+      : "The transcript did not match any reports in the current queue.";
+  }
+
+  const queueIds = new Set(state.incidentPackages.map(({ incident }) => incident.id));
+  const missingFromQueue = transcript.extractedIncidentIds.filter((id) => !queueIds.has(id));
+
+  if (missingFromQueue.length === 0) {
+    return "Everything recognized in the radio log is represented in the current queue.";
+  }
+
+  return `The transcript referenced reports not in the current queue: ${missingFromQueue.join(", ")}.`;
+}
+
+function answerTranscriptOperator(state: CommandState, ctx: SentinelContext): string {
+  const transcript = state.latestTranscript;
+  const questions =
+    transcript?.followUpQuestions.length && transcript.extractionStatus === "empty"
+      ? transcript.followUpQuestions
+      : ctx.followUpQuestions;
+
+  if (questions.length === 0) {
+    return "Ask the radio operator for exact location, assigned team, and whether the report is still active.";
+  }
+
+  return questions.map((question, index) => `${index + 1}. ${question}`).join(" ");
+}
+
+function answerTranscriptStaffUpdate(state: CommandState, ctx: SentinelContext): string {
+  const selected = state.selectedIncidentPackage;
+  if (!selected) {
+    return "Select an incident to draft a staff update.";
+  }
+
+  const transcriptLine = state.latestTranscript?.matchedLines[selected.incident.id];
+  const baseUpdate = selected.staffUpdate || ctx.dispatchMessage || selected.incident.title;
+
+  if (transcriptLine) {
+    return `${baseUpdate} Radio context: ${transcriptLine}`;
+  }
+
+  return baseUpdate;
+}
+
+function answerTranscriptUnresolved(state: CommandState): string {
+  const transcript = state.latestTranscript;
+  if (!transcript || transcript.extractionStatus !== "extracted") {
+    return "Extract a radio transcript first, then ask again about unresolved transcript items.";
+  }
+
+  const queueIds = new Set(state.incidentPackages.map(({ incident }) => incident.id));
+  const unresolvedTitles = transcript.extractedIncidentIds
+    .filter((id) => queueIds.has(id))
+    .map((id) => state.incidentPackages.find(({ incident }) => incident.id === id))
+    .filter((incidentPackage): incidentPackage is IncidentPackage => Boolean(incidentPackage))
+    .filter(
+      ({ incident }) =>
+        incident.approvedActionIds.length < incident.recommendedActions.length,
+    )
+    .map(({ incident }) => incident.title);
+
+  if (unresolvedTitles.length === 0) {
+    return "All transcript-linked reports in the current queue have their primary response steps underway or complete.";
+  }
+
+  return `Transcript-linked reports still needing response steps: ${formatTitleList(unresolvedTitles)}.`;
+}
+
+function answerQueueFirst(state: CommandState): string {
+  const top = state.incidentPackages[0];
+  if (!top) {
+    return "No incidents are loaded in the current queue.";
+  }
+
+  return `${top.incident.title} needs action first — ${top.incident.priority} priority at ${top.incident.locationLabel}.`;
+}
+
+function answerTimelineProgress(state: CommandState): string {
+  const stages = state.selectedResponseStages;
+  if (stages.length === 0) {
+    return "Select an incident to review response progress.";
+  }
+
+  const activeStage = stages.find((stage) => stage.state === "active");
+  if (activeStage) {
+    return `${activeStage.label} is the active stage — ${activeStage.statusText}.`;
+  }
+
+  if (stages.every((stage) => stage.state === "done")) {
+    return "All response stages are complete for the selected incident.";
+  }
+
+  const nextPending = stages.find((stage) => stage.state === "pending");
+  if (nextPending) {
+    return `${nextPending.label} is the next pending stage.`;
+  }
+
+  return stages.map((stage) => `${stage.label}: ${stage.state}`).join(". ");
 }
 
 function answerDoFirst(state: CommandState, ctx: SentinelContext): string {
@@ -333,6 +543,20 @@ export function answerSentinelQuestion(
   const intent = classifyQuestion(normalized);
 
   switch (intent) {
+    case "transcript-added":
+      return { answer: answerTranscriptAdded(state) };
+    case "transcript-missing":
+      return { answer: answerTranscriptMissing(state) };
+    case "transcript-operator":
+      return { answer: answerTranscriptOperator(state, ctx) };
+    case "transcript-staff-update":
+      return { answer: answerTranscriptStaffUpdate(state, ctx) };
+    case "transcript-unresolved":
+      return { answer: answerTranscriptUnresolved(state) };
+    case "queue-first":
+      return { answer: answerQueueFirst(state) };
+    case "timeline-progress":
+      return { answer: answerTimelineProgress(state) };
     case "do-first":
       return { answer: answerDoFirst(state, ctx) };
     case "why-first":

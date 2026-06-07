@@ -16,6 +16,7 @@ import { TimelinePanel } from "@/components/dashboard/timeline-panel";
 import {
   checkRateLimit,
   generateDemoIncidentBatch,
+  getPoolIncidentById,
   loadDemoIncidentBatch,
   localStorageIncidentToPackage,
   recordPull,
@@ -41,6 +42,7 @@ import {
   type RadioTranscriptRecord,
 } from "@/lib/radio-transcript-intake";
 import { buildPostEventReport } from "@/lib/report";
+import { buildResponseTimeline } from "@/lib/response-timeline";
 import type { CommandState } from "@/lib/sentinel-command-agent";
 import type {
   AgentRunResult,
@@ -51,6 +53,17 @@ import type {
 
 const initialDemoState = buildDemoState();
 type WorkspaceView = "evidence" | "staff" | "timeline" | "report";
+
+function resolveTranscriptTitle(
+  incidentId: string,
+  incidentPackages: IncidentPackage[],
+): string {
+  return (
+    incidentPackages.find(({ incident }) => incident.id === incidentId)?.incident.title ??
+    getPoolIncidentById(incidentId)?.title ??
+    incidentId
+  );
+}
 
 function getLatestDrawerText(
   incidentId?: string,
@@ -389,6 +402,24 @@ export function CommandCenter() {
       reportSummary,
       demoReportDraft,
       demoMemorySummary,
+      latestTranscript: latestTranscriptRecord,
+      transcriptAddedTitles:
+        latestTranscriptRecord?.addedIncidentIds.map((incidentId) =>
+          resolveTranscriptTitle(incidentId, incidentPackages),
+        ) ?? [],
+      transcriptMatchedTitles:
+        latestTranscriptRecord?.matchedIncidentIds.map((incidentId) =>
+          resolveTranscriptTitle(incidentId, incidentPackages),
+        ) ?? [],
+      selectedResponseStages: selectedIncidentPackage
+        ? buildResponseTimeline({
+            incidentPackage: selectedIncidentPackage,
+            timeline,
+            transcriptLine:
+              latestTranscriptRecord?.matchedLines[selectedIncidentPackage.incident.id] ??
+              null,
+          })
+        : [],
     }),
     [
       incidentPackages,
@@ -400,6 +431,7 @@ export function CommandCenter() {
       reportSummary,
       demoReportDraft,
       demoMemorySummary,
+      latestTranscriptRecord,
     ],
   );
 

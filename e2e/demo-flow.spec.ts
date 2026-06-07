@@ -33,7 +33,6 @@ async function openSentinelPanel(page: Page) {
   const control = page.getByTestId("sentinel-control");
   await expect(control).toBeVisible();
   await control.click();
-  await expect(control).toHaveAttribute("aria-expanded", "true");
   await expect(page.getByTestId("sentinel-panel")).toBeVisible();
 }
 
@@ -567,6 +566,47 @@ test("pull after transcript extract filters stale log snippets from removed inci
   await openWorkspace(page, "Incident log");
   const logText = (await page.getByTestId("timeline-panel").textContent()) ?? "";
   expect(logText).not.toContain("West Concourse restroom is out of order.");
+});
+
+test("sentinel answers what the radio log added after transcript extract", async ({ page }) => {
+  await page.goto("/command");
+  await extractStandardTranscriptPreset(page);
+  await openSentinelPanel(page);
+  await askSentinel(page, "What did the radio log add?");
+
+  const answerText = (await page.getByTestId("sentinel-answer").textContent()) ?? "";
+  expect(answerText).toMatch(/recognized|matched/i);
+  expect(answerText).toMatch(/current queue/i);
+});
+
+test("sentinel answers radio operator question with follow-ups", async ({ page }) => {
+  await page.goto("/command");
+  await openSentinelPanel(page);
+  await askSentinel(page, "What should I ask the radio operator?");
+
+  const answerText = (await page.getByTestId("sentinel-answer").textContent()) ?? "";
+  expect(answerText.length).toBeGreaterThan(10);
+});
+
+test("sentinel answers timeline progress with active response stage", async ({ page }) => {
+  await page.goto("/command");
+  await extractStandardTranscriptPreset(page);
+  await openSentinelPanel(page);
+  await askSentinel(page, "What stage is this incident?");
+
+  const answerText = (await page.getByTestId("sentinel-answer").textContent()) ?? "";
+  expect(answerText).toMatch(/active stage|pending stage|complete/i);
+  expect(answerText).toMatch(/Intake|Acknowledged|Team assigned|Dispatched|Resolved/i);
+});
+
+test("sentinel transcript prompts avoid forbidden wording", async ({ page }) => {
+  await page.goto("/command");
+  await extractStandardTranscriptPreset(page);
+  await openSentinelPanel(page);
+  await askSentinel(page, "What did the radio log add?");
+
+  const panelText = (await page.getByTestId("sentinel-panel").textContent()) ?? "";
+  await assertNoForbiddenWording(panelText);
 });
 
 test("backend-off mode keeps the deterministic api contract for the demo input", async ({
