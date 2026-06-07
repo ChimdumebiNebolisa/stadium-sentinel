@@ -43,12 +43,17 @@ import {
   sortIncidentPackages,
   type RadioTranscriptRecord,
 } from "@/lib/radio-transcript-intake";
-import { buildPostEventReport } from "@/lib/report";
-import { buildResponseTimeline } from "@/lib/response-timeline";
+import {
+  evaluateAutomaticIngestionGate,
+  runAutomaticIngestionPrototype,
+} from "@/lib/automatic-ingestion";
+import { readSourcesConnected } from "@/lib/intake-demo";
 import {
   fetchManualIngestionResult,
   planManualReportIngestion,
 } from "@/lib/manual-report-ingestion";
+import { buildPostEventReport } from "@/lib/report";
+import { buildResponseTimeline } from "@/lib/response-timeline";
 import type { NormalizedIngestionResult } from "@/lib/source-mode";
 import { INGESTION_CONTRACTS } from "@/lib/source-mode";
 import {
@@ -175,6 +180,19 @@ export function CommandCenter() {
   const [ingestionFallbackMessage, setIngestionFallbackMessage] = useState<
     string | null
   >(null);
+  const [automaticIngestStatus, setAutomaticIngestStatus] = useState<string | null>(
+    null,
+  );
+  const [sourcesConnected, setSourcesConnected] = useState(false);
+
+  useEffect(() => {
+    setSourcesConnected(readSourcesConnected());
+  }, []);
+
+  const automaticIngestGate = useMemo(
+    () => evaluateAutomaticIngestionGate(sourcesConnected),
+    [sourcesConnected],
+  );
 
   function recordSourceAudit(
     sourceMode: NormalizedIngestionResult["sourceMode"],
@@ -438,6 +456,28 @@ export function CommandCenter() {
     );
   }
 
+  function handleAutomaticIngest() {
+    const result = runAutomaticIngestionPrototype({
+      transcriptRecord: latestTranscriptRecord,
+    });
+
+    if ("error" in result) {
+      setIngestionFallbackMessage(result.fallbackMessage);
+      setAutomaticIngestStatus(result.error);
+      return;
+    }
+
+    const normalized: NormalizedIngestionResult = {
+      ...result,
+      sourceMode: "automatic",
+      ingestionSummary: `Automatic ingest prototype loaded ${result.incidentPackages.length} incident package(s).`,
+    };
+    applyNormalizedIngestion(normalized);
+    setIngestionFallbackMessage(null);
+    setAutomaticIngestStatus("Automatic ingest prototype completed.");
+    setBatchGeneratedAt(new Date().toISOString());
+  }
+
   const topPriority = incidentPackages[0]?.incident.priority ?? "Monitor";
   const latestEntry = selectedIncidentPackage
     ? [...timeline]
@@ -536,6 +576,10 @@ export function CommandCenter() {
           transcriptExtractStatus={transcriptExtractStatus}
           latestTranscriptRecord={latestTranscriptRecord}
           ingestionFallbackMessage={ingestionFallbackMessage}
+          automaticIngestEnabled={automaticIngestGate.enabled}
+          automaticIngestReason={automaticIngestGate.reason}
+          onAutomaticIngest={handleAutomaticIngest}
+          automaticIngestStatus={automaticIngestStatus}
         />
 
         <section className="board-grid">

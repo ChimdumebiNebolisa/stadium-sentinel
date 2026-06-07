@@ -18,6 +18,10 @@ type IntakeContextBarProps = {
   transcriptExtractStatus: string | null;
   latestTranscriptRecord: RadioTranscriptRecord | null;
   ingestionFallbackMessage?: string | null;
+  automaticIngestEnabled?: boolean;
+  automaticIngestReason?: string;
+  onAutomaticIngest?: () => void;
+  automaticIngestStatus?: string | null;
 };
 
 export function IntakeContextBar({
@@ -30,6 +34,10 @@ export function IntakeContextBar({
   transcriptExtractStatus,
   latestTranscriptRecord,
   ingestionFallbackMessage,
+  automaticIngestEnabled = false,
+  automaticIngestReason,
+  onAutomaticIngest,
+  automaticIngestStatus,
 }: IntakeContextBarProps) {
   const [mounted, setMounted] = useState(false);
   const [intakeComplete, setIntakeComplete] = useState(false);
@@ -94,6 +102,21 @@ export function IntakeContextBar({
           {pullStatus ? (
             <p className="text-xs text-slate-500" data-testid="pull-status">
               {pullStatus}
+            </p>
+          ) : null}
+          <button
+            type="button"
+            data-testid="automatic-ingest-prototype"
+            disabled={!mounted || !automaticIngestEnabled}
+            title={automaticIngestReason}
+            onClick={onAutomaticIngest}
+            className="rounded-md border border-violet-500/30 bg-violet-500/10 px-3 py-1.5 text-sm font-medium text-violet-900 transition-colors hover:bg-violet-500/15 disabled:cursor-not-allowed disabled:opacity-45"
+          >
+            Automatic ingest (prototype)
+          </button>
+          {automaticIngestStatus ? (
+            <p className="text-xs text-slate-500" data-testid="automatic-ingest-status">
+              {automaticIngestStatus}
             </p>
           ) : null}
         </div>
