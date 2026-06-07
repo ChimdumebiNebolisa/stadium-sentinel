@@ -281,13 +281,40 @@ test("sentinel panel closes when selected incident changes", async ({ page }) =>
   await expect(page.getByTestId("sentinel-panel")).toHaveCount(0);
 });
 
-test("recent evidence shows compact pointer to drawer", async ({ page }) => {
+test("workspace shows evidence pointer without evidence card", async ({ page }) => {
   await page.goto("/command");
 
-  await expect(page.getByText("Recent evidence")).toBeVisible();
+  await expect(page.getByText("Recent evidence")).toHaveCount(0);
   await expect(page.getByTestId("evidence-drawer-pointer")).toHaveText(
     "Evidence reviewed — open drawer for full record.",
   );
+});
+
+test("workspace shows response timeline with operational stages", async ({ page }) => {
+  await page.goto("/command");
+
+  const responseTimeline = page.getByTestId("response-timeline");
+  await expect(responseTimeline).toBeVisible();
+  await expect(responseTimeline.getByText("Response timeline")).toBeVisible();
+  await expect(responseTimeline.getByTestId("response-timeline-stage-intake")).toBeVisible();
+  await expect(responseTimeline.getByTestId("response-timeline-stage-acknowledged")).toBeVisible();
+  await expect(responseTimeline.getByTestId("response-timeline-stage-team-assigned")).toBeVisible();
+  await expect(responseTimeline.getByTestId("response-timeline-stage-dispatched")).toBeVisible();
+  await expect(responseTimeline.getByTestId("response-timeline-stage-resolved")).toBeVisible();
+  await expect(responseTimeline.getByTestId("response-timeline-stage-intake")).toContainText("Intake");
+  await expect(responseTimeline.getByTestId("response-timeline-stage-acknowledged")).toContainText(
+    "Acknowledged",
+  );
+  await expect(responseTimeline.getByTestId("response-timeline-stage-team-assigned")).toContainText(
+    "Team assigned",
+  );
+  await expect(responseTimeline.getByTestId("response-timeline-stage-dispatched")).toContainText(
+    "Dispatched",
+  );
+  await expect(responseTimeline.getByTestId("response-timeline-stage-resolved")).toContainText(
+    "Resolved",
+  );
+  await expect(page.getByText("Recent activity")).toHaveCount(0);
 });
 
 test("incident log tab shows full incident log heading and entries", async ({
@@ -400,7 +427,10 @@ test("selected incident shows workflow cues", async ({ page }) => {
 
   await expect(page.getByTestId("workflow-cues")).toBeVisible();
   await expect(page.getByTestId("dispatch-message")).not.toBeEmpty();
-  await expect(page.getByTestId("follow-up-questions").locator("li")).toHaveCount(3);
+  await expect(page.getByTestId("follow-up-sentinel-cue")).toHaveText(
+    "Staff follow-ups available in Ask Sentinel.",
+  );
+  await expect(page.getByTestId("follow-up-questions")).toHaveCount(0);
 });
 
 test("report tab shows demo report draft and memory", async ({ page }) => {

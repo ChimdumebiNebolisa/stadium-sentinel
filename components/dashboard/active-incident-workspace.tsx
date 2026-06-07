@@ -1,4 +1,5 @@
 import { PriorityBadge } from "@/components/dashboard/priority-badge";
+import { ResponseTimeline } from "@/components/dashboard/response-timeline";
 import { SentinelInline } from "@/components/dashboard/sentinel-inline";
 import { WorkflowCues } from "@/components/dashboard/workflow-cues";
 import { getLocationRecord } from "@/lib/data";
@@ -12,12 +13,6 @@ type ActiveIncidentWorkspaceProps = {
   onApprove: (incidentId: string, action: string, actionIndex: number) => void;
 };
 
-type FeedItem = {
-  message: string;
-  timestamp: string;
-  tone: "blue" | "green" | "violet";
-};
-
 type WorkspaceCopy = {
   actionLabels: [string, string, string];
   checklist: [string, string, string];
@@ -27,7 +22,6 @@ type WorkspaceCopy = {
   teamStatus: string;
   teamButtonLabel: string;
   timelineSummary: Array<{ timestamp: string; message: string }>;
-  evidenceFeed: FeedItem[];
 };
 
 const WORKSPACE_COPY: Record<string, WorkspaceCopy> = {
@@ -52,23 +46,6 @@ const WORKSPACE_COPY: Record<string, WorkspaceCopy> = {
       { timestamp: "11:43 AM", message: "Acknowledged" },
       { timestamp: "11:44 AM", message: "Team notified" },
     ],
-    evidenceFeed: [
-      {
-        message: "Guest reported need for wheelchair access",
-        timestamp: "11:42 AM",
-        tone: "blue",
-      },
-      {
-        message: "Host acknowledged and collecting details",
-        timestamp: "11:43 AM",
-        tone: "green",
-      },
-      {
-        message: "Radio: Guest Services notified",
-        timestamp: "11:44 AM",
-        tone: "violet",
-      },
-    ],
   },
   "incident-elevator-4": {
     actionLabels: ["Send Facilities", "Accessible reroute", "Ops update"],
@@ -87,23 +64,6 @@ const WORKSPACE_COPY: Record<string, WorkspaceCopy> = {
       { timestamp: "11:42 AM", message: "Operations acknowledged" },
       { timestamp: "11:44 AM", message: "Facilities notified" },
     ],
-    evidenceFeed: [
-      {
-        message: "Elevator 4 outage reported from East Stand",
-        timestamp: "11:41 AM",
-        tone: "blue",
-      },
-      {
-        message: "Accessibility route impact confirmed",
-        timestamp: "11:42 AM",
-        tone: "green",
-      },
-      {
-        message: "Facilities requesting access check",
-        timestamp: "11:44 AM",
-        tone: "violet",
-      },
-    ],
   },
   "incident-gate-b": {
     actionLabels: ["Dispatch Security", "Queue routing", "Gate advisory"],
@@ -121,23 +81,6 @@ const WORKSPACE_COPY: Record<string, WorkspaceCopy> = {
       { timestamp: "11:38 AM", message: "Incident created" },
       { timestamp: "11:39 AM", message: "Queue escalation confirmed" },
       { timestamp: "11:41 AM", message: "Security notified" },
-    ],
-    evidenceFeed: [
-      {
-        message: "Gate B ingress queue extending into perimeter lane",
-        timestamp: "11:38 AM",
-        tone: "blue",
-      },
-      {
-        message: "Host reports slower screening throughput",
-        timestamp: "11:39 AM",
-        tone: "green",
-      },
-      {
-        message: "Security preparing overflow routing",
-        timestamp: "11:41 AM",
-        tone: "violet",
-      },
     ],
   },
 };
@@ -182,18 +125,6 @@ function getChecklistStatus(approvedActionCount: number, index: number) {
   };
 }
 
-function getFeedToneClass(tone: FeedItem["tone"]): string {
-  switch (tone) {
-    case "green":
-      return "bg-emerald-500/15 text-emerald-800";
-    case "violet":
-      return "bg-violet-500/15 text-violet-800";
-    case "blue":
-    default:
-      return "bg-blue-500/15 text-blue-800";
-  }
-}
-
 function getFallbackWorkspaceCopy(incidentPackage: IncidentPackage): WorkspaceCopy {
   const teamName = incidentPackage.incident.assignedRole || "Operations";
   const actions = incidentPackage.incident.recommendedActions;
@@ -209,19 +140,6 @@ function getFallbackWorkspaceCopy(incidentPackage: IncidentPackage): WorkspaceCo
       ? [actions[0], actions[1], actions[2]]
       : ["Acknowledge", "Dispatch team", "Resolve incident"];
 
-  const evidenceFeed: FeedItem[] =
-    incidentPackage.evidence.length > 0
-      ? incidentPackage.evidence.slice(0, 3).map((e, i) => ({
-          message: e.excerpt,
-          timestamp: "—",
-          tone: (["blue", "green", "violet"] as const)[i % 3],
-        }))
-      : [
-          { message: incidentPackage.incident.title, timestamp: "—", tone: "blue" },
-          { message: `${teamName} reviewing the incident package`, timestamp: "—", tone: "green" },
-          { message: "Operations awaiting next update", timestamp: "—", tone: "violet" },
-        ];
-
   return {
     actionLabels,
     checklist,
@@ -235,7 +153,6 @@ function getFallbackWorkspaceCopy(incidentPackage: IncidentPackage): WorkspaceCo
       { timestamp: "—", message: `${teamName} assigned` },
       { timestamp: "—", message: "Response queued" },
     ],
-    evidenceFeed,
   };
 }
 
@@ -275,25 +192,9 @@ export function ActiveIncidentWorkspace({
   const dispatchApproved = incident.approvedActionIds.includes(
     `${incident.id}-action-0`,
   );
-  const relevantTimeline = timeline.filter((entry) => entry.incidentId === incident.id);
-  const recentActivityEntries = [
-    ...copy.timelineSummary.slice(-2).map((entry) => ({
-      key: `${incident.id}-summary-${entry.message}`,
-      timestamp: entry.timestamp,
-      message: entry.message,
-      markerClass: "bg-slate-400",
-    })),
-    ...relevantTimeline
-      .filter((entry) => entry.type === "approved")
-      .slice(-1)
-      .map((entry) => ({
-        key: entry.id,
-        timestamp: entry.timestamp,
-        message: "Dispatch approved",
-        markerClass: "bg-emerald-500",
-      })),
-  ].slice(-3);
-  const recentEvidence = copy.evidenceFeed.slice(0, 2);
+  const poolTimeline = copy.timelineSummary.map(
+    (entry) => `${entry.timestamp} — ${entry.message}`,
+  );
 
   return (
     <section
@@ -384,8 +285,6 @@ export function ActiveIncidentWorkspace({
           </div>
         </article>
 
-        <WorkflowCues incidentPackage={incidentPackage} />
-
         <div className="workspace-grid">
           <article className="ops-subpanel p-5">
             <WorkspaceSectionTitle marker="A" title="Response checklist" />
@@ -452,63 +351,14 @@ export function ActiveIncidentWorkspace({
           </article>
         </div>
 
-        <div className="workspace-grid">
-          <article className="ops-subpanel p-5">
-            <WorkspaceSectionTitle marker="C" title="Recent activity" />
-            <div className="space-y-4">
-              {recentActivityEntries.map((entry, index) => (
-                <div
-                  key={entry.key}
-                  className="grid grid-cols-[auto_1fr] items-start gap-4"
-                >
-                  <div className="flex items-start gap-3">
-                    <span
-                      className={`mt-1 inline-flex h-3 w-3 rounded-full ${
-                        index === 0 && entry.markerClass === "bg-slate-400"
-                          ? "bg-rose-500"
-                          : entry.markerClass
-                      }`}
-                    />
-                    <span className="text-sm text-slate-500">{entry.timestamp}</span>
-                  </div>
-                  <p className="text-[1rem] text-slate-800">{entry.message}</p>
-                </div>
-              ))}
-            </div>
-          </article>
+        <ResponseTimeline
+          incidentPackage={incidentPackage}
+          timeline={timeline}
+          poolTimeline={poolTimeline}
+        />
 
-          <article className="ops-subpanel p-5">
-            <WorkspaceSectionTitle marker="D" title="Recent evidence" />
-            <div className="space-y-4">
-              {recentEvidence.map((item) => (
-                <div
-                  key={`${incident.id}-feed-${item.message}`}
-                  className="grid grid-cols-[auto_1fr_auto] items-start gap-4"
-                >
-                  <span
-                    className={`inline-flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold ${getFeedToneClass(item.tone)}`}
-                  >
-                    {item.tone === "blue"
-                      ? "I"
-                      : item.tone === "green"
-                        ? "U"
-                        : "R"}
-                  </span>
-                  <p className="text-[1rem] text-slate-800">{item.message}</p>
-                  <span className="text-sm text-slate-500">{item.timestamp}</span>
-                </div>
-              ))}
-            </div>
-            <p
-              className="mt-4 text-sm text-slate-500"
-              data-testid="evidence-drawer-pointer"
-            >
-              Evidence reviewed — open drawer for full record.
-            </p>
-          </article>
-        </div>
+        <WorkflowCues incidentPackage={incidentPackage} />
 
-        {/* Section E — Command File */}
         <article className="ops-subpanel p-5" data-testid="command-file-section">
           <WorkspaceSectionTitle marker="E" title="Command file" />
           <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
@@ -532,6 +382,13 @@ export function ActiveIncidentWorkspace({
             </div>
           </dl>
         </article>
+
+        <p
+          className="text-sm text-slate-500"
+          data-testid="evidence-drawer-pointer"
+        >
+          Evidence reviewed — open drawer for full record.
+        </p>
       </div>
     </section>
   );

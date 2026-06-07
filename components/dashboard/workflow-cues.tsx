@@ -2,10 +2,7 @@
 
 import { useState } from "react";
 
-import {
-  buildDispatchMessage,
-  buildFollowUpQuestions,
-} from "@/lib/demo-agent-workflow";
+import { buildDispatchMessage } from "@/lib/demo-agent-workflow";
 import type { IncidentPackage } from "@/lib/types";
 
 export function WorkflowCues({
@@ -15,7 +12,6 @@ export function WorkflowCues({
 }) {
   const [copied, setCopied] = useState(false);
   const dispatchMessage = buildDispatchMessage(incidentPackage);
-  const followUpQuestions = buildFollowUpQuestions(incidentPackage);
 
   async function handleCopy() {
     try {
@@ -54,25 +50,12 @@ export function WorkflowCues({
         </button>
       </div>
 
-      <div className="mt-3 border-t border-slate-200 pt-3">
-        <h4 className="text-xs font-semibold text-[#07111c]">Follow-up questions</h4>
-        <p className="mt-1 text-xs text-slate-500">
-          Staff follow-ups are also available in Ask Sentinel.
-        </p>
-        <ul
-          className="mt-1.5 space-y-1 text-xs text-slate-700"
-          data-testid="follow-up-questions"
-        >
-          {followUpQuestions.map((question) => (
-            <li key={question} className="flex gap-2">
-              <span className="text-slate-400" aria-hidden="true">
-                ?
-              </span>
-              <span>{question}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
+      <p
+        className="mt-3 border-t border-slate-200 pt-3 text-sm text-slate-500"
+        data-testid="follow-up-sentinel-cue"
+      >
+        Staff follow-ups available in Ask Sentinel.
+      </p>
     </article>
   );
 }
