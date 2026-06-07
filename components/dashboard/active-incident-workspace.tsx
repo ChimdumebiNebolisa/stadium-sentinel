@@ -6,6 +6,7 @@ import { WorkflowCues } from "@/components/dashboard/workflow-cues";
 import { getLocationRecord } from "@/lib/data";
 import { isVenueOrientationEnabled } from "@/lib/feature-flags";
 import type { CommandState } from "@/lib/sentinel-command-agent";
+import type { SentinelRecommendedAction } from "@/lib/agent/sentinel-schema";
 import type { IncidentPackage, TimelineEntry } from "@/lib/types";
 
 type ActiveIncidentWorkspaceProps = {
@@ -15,6 +16,7 @@ type ActiveIncidentWorkspaceProps = {
   activeLocationIds?: string[];
   transcriptLine?: string | null;
   onApprove: (incidentId: string, action: string, actionIndex: number) => void;
+  onApplySentinelRecommendation?: (recommendation: SentinelRecommendedAction) => void;
 };
 
 type WorkspaceCopy = {
@@ -186,6 +188,7 @@ export function ActiveIncidentWorkspace({
   activeLocationIds = [],
   transcriptLine = null,
   onApprove,
+  onApplySentinelRecommendation,
 }: ActiveIncidentWorkspaceProps) {
   const { incident } = incidentPackage;
   const location = getLocationRecord(incident.locationId);
@@ -226,7 +229,10 @@ export function ActiveIncidentWorkspace({
               >
                 {incident.title}
               </h3>
-              <SentinelInline commandState={commandState} />
+              <SentinelInline
+                commandState={commandState}
+                onApplyRecommendation={onApplySentinelRecommendation}
+              />
               <p className="mt-2 text-sm text-slate-600">
                 {location?.name ?? incident.locationLabel} •{" "}
                 {location ? formatZoneLayer(location.zoneLayer) : "Operations"} •{" "}
