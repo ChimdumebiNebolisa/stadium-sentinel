@@ -184,7 +184,7 @@ export function buildExtractionSummary(
     parts.push(`Reports matched in current queue: ${matchedTitles}`);
   }
 
-  return parts.length > 0 ? parts.join(" · ") : null;
+  return parts.length > 0 ? parts.join(". ") : null;
 }
 
 function createRecordId(): string {
@@ -287,7 +287,7 @@ export function enrichPackageWithRadioEvidence(
     title: "Radio log excerpt",
     sourceType: "radio_log",
     excerpt,
-    rationale: "Matched from simulated radio transcript intake.",
+    rationale: "Matched from the current radio transcript.",
     sourceId: `${incidentPackage.incident.id}-radio-${hashLine(excerpt)}`,
   };
 

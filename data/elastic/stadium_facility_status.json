@@ -7,7 +7,7 @@
     "relatedIncidentId": "incident-elevator-4",
     "locationId": "elevator-4",
     "lastCheckedAt": "2026-06-07T11:41:30.000Z",
-    "notes": "Seeded mock status — lift out of service; alternate route via Elevator 3.",
+    "notes": "Lift out of service. Alternate route via Elevator 3.",
     "searchText": "elevator 4 down out of service facilities alternate route elevator 3"
   },
   {
@@ -18,7 +18,7 @@
     "relatedIncidentId": "incident-restroom-outage",
     "locationId": "west-concourse",
     "lastCheckedAt": "2026-06-07T11:45:30.000Z",
-    "notes": "Seeded mock status — nearest alternate restroom at Section 210.",
+    "notes": "Nearest alternate restroom at Section 210.",
     "searchText": "west concourse restroom out of order facilities alternate section 210"
   },
   {
@@ -29,7 +29,7 @@
     "relatedIncidentId": "incident-gate-b",
     "locationId": "gate-b",
     "lastCheckedAt": "2026-06-07T11:39:00.000Z",
-    "notes": "Seeded mock status — queue depth elevated; overflow path available north side.",
+    "notes": "Queue depth elevated. Overflow path available north side.",
     "searchText": "gate b degraded crowd flow queue depth overflow north side"
   }
 ]

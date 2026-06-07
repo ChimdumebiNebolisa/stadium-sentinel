@@ -111,7 +111,7 @@
   {
     "id": "incident-medical-assist",
     "title": "Guest medical assist",
-    "rawText": "Guest in Section 318 reporting dizziness — medical response requested.",
+    "rawText": "Guest in Section 318 reporting dizziness. Medical response requested.",
     "category": "guest-assistance",
     "incidentType": "accessibility-assist",
     "priority": "Immediate",
