@@ -1,5 +1,5 @@
 import { getLocationRecord, locationRecords } from "@/lib/data";
-import type { LocationRecord, ZoneLayer } from "@/lib/types";
+import type { IncidentPackage, LocationRecord, ZoneLayer } from "@/lib/types";
 
 export type VenueSchematicAnchor = {
   id: string;
@@ -82,4 +82,34 @@ export function formatZoneLayerLabel(zoneLayer: ZoneLayer): string {
     default:
       return zoneLayer;
   }
+}
+
+export function getActiveLocationIdsFromPackages(
+  incidentPackages: IncidentPackage[],
+): string[] {
+  return [
+    ...new Set(
+      incidentPackages
+        .map(({ incident }) => incident.locationId)
+        .filter((locationId) => Boolean(getLocationRecord(locationId))),
+    ),
+  ];
+}
+
+export function resolveOrientationSelection(
+  selectedLocationId: string | null | undefined,
+  activeLocationIds: string[],
+  model: VenueSchematicModel = buildVenueSchematicModel(),
+): {
+  selectedAnchor: VenueSchematicAnchor | undefined;
+  activeAnchorIds: string[];
+} {
+  const selectedAnchor = selectedLocationId
+    ? getSchematicAnchorForLocation(selectedLocationId, model)
+    : undefined;
+  const activeAnchorIds = activeLocationIds.filter((locationId) =>
+    model.anchors.some((anchor) => anchor.id === locationId),
+  );
+
+  return { selectedAnchor, activeAnchorIds };
 }

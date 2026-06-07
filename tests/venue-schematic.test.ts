@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildVenueSchematicModel,
+  getActiveLocationIdsFromPackages,
   getSchematicAnchorForLocation,
 } from "@/lib/venue-schematic";
+import { buildDemoState } from "@/lib/demo";
 
 describe("venue schematic anchor model", () => {
   it("builds operational anchors from location records", () => {
@@ -31,5 +33,13 @@ describe("venue schematic anchor model", () => {
 
     expect(labels).not.toMatch(/seat map/);
     expect(labels).not.toMatch(/venue map/);
+  });
+
+  it("resolves active queue location ids for orientation sync", () => {
+    const demo = buildDemoState();
+    const ids = getActiveLocationIdsFromPackages(demo.incidentPackages);
+
+    expect(ids).toContain("section-112");
+    expect(ids.length).toBeGreaterThanOrEqual(3);
   });
 });

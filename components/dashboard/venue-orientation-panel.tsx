@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import {
   buildVenueSchematicModel,
   formatZoneLayerLabel,
+  resolveOrientationSelection,
   type VenueSchematicAnchor,
 } from "@/lib/venue-schematic";
 
@@ -63,10 +64,11 @@ export function VenueOrientationPanel({
 }: VenueOrientationPanelProps) {
   const [open, setOpen] = useState(false);
   const model = useMemo(() => buildVenueSchematicModel(), []);
-  const activeIdSet = useMemo(() => new Set(activeLocationIds), [activeLocationIds]);
-  const selectedAnchor = selectedLocationId
-    ? model.anchors.find((anchor) => anchor.id === selectedLocationId)
-    : undefined;
+  const { selectedAnchor, activeAnchorIds } = useMemo(
+    () => resolveOrientationSelection(selectedLocationId, activeLocationIds, model),
+    [selectedLocationId, activeLocationIds, model],
+  );
+  const activeIdSet = useMemo(() => new Set(activeAnchorIds), [activeAnchorIds]);
 
   return (
     <section className="ops-subpanel px-3 py-2.5" data-testid="venue-orientation-section">
