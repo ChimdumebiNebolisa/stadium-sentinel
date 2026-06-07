@@ -10,3 +10,7 @@ export function isElasticPullEnabled(): boolean {
 export function isSentinelAgentEnabled(): boolean {
   return process.env.NEXT_PUBLIC_ENABLE_SENTINEL_AGENT !== "false";
 }
+
+export function isSentinelVoiceEnabled(): boolean {
+  return process.env.NEXT_PUBLIC_ENABLE_SENTINEL_VOICE === "true";
+}

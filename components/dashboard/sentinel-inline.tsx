@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 
 import type { SentinelRecommendedAction } from "@/lib/agent/sentinel-schema";
-import { isSentinelAgentEnabled } from "@/lib/feature-flags";
+import { isSentinelAgentEnabled, isSentinelVoiceEnabled } from "@/lib/feature-flags";
 import {
   answerSentinelQuestion,
   buildSuggestedSentinelQuestions,
@@ -11,6 +11,12 @@ import {
 } from "@/lib/sentinel-command-agent";
 import { askSentinel } from "@/lib/sentinel-agent-client";
 import { SENTINEL_MOCK_VOICE_QUESTION } from "@/lib/sentinel-voice-shell";
+import {
+  createSpeechRecognitionSession,
+  isSpeechSynthesisSupported,
+  speakSentinelAnswer,
+  type SpeechRecognitionStatus,
+} from "@/lib/sentinel-voice";
 import type { EvidenceResult } from "@/lib/types";
 
 type SentinelInlineProps = {
@@ -35,6 +41,15 @@ export function SentinelInline({
     useState<SentinelRecommendedAction | null>(null);
   const [loading, setLoading] = useState(false);
   const [metaLine, setMetaLine] = useState<string | null>(null);
+  const [voiceStatus, setVoiceStatus] = useState<SpeechRecognitionStatus>("ready");
+  const [voiceStatusMessage, setVoiceStatusMessage] = useState<string | null>(null);
+  const voiceSessionRef = useRef<ReturnType<typeof createSpeechRecognitionSession> | null>(
+    null,
+  );
+
+  const voiceEnabled = isSentinelVoiceEnabled();
+  const readAloudSupported =
+    typeof window !== "undefined" && isSpeechSynthesisSupported();
 
   const incidentId = commandState.selectedIncidentPackage?.incident.id ?? "";
   const suggestedQuestions = buildSuggestedSentinelQuestions(commandState).slice(
@@ -133,6 +148,41 @@ export function SentinelInline({
     setQuestionInput(SENTINEL_MOCK_VOICE_QUESTION);
   }
 
+  function getVoiceSession() {
+    if (typeof window === "undefined") {
+      return {
+        isSupported: false,
+        start: () => {},
+        stop: () => {},
+      };
+    }
+
+    if (!voiceSessionRef.current) {
+      voiceSessionRef.current = createSpeechRecognitionSession({
+        onTranscript: (text) => setQuestionInput(text),
+        onStatusChange: (status, message) => {
+          setVoiceStatus(status);
+          setVoiceStatusMessage(message);
+        },
+      });
+    }
+
+    return voiceSessionRef.current;
+  }
+
+  function handlePushToTalkStart() {
+    getVoiceSession().start();
+  }
+
+  function handlePushToTalkStop() {
+    getVoiceSession().stop();
+  }
+
+  function handleReadAloud() {
+    if (!answer) return;
+    speakSentinelAnswer(answer);
+  }
+
   return (
     <div className="mt-2">
       <button
@@ -175,6 +225,12 @@ export function SentinelInline({
               data-testid="sentinel-answer"
             >
               {answer}
+            </p>
+          ) : null}
+
+          {voiceEnabled && voiceStatusMessage ? (
+            <p className="mt-1 text-[0.7rem] text-slate-500" data-testid="sentinel-voice-status">
+              {voiceStatusMessage}
             </p>
           ) : null}
 
@@ -243,15 +299,44 @@ export function SentinelInline({
           </div>
 
           <form onSubmit={handleSubmit} className="mt-2 flex flex-wrap gap-1.5">
-            <button
-              type="button"
-              data-testid="sentinel-mock-voice"
-              aria-label="Insert mock voice question"
-              onClick={handleMockVoice}
-              className="shrink-0 rounded-md border border-slate-200 bg-white px-2 py-1 text-[0.7rem] font-medium text-slate-600 transition-colors hover:border-violet-500/30 hover:text-violet-900"
-            >
-              Mock voice
-            </button>
+            {voiceEnabled ? (
+              <>
+                <button
+                  type="button"
+                  data-testid="sentinel-push-to-talk"
+                  aria-label="Push to talk"
+                  onMouseDown={handlePushToTalkStart}
+                  onMouseUp={handlePushToTalkStop}
+                  onMouseLeave={handlePushToTalkStop}
+                  onTouchStart={handlePushToTalkStart}
+                  onTouchEnd={handlePushToTalkStop}
+                  disabled={voiceStatus === "unsupported"}
+                  className="shrink-0 rounded-md border border-violet-500/30 bg-white px-2 py-1 text-[0.7rem] font-medium text-violet-900 transition-colors hover:bg-violet-500/5 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {voiceStatus === "listening" ? "Listening…" : "Push to talk"}
+                </button>
+                {answer && readAloudSupported ? (
+                  <button
+                    type="button"
+                    data-testid="sentinel-read-aloud"
+                    onClick={handleReadAloud}
+                    className="shrink-0 rounded-md border border-slate-200 bg-white px-2 py-1 text-[0.7rem] font-medium text-slate-600 transition-colors hover:border-violet-500/30 hover:text-violet-900"
+                  >
+                    Read aloud
+                  </button>
+                ) : null}
+              </>
+            ) : (
+              <button
+                type="button"
+                data-testid="sentinel-mock-voice"
+                aria-label="Insert mock voice question"
+                onClick={handleMockVoice}
+                className="shrink-0 rounded-md border border-slate-200 bg-white px-2 py-1 text-[0.7rem] font-medium text-slate-600 transition-colors hover:border-violet-500/30 hover:text-violet-900"
+              >
+                Mock voice
+              </button>
+            )}
             <input
               type="text"
               value={questionInput}
