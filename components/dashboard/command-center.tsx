@@ -172,6 +172,9 @@ export function CommandCenter() {
   const [sourceAuditEvents, setSourceAuditEvents] = useState<SourceAuditEvent[]>(
     [],
   );
+  const [ingestionFallbackMessage, setIngestionFallbackMessage] = useState<
+    string | null
+  >(null);
 
   function recordSourceAudit(
     sourceMode: NormalizedIngestionResult["sourceMode"],
@@ -532,6 +535,7 @@ export function CommandCenter() {
           onExtractTranscript={handleExtractTranscript}
           transcriptExtractStatus={transcriptExtractStatus}
           latestTranscriptRecord={latestTranscriptRecord}
+          ingestionFallbackMessage={ingestionFallbackMessage}
         />
 
         <section className="board-grid">

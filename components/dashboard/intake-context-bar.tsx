@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { IngestionStatusBanner } from "@/components/dashboard/ingestion-status-banner";
 import { RadioTranscriptPanel } from "@/components/dashboard/radio-transcript-panel";
 import type { ChangeSummary } from "@/lib/demo-agent-workflow";
 import { readIntakeComplete, readSourcesConnected } from "@/lib/intake-demo";
@@ -16,6 +17,7 @@ type IntakeContextBarProps = {
   onExtractTranscript: (text: string, presetId?: string) => void;
   transcriptExtractStatus: string | null;
   latestTranscriptRecord: RadioTranscriptRecord | null;
+  ingestionFallbackMessage?: string | null;
 };
 
 export function IntakeContextBar({
@@ -27,6 +29,7 @@ export function IntakeContextBar({
   onExtractTranscript,
   transcriptExtractStatus,
   latestTranscriptRecord,
+  ingestionFallbackMessage,
 }: IntakeContextBarProps) {
   const [mounted, setMounted] = useState(false);
   const [intakeComplete, setIntakeComplete] = useState(false);
@@ -95,6 +98,8 @@ export function IntakeContextBar({
           ) : null}
         </div>
       </div>
+
+      <IngestionStatusBanner fallbackMessage={ingestionFallbackMessage} />
 
       <RadioTranscriptPanel
         onExtract={onExtractTranscript}
