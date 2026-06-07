@@ -11,6 +11,7 @@ import { IncidentList } from "@/components/dashboard/incident-list";
 import { IntakeContextBar } from "@/components/dashboard/intake-context-bar";
 import { PostEventReportPanel } from "@/components/dashboard/post-event-report-panel";
 import { ReportInput } from "@/components/dashboard/report-input";
+import { SourceLogPanel } from "@/components/dashboard/source-log-panel";
 import { StaffUpdatePanel } from "@/components/dashboard/staff-update-panel";
 import { TimelinePanel } from "@/components/dashboard/timeline-panel";
 import {
@@ -48,6 +49,15 @@ import {
   fetchManualIngestionResult,
   planManualReportIngestion,
 } from "@/lib/manual-report-ingestion";
+import type { NormalizedIngestionResult } from "@/lib/source-mode";
+import { INGESTION_CONTRACTS } from "@/lib/source-mode";
+import {
+  appendSourceAuditEvent,
+  buildSourceAuditEvent,
+  getRecentSourceAuditExcerpts,
+  loadSourceAuditEvents,
+  type SourceAuditEvent,
+} from "@/lib/source-audit";
 import type { CommandState } from "@/lib/sentinel-command-agent";
 import type {
   IncidentPackage,
@@ -56,7 +66,7 @@ import type {
 } from "@/lib/types";
 
 const initialDemoState = buildDemoState();
-type WorkspaceView = "evidence" | "staff" | "timeline" | "report";
+type WorkspaceView = "evidence" | "staff" | "timeline" | "report" | "source";
 
 function resolveTranscriptTitle(
   incidentId: string,
@@ -159,6 +169,27 @@ export function CommandCenter() {
   const [lastIngestionSummary, setLastIngestionSummary] = useState<string | null>(
     null,
   );
+  const [sourceAuditEvents, setSourceAuditEvents] = useState<SourceAuditEvent[]>(
+    [],
+  );
+
+  function recordSourceAudit(
+    sourceMode: NormalizedIngestionResult["sourceMode"],
+    summary: string,
+    outcome: NormalizedIngestionResult["outcome"],
+    incidentCount: number,
+  ) {
+    const contract = INGESTION_CONTRACTS[sourceMode];
+    const event = buildSourceAuditEvent({
+      sourceMode,
+      label: contract.label,
+      summary,
+      outcome,
+      incidentCount,
+    });
+    setSourceAuditEvents((current) => appendSourceAuditEvent(event, current));
+    return event;
+  }
 
   function applyNormalizedIngestion(result: NormalizedIngestionResult) {
     setIncidentPackages(result.incidentPackages);
@@ -167,11 +198,19 @@ export function CommandCenter() {
     setSelectedIncidentId(result.incidentPackages[0]?.incident.id ?? "");
     setSourceMode(result.sourceMode);
     setLastIngestionSummary(result.ingestionSummary);
+    recordSourceAudit(
+      result.sourceMode,
+      result.ingestionSummary,
+      result.outcome,
+      result.incidentPackages.length,
+    );
   }
 
   // Read localStorage batch on mount (client-only — avoids hydration mismatch).
   // Falls back to buildDemoState() if no valid batch exists.
   useEffect(() => {
+    setSourceAuditEvents(loadSourceAuditEvents());
+
     const batch = loadDemoIncidentBatch();
     const transcriptRecord = loadRadioTranscriptRecord();
     setLatestTranscriptRecord(transcriptRecord);
@@ -302,6 +341,12 @@ export function CommandCenter() {
     setTimeline(nextTimeline);
     setReportSummary(buildPostEventReport(sortedPackages, nextTimeline));
     setPullStatus("Latest demo reports pulled.");
+    recordSourceAudit(
+      "demo",
+      `Demo pull loaded ${sortedPackages.length} incident package(s).`,
+      "success",
+      sortedPackages.length,
+    );
   }
 
   function handleExtractTranscript(text: string, presetId?: string) {
@@ -379,6 +424,15 @@ export function CommandCenter() {
         extraction.matchedIncidentIds.length,
       ),
     );
+    recordSourceAudit(
+      "transcript",
+      buildExtractionStatusMessage(
+        extraction.addedIds.length,
+        extraction.matchedIncidentIds.length,
+      ),
+      "success",
+      nextPackages.length,
+    );
   }
 
   const topPriority = incidentPackages[0]?.incident.priority ?? "Monitor";
@@ -434,7 +488,7 @@ export function CommandCenter() {
         : [],
       sourceMode,
       lastIngestionSummary,
-      sourceAuditExcerpts: [],
+      sourceAuditExcerpts: getRecentSourceAuditExcerpts(sourceAuditEvents),
     }),
     [
       incidentPackages,
@@ -449,6 +503,7 @@ export function CommandCenter() {
       latestTranscriptRecord,
       sourceMode,
       lastIngestionSummary,
+      sourceAuditEvents,
     ],
   );
 
@@ -560,6 +615,7 @@ export function CommandCenter() {
               />
             </>
           }
+          sourceLogPanel={<SourceLogPanel events={sourceAuditEvents} />}
         />
       </main>
     </div>

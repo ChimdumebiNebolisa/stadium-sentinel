@@ -2,7 +2,7 @@
 
 import type { MouseEvent, ReactNode } from "react";
 
-type WorkspaceView = "evidence" | "staff" | "timeline" | "report";
+type WorkspaceView = "evidence" | "staff" | "timeline" | "report" | "source";
 
 type WorkspaceTab = {
   id: WorkspaceView;
@@ -18,6 +18,7 @@ type IncidentDrawerProps = {
   staffPanel: ReactNode;
   timelinePanel: ReactNode;
   reportPanel: ReactNode;
+  sourceLogPanel: ReactNode;
 };
 
 const workspaceTabs: WorkspaceTab[] = [
@@ -25,6 +26,7 @@ const workspaceTabs: WorkspaceTab[] = [
   { id: "staff", label: "Staff Update" },
   { id: "timeline", label: "Incident log" },
   { id: "report", label: "Report" },
+  { id: "source", label: "Source log" },
 ];
 
 function DrawerTabs({
@@ -73,6 +75,7 @@ export function IncidentDrawer({
   staffPanel,
   timelinePanel,
   reportPanel,
+  sourceLogPanel,
 }: IncidentDrawerProps) {
   const isExpanded = activeWorkspace !== null;
 
@@ -114,6 +117,14 @@ export function IncidentDrawer({
             className="utility-drawer-grid h-full gap-4 overflow-y-auto xl:grid-cols-[24rem_minmax(0,1fr)]"
           >
             {reportPanel}
+          </div>
+
+          <div
+            id="workspace-panel-source"
+            data-state={activeWorkspace === "source" ? "open" : "closed"}
+            className="utility-drawer-panel h-full overflow-y-auto"
+          >
+            {sourceLogPanel}
           </div>
         </div>
       </div>
