@@ -10,7 +10,8 @@ export type SentinelUiState =
   | "action_proposed"
   | "action_executing"
   | "action_complete"
-  | "action_failed";
+  | "action_failed"
+  | "speaking";
 
 export type SentinelActionTrace = {
   interpretedCommand: string;
@@ -38,6 +39,7 @@ type SentinelInlineProps = {
   onToggleVoice: () => void;
   onMockVoice: () => void;
   onApplyAction: () => void;
+  onStopSpeech: () => void;
 };
 
 function getStateLabel(state: SentinelUiState): string {
@@ -56,6 +58,8 @@ function getStateLabel(state: SentinelUiState): string {
       return "Action complete";
     case "action_failed":
       return "Action review";
+    case "speaking":
+      return "Sentinel speaking";
     default:
       return "Idle";
   }
@@ -79,8 +83,10 @@ export function SentinelInline({
   onToggleVoice,
   onMockVoice,
   onApplyAction,
+  onStopSpeech,
 }: SentinelInlineProps) {
   const isListening = state === "listening";
+  const isSpeaking = state === "speaking";
   return (
     <div className="relative" data-testid="sentinel-command">
       <button
@@ -118,6 +124,23 @@ export function SentinelInline({
               </p>
             ) : null}
           </div>
+
+          {isSpeaking ? (
+            <div
+              className="mt-3 flex items-center justify-between gap-2 rounded-md border border-violet-500/20 bg-violet-500/5 px-3 py-2"
+              data-testid="sentinel-speaking-banner"
+            >
+              <p className="text-xs font-medium text-violet-800">Sentinel speaking…</p>
+              <button
+                type="button"
+                onClick={onStopSpeech}
+                data-testid="sentinel-stop-speech"
+                className="shrink-0 rounded-md border border-violet-500/25 px-2 py-1 text-[0.7rem] font-medium text-violet-700 hover:bg-violet-500/8"
+              >
+                Stop
+              </button>
+            </div>
+          ) : null}
 
           {voiceEnabled ? (
             <div className="mt-3 space-y-2" data-testid="sentinel-voice-first">

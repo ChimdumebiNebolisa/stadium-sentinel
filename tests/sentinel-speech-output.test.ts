@@ -1,0 +1,242 @@
+import { describe, expect, it, vi, beforeEach } from "vitest";
+
+import {
+  buildSpokenSentinelResponse,
+  canSpeakSentinelResponse,
+  speakSentinelResponse,
+  stopSentinelSpeech,
+  type SentinelSpeechContext,
+} from "@/lib/sentinel-speech-output";
+import type { IncidentPackage } from "@/lib/types";
+
+// ─── Shared fixture ─────────────────────────────────────────────────────────
+
+function makeWindow(opts: { hasSynthesis?: boolean; hasUtterance?: boolean } = {}) {
+  const { hasSynthesis = true, hasUtterance = true } = opts;
+
+  const win: Record<string, unknown> = {};
+
+  if (hasSynthesis) {
+    win.speechSynthesis = {
+      speak: vi.fn(),
+      cancel: vi.fn(),
+    };
+  }
+
+  if (hasUtterance) {
+    vi.stubGlobal(
+      "SpeechSynthesisUtterance",
+      class MockUtterance {
+        rate = 1;
+        pitch = 1;
+        constructor(public text: string) {}
+      },
+    );
+  } else {
+    vi.stubGlobal("SpeechSynthesisUtterance", undefined);
+  }
+
+  return win as unknown as Window & { speechSynthesis?: SpeechSynthesis };
+}
+
+function makeIncidentPackage(overrides: Partial<IncidentPackage["incident"]> = {}): IncidentPackage {
+  return {
+    incident: {
+      id: "incident-gate-b",
+      title: "Gate B backed up",
+      rawText: "Gate B ingress queue extending into perimeter lane.",
+      priority: "High",
+      category: "crowd-flow",
+      incidentType: "queue-congestion",
+      locationId: "gate-b",
+      locationLabel: "Gate B",
+      assignedRole: "Security",
+      status: "new",
+      assumptions: [],
+      evidenceIds: [],
+      recommendedActions: ["Dispatch Security", "Open overflow route", "Monitor queue"],
+      approvedActionIds: [],
+      ...overrides,
+    },
+    evidence: [
+      { sourceId: "ev-1", title: "Radio log", sourceType: "radio_log", excerpt: "…", rationale: "…" },
+      { sourceId: "ev-2", title: "Staff note", sourceType: "radio_log", excerpt: "…", rationale: "…" },
+      { sourceId: "ev-3", title: "Queue standard", sourceType: "policy", excerpt: "…", rationale: "…" },
+    ],
+    staffUpdate: "Queue staff update.",
+  };
+}
+
+beforeEach(() => {
+  vi.unstubAllGlobals();
+});
+
+// ─── canSpeakSentinelResponse ─────────────────────────────────────────────────
+
+describe("canSpeakSentinelResponse", () => {
+  it("returns true when speechSynthesis and SpeechSynthesisUtterance are available", () => {
+    const win = makeWindow();
+    expect(canSpeakSentinelResponse(win)).toBe(true);
+  });
+
+  it("returns false when speechSynthesis is absent", () => {
+    const win = makeWindow({ hasSynthesis: false });
+    expect(canSpeakSentinelResponse(win)).toBe(false);
+  });
+
+  it("returns false when SpeechSynthesisUtterance is absent", () => {
+    const win = makeWindow({ hasUtterance: false });
+    expect(canSpeakSentinelResponse(win)).toBe(false);
+  });
+});
+
+// ─── stopSentinelSpeech ───────────────────────────────────────────────────────
+
+describe("stopSentinelSpeech", () => {
+  it("calls speechSynthesis.cancel()", () => {
+    const win = makeWindow();
+    stopSentinelSpeech(win);
+    expect((win.speechSynthesis as any).cancel).toHaveBeenCalledOnce();
+  });
+
+  it("does not throw when speechSynthesis is absent", () => {
+    const win = makeWindow({ hasSynthesis: false });
+    expect(() => stopSentinelSpeech(win)).not.toThrow();
+  });
+});
+
+// ─── speakSentinelResponse ────────────────────────────────────────────────────
+
+describe("speakSentinelResponse", () => {
+  it("cancels previous utterance then speaks", () => {
+    const win = makeWindow();
+    speakSentinelResponse("Test", win);
+    expect((win.speechSynthesis as any).cancel).toHaveBeenCalled();
+    expect((win.speechSynthesis as any).speak).toHaveBeenCalled();
+  });
+
+  it("returns true when speech is spoken", () => {
+    const win = makeWindow();
+    expect(speakSentinelResponse("Test", win)).toBe(true);
+  });
+
+  it("returns false and does not speak when synthesis is unavailable", () => {
+    const win = makeWindow({ hasSynthesis: false });
+    expect(speakSentinelResponse("Test", win)).toBe(false);
+  });
+
+  it("returns false for an empty string", () => {
+    const win = makeWindow();
+    expect(speakSentinelResponse("   ", win)).toBe(false);
+    expect((win.speechSynthesis as any).speak).not.toHaveBeenCalled();
+  });
+
+  it("cancels in-progress speech before a new call (cancel-then-speak pattern)", () => {
+    const win = makeWindow();
+    const cancel = vi.fn();
+    const speak = vi.fn();
+    (win.speechSynthesis as any).cancel = cancel;
+    (win.speechSynthesis as any).speak = speak;
+
+    speakSentinelResponse("First command", win);
+    speakSentinelResponse("Second command", win);
+
+    // cancel must be called before each speak
+    expect(cancel).toHaveBeenCalledTimes(2);
+    expect(speak).toHaveBeenCalledTimes(2);
+  });
+});
+
+// ─── buildSpokenSentinelResponse ─────────────────────────────────────────────
+
+describe("buildSpokenSentinelResponse", () => {
+  it("evidence command mentions the incident title and evidence count", () => {
+    const pkg = makeIncidentPackage();
+    const text = buildSpokenSentinelResponse({
+      commandType: "open_evidence",
+      incidentPackage: pkg,
+      evidenceCount: pkg.evidence.length,
+    });
+    expect(text).toMatch(/Evidence is open/i);
+    expect(text).toMatch(/3 source signals/i);
+    expect(text).toMatch(/Gate B backed up/i);
+  });
+
+  it("report command says drafted and mentions the Report tab", () => {
+    const text = buildSpokenSentinelResponse({
+      commandType: "draft_report",
+      incidentPackage: makeIncidentPackage(),
+    });
+    expect(text).toMatch(/drafted/i);
+    expect(text).toMatch(/Report tab/i);
+    expect(text).not.toMatch(/\bCritical\b/);
+  });
+
+  it("dispatch command (no writeback yet) mentions team and confirm approval", () => {
+    const text = buildSpokenSentinelResponse({
+      commandType: "dispatch_team",
+      incidentPackage: makeIncidentPackage(),
+      writebackStatus: null,
+    });
+    expect(text).toMatch(/Dispatch is prepared/i);
+    expect(text).toMatch(/Security/);
+  });
+
+  it("dispatch command with write-back status confirms update", () => {
+    const text = buildSpokenSentinelResponse({
+      commandType: "dispatch_team",
+      incidentPackage: makeIncidentPackage(),
+      writebackStatus: "Write-back recorded.",
+    });
+    expect(text).toMatch(/approved/i);
+    expect(text).toMatch(/operations memory/i);
+  });
+
+  it("fallback command offers the three core command types", () => {
+    const text = buildSpokenSentinelResponse({ commandType: "fallback" });
+    expect(text).toMatch(/evidence/i);
+    expect(text).toMatch(/report/i);
+    expect(text).toMatch(/dispatch/i);
+  });
+
+  it("spoken responses are short (under 50 words)", () => {
+    const contexts: SentinelSpeechContext[] = [
+      { commandType: "open_evidence", incidentPackage: makeIncidentPackage(), evidenceCount: 3 },
+      { commandType: "draft_report", incidentPackage: makeIncidentPackage() },
+      { commandType: "dispatch_team", incidentPackage: makeIncidentPackage(), writebackStatus: null },
+      { commandType: "fallback" },
+    ];
+    for (const ctx of contexts) {
+      const words = buildSpokenSentinelResponse(ctx).split(/\s+/).length;
+      expect(words, `${ctx.commandType} response exceeds 50 words`).toBeLessThanOrEqual(50);
+    }
+  });
+
+  it("does not contain forbidden wording in spoken output", () => {
+    const allTypes: SentinelSpeechContext["commandType"][] = [
+      "open_evidence",
+      "draft_report",
+      "open_report",
+      "process_report",
+      "dispatch_team",
+      "advance_checklist",
+      "open_source_log",
+      "select_top_incident",
+      "recommend_next_action",
+      "idle_answer",
+      "fallback",
+    ];
+    for (const commandType of allTypes) {
+      const text = buildSpokenSentinelResponse({
+        commandType,
+        incidentPackage: makeIncidentPackage(),
+      });
+      expect(text).not.toMatch(/\bCritical\b/);
+      expect(text).not.toMatch(/\bseverity\b/i);
+      expect(text).not.toMatch(/\bconfidence\b/i);
+      expect(text).not.toMatch(/\bscore\b/i);
+      expect(text).not.toMatch(/Venue map/i);
+      expect(text).not.toMatch(/Seat map/i);
+    }
+  });
+});
