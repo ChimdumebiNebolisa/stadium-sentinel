@@ -7,7 +7,6 @@ export function LandingNav() {
     <nav className="landing-nav" aria-label="Primary">
       <div className="landing-nav-inner">
         <div className="landing-nav-brand">
-          <span className="landing-nav-logo" aria-hidden="true" />
           <span className="landing-nav-title">Stadium Sentinel</span>
         </div>
 

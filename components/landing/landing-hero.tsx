@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { LANDING_PROOF_STATS } from "@/lib/landing-data";
+
 import { DashboardIcon, PlayIcon } from "@/components/landing/landing-icons";
 
 export function LandingHero() {
@@ -14,6 +16,12 @@ export function LandingHero() {
         updates into one command file, then turns them into assigned incidents
         with priorities, next actions, timelines, and report output.
       </p>
+
+      <div className="landing-proof-callout landing-proof-callout-hero">
+        <p>{LANDING_PROOF_STATS.heroAttendance.text}</p>
+        <span className="landing-stat-source">{LANDING_PROOF_STATS.heroAttendance.source}</span>
+      </div>
+
       <div className="landing-cta-row">
         <Link
           href="/command"

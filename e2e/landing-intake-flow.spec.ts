@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 const DEMO_SOURCE_IDS = ["guest-services", "security", "facilities", "radio"] as const;
 
 async function expectPullComplete(page: Parameters<typeof test>[0]["page"]) {
-  await expect(page.getByTestId("pull-status")).toContainText(/pulled|loaded/i, {
+  await expect(page.getByTestId("command-strip-summary")).toContainText(/pulled|loaded/i, {
     timeout: 5_000,
   });
 }
@@ -20,6 +20,37 @@ test("landing page loads with clean recording copy and CTAs", async ({ page }) =
   await expect(page.getByTestId("hero-cta-intake-demo")).toBeVisible();
   await expect(page.getByTestId("hero-cta-command-center")).toBeVisible();
   await expect(page.getByText("Mock Intake")).toHaveCount(0);
+});
+
+test("landing page advertises Sentinel and removes technical appendix", async ({ page }) => {
+  await page.goto("/");
+
+  await expect(page.getByRole("heading", { name: "Ask Sentinel by voice" })).toBeVisible();
+  await expect(page.getByText("Technical appendix", { exact: false })).toHaveCount(0);
+  await expect(page.getByText("Elastic MCP")).toHaveCount(0);
+  await expect(page.locator(".landing-nav-logo")).toHaveCount(0);
+  await expect(page.getByText("Source: Two Circles, 2025").first()).toBeVisible();
+  await expect(page.getByText("Source: Microsoft Work Trend Index, 2023")).toBeVisible();
+});
+
+test("landing nav anchors point to real sections", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.goto("/");
+
+  await expect(page.locator("#workflow")).toBeAttached();
+  await expect(page.locator("#agent")).toBeAttached();
+  await expect(page.locator("#demo")).toBeAttached();
+  await expect(page.getByRole("link", { name: "Agent", exact: true })).toHaveAttribute(
+    "href",
+    "#agent",
+  );
+});
+
+test("landing final CTA promotes Sentinel demo", async ({ page }) => {
+  await page.goto("/");
+
+  await expect(page.getByRole("heading", { name: "Try Sentinel on a live incident." })).toBeVisible();
+  await expect(page.getByTestId("final-cta-launch-demo")).toBeVisible();
 });
 
 test("landing CTA opens the command center", async ({ page }) => {

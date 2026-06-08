@@ -5,12 +5,11 @@ import {
   DISPATCH_FILTERS,
   DISPATCH_QUEUE_ROWS,
   FOOTER_LINKS,
+  LANDING_PROOF_STATS,
   SWIMLANE_TIME_MARKS,
-  TECH_APPENDIX_ITEMS,
 } from "@/lib/landing-data";
 
 import {
-  DashboardIcon,
   FolderIcon,
   MemoryIcon,
   MicIcon,
@@ -27,7 +26,7 @@ const capabilityIcons = {
 
 export function DispatchQueueSection() {
   return (
-    <section className="landing-section landing-dispatch-section">
+    <section id="demo" className="landing-section landing-dispatch-section">
       <div className="landing-section-heading">
         <h2>Active dispatch queue</h2>
         <p>Monitor current incidents in one focused operations command center.</p>
@@ -88,9 +87,49 @@ export function SwimlaneTimelineSection() {
   );
 }
 
+export function AskSentinelSection() {
+  return (
+    <section id="agent" className="landing-section landing-agent-section">
+      <div className="landing-section-heading">
+        <h2>Ask Sentinel by voice</h2>
+        <p>
+          Ask what happened, who is handling it, what changed, or what needs to happen next.
+          Sentinel answers from live incident context and can open evidence, prepare dispatch,
+          or draft the incident report.
+        </p>
+      </div>
+
+      <div className="landing-proof-callout landing-proof-callout-agent">
+        <p>{LANDING_PROOF_STATS.searchFriction.text}</p>
+        <span className="landing-stat-source">{LANDING_PROOF_STATS.searchFriction.source}</span>
+      </div>
+
+      <div className="landing-agent-points">
+        <article className="landing-agent-point">
+          <h3>Hands-free updates</h3>
+          <p>Staff ask Sentinel while moving through the venue — no dashboard hunting.</p>
+        </article>
+        <article className="landing-agent-point">
+          <h3>Live operational memory</h3>
+          <p>Answers draw from command-center updates, ground reports, and Elastic-backed incident context.</p>
+        </article>
+        <article className="landing-agent-point">
+          <h3>Take the next step</h3>
+          <p>Open evidence, prepare dispatch, or draft the incident report from the selected incident.</p>
+        </article>
+      </div>
+    </section>
+  );
+}
+
 export function CapabilityCardsSection() {
   return (
-    <section id="workflow" className="landing-section landing-capability-section">
+    <section className="landing-section landing-capability-section">
+      <div className="landing-proof-callout landing-proof-callout-problem">
+        <p>{LANDING_PROOF_STATS.staffingPressure.text}</p>
+        <span className="landing-stat-source">{LANDING_PROOF_STATS.staffingPressure.source}</span>
+      </div>
+
       <div className="landing-capability-grid">
         {CAPABILITY_CARDS.map((card) => {
           const Icon = capabilityIcons[card.icon];
@@ -107,24 +146,6 @@ export function CapabilityCardsSection() {
   );
 }
 
-export function TechnicalAppendixSection() {
-  return (
-    <section id="agent-layer" className="landing-section landing-appendix-section">
-      <div className="landing-appendix-band">
-        <h2>Technical appendix</h2>
-        <div className="landing-appendix-grid">
-          {TECH_APPENDIX_ITEMS.map((item) => (
-            <article key={item.title} className="landing-appendix-card">
-              <h3>{item.title}</h3>
-              <p>{item.body}</p>
-            </article>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
 export function FinalCtaSection() {
   return (
     <section className="landing-section landing-final-cta-section">
@@ -134,23 +155,18 @@ export function FinalCtaSection() {
           <span className="landing-cta-watermark landing-cta-watermark-command">COMMAND FILE</span>
           <span className="landing-cta-watermark landing-cta-watermark-ops">OPS</span>
         </div>
-        <h2>Open the command center.</h2>
+        <h2>Try Sentinel on a live incident.</h2>
+        <p className="landing-final-cta-body">
+          Ask Sentinel what happened, who is handling it, what changed, or what should happen next.
+        </p>
         <div className="landing-cta-row landing-final-cta-row">
           <Link
             href="/command"
             className="landing-cta-final-primary"
-            data-testid="final-cta-intake-demo"
+            data-testid="final-cta-launch-demo"
           >
             <PlayIcon />
-            Open operations intake
-          </Link>
-          <Link
-            href="/command"
-            className="landing-cta-final-secondary"
-            data-testid="final-cta-command-center"
-          >
-            <DashboardIcon />
-            Open command center
+            Launch live demo
           </Link>
         </div>
       </div>

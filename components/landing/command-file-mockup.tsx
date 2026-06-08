@@ -37,7 +37,7 @@ function StickyNote({
 
 export function CommandFileMockup() {
   return (
-    <section id="demo" className="landing-mockup-section">
+    <section id="workflow" className="landing-mockup-section">
       {COMMAND_FILE_STICKIES.map((note) => (
         <StickyNote key={note.title} {...note} />
       ))}

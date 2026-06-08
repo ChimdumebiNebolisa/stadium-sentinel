@@ -22,7 +22,7 @@ async function openWorkspace(
 async function openSentinelPanel(page: Page) {
   await expect(page.getByTestId("sentinel-control")).toBeVisible();
   await page.getByTestId("sentinel-control").click();
-  await expect(page.getByTestId("sentinel-panel")).toBeVisible();
+  await expect(page.getByTestId("sentinel-orb")).toBeVisible();
 }
 
 async function installMockSpeechRecognition(page: Page, transcript: string) {
@@ -138,7 +138,7 @@ async function enableDemoSources(page: Page) {
 
 async function pullLatestReports(page: Page) {
   await page.getByTestId("pull-latest-reports").click();
-  await expect(page.getByTestId("pull-status")).toContainText(/pulled|loaded/i, {
+  await expect(page.getByTestId("command-strip-summary")).toContainText(/pulled|loaded/i, {
     timeout: 5_000,
   });
 }
@@ -306,14 +306,14 @@ test("voice control is click-to-stop after auto-start, not press-and-hold", asyn
   await page.goto("/command");
   await openSentinelPanel(page);
 
-  const button = page.getByTestId("sentinel-push-to-talk");
+  const control = page.getByTestId("sentinel-voice-control");
   await waitForSentinelListening(page);
-  await expect(button).toHaveText(/Stop listening/i);
+  await expect(control).toHaveText(/Stop listening/i);
   // Evidence panel should not have opened yet (transcript not delivered)
   await expect(page.getByTestId("evidence-panel")).not.toBeVisible();
 
   // Click stops listening — the transcript is delivered and the command runs.
-  await button.click();
+  await control.click();
   await expect(page.getByTestId("evidence-panel")).toBeVisible();
 });
 
@@ -601,13 +601,48 @@ test("backend-off mode keeps the deterministic api contract for the demo input",
 
 // ─── Panel UX + intro tests ───────────────────────────────────────────────────
 
+test("command bar shows pull status only once after reports are loaded", async ({
+  page,
+}) => {
+  await page.goto("/command");
+  await enableDemoSources(page);
+  await pullLatestReports(page);
+
+  const barText = (await page.getByTestId("command-bar").textContent()) ?? "";
+  const matches = barText.match(/Live operations data pulled/gi) ?? [];
+  expect(matches.length).toBe(1);
+  await expect(page.getByTestId("pull-status")).toHaveCount(0);
+});
+
 test("Ask Sentinel panel shows friendly intro status message on open", async ({ page }) => {
   await page.goto("/command");
   await openSentinelPanel(page);
 
   const statusText = await page.getByTestId("sentinel-panel").textContent() ?? "";
   expect(statusText).toMatch(/Hi, I'm Sentinel/i);
-  expect(statusText).toMatch(/happy to help/i);
+  expect(statusText).toMatch(/what happened/i);
+  expect(statusText).not.toMatch(/happy to help/i);
+});
+
+test("Ask Sentinel orb is visible and panel stays inside the viewport", async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await page.goto("/command");
+  await openSentinelPanel(page);
+
+  await expect(page.getByTestId("sentinel-orb")).toBeVisible();
+  const box = await page.getByTestId("sentinel-panel").boundingBox();
+  expect(box).not.toBeNull();
+  expect(box!.x).toBeGreaterThanOrEqual(0);
+  expect(box!.x + box!.width).toBeLessThanOrEqual(1024);
+});
+
+test("Ask Sentinel does not show the old giant voice debug button", async ({ page }) => {
+  await page.goto("/command");
+  await openSentinelPanel(page);
+
+  await expect(page.getByTestId("sentinel-orb")).toBeVisible();
+  await expect(page.locator(".sentinel-orb-panel button.w-full")).toHaveCount(0);
+  await expect(page.getByText("Type instead")).toHaveCount(0);
 });
 
 test("Ask Sentinel auto-starts listening after intro without Push to talk", async ({
@@ -619,7 +654,7 @@ test("Ask Sentinel auto-starts listening after intro without Push to talk", asyn
   await openSentinelPanel(page);
 
   await waitForSentinelListening(page);
-  await expect(page.getByTestId("sentinel-push-to-talk")).toHaveText(/Stop listening/i);
+  await expect(page.getByTestId("sentinel-state")).toContainText(/listening/i);
 });
 
 test("interrupt while Sentinel is speaking cancels speech and starts listening", async ({
@@ -630,10 +665,29 @@ test("interrupt while Sentinel is speaking cancels speech and starts listening",
   await page.goto("/command");
   await openSentinelPanel(page);
 
-  const button = page.getByTestId("sentinel-push-to-talk");
-  await expect(button).toHaveText(/Interrupt/i);
-  await button.click();
+  await page.getByTestId("sentinel-orb").click();
   await waitForSentinelListening(page);
+});
+
+test("thank-you voice phrase does not call incident analysis API", async ({ page }) => {
+  let sentinelApiCalls = 0;
+  await page.route("**/api/sentinel", async (route) => {
+    sentinelApiCalls += 1;
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ answer: "fallback", incidentPackages: [], meta: {} }),
+    });
+  });
+
+  await installMockSpeechSynthesis(page);
+  await installMockSpeechRecognition(page, "thank you");
+  await page.goto("/command");
+  await openSentinelPanel(page);
+  await page.waitForTimeout(1_000);
+
+  expect(sentinelApiCalls).toBe(0);
+  await expect(page.getByTestId("sentinel-panel")).toContainText(/welcome/i);
 });
 
 test("command center uses one unified top bar", async ({ page }) => {

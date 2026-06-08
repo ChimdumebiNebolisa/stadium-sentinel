@@ -24,22 +24,16 @@ async function waitForIntakeBarReady(page: Page) {
 async function openSentinelPanel(page: Page) {
   await expect(page.getByTestId("sentinel-control")).toBeVisible();
   await page.getByTestId("sentinel-control").click();
-  await expect(page.getByTestId("sentinel-panel")).toBeVisible();
-}
-
-async function revealTypedSentinelInput(page: Page) {
-  const input = page.getByTestId("sentinel-question-input");
-  if ((await input.count()) === 0 || !(await input.first().isVisible())) {
-    await page.getByText("Type instead").click();
-  }
-  await expect(page.getByTestId("sentinel-question-input")).toBeVisible();
+  await expect(page.getByTestId("sentinel-orb")).toBeVisible();
 }
 
 async function askSentinel(page: Page, question: string) {
-  await revealTypedSentinelInput(page);
+  await expect(page.getByTestId("sentinel-question-input")).toBeAttached();
   await page.getByTestId("sentinel-question-input").fill(question);
   await page.getByTestId("sentinel-question-input").press("Enter");
-  await expect(page.getByTestId("sentinel-answer")).toBeVisible();
+  await expect(page.getByTestId("sentinel-state")).not.toContainText(/thinking/i, {
+    timeout: 8_000,
+  });
 }
 
 async function extractStandardTranscriptPreset(page: Page) {
@@ -65,7 +59,7 @@ async function enableDemoSources(page: Page) {
 
 async function pullLatestReports(page: Page) {
   await page.getByTestId("pull-latest-reports").click();
-  await expect(page.getByTestId("pull-status")).toContainText(/pulled|loaded/i, {
+  await expect(page.getByTestId("command-strip-summary")).toContainText(/pulled|loaded/i, {
     timeout: 5_000,
   });
 }
@@ -138,6 +132,6 @@ test("transcript extract keeps pull and sentinel follow-up paths working", async
   await openSentinelPanel(page);
   await askSentinel(page, "What did the radio log add?");
 
-  const answerText = (await page.getByTestId("sentinel-answer").textContent()) ?? "";
+  const answerText = (await page.getByTestId("sentinel-panel").textContent()) ?? "";
   expect(answerText).toMatch(/radio log|queue|matched|added/i);
 });

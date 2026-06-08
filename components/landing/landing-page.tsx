@@ -3,12 +3,12 @@ import { landingFontClassName } from "@/components/landing/landing-fonts";
 import { LandingHero } from "@/components/landing/landing-hero";
 import { LandingNav } from "@/components/landing/landing-nav";
 import {
+  AskSentinelSection,
   CapabilityCardsSection,
   DispatchQueueSection,
   FinalCtaSection,
   LandingFooter,
   SwimlaneTimelineSection,
-  TechnicalAppendixSection,
 } from "@/components/landing/landing-sections";
 
 export function LandingPage() {
@@ -20,8 +20,8 @@ export function LandingPage() {
         <CommandFileMockup />
         <DispatchQueueSection />
         <SwimlaneTimelineSection />
+        <AskSentinelSection />
         <CapabilityCardsSection />
-        <TechnicalAppendixSection />
         <FinalCtaSection />
       </main>
       <LandingFooter />

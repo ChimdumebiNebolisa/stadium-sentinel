@@ -8,6 +8,8 @@
 
 import type { IncidentPackage } from "@/lib/types";
 
+import { formatIncidentReportPhrase } from "@/lib/sentinel-voice-phrases";
+
 type SpeechOutputWindow = Window & {
   speechSynthesis?: SpeechSynthesis;
 };
@@ -59,6 +61,8 @@ export type SentinelSpeechContext = {
   commandType:
     | "intro"
     | "mic_check"
+    | "thank_you"
+    | "stop_session"
     | "open_evidence"
     | "draft_report"
     | "open_report"
@@ -84,15 +88,25 @@ export type SentinelSpeechContext = {
 export function buildSpokenSentinelResponse(ctx: SentinelSpeechContext): string {
   const incident = ctx.incidentPackage?.incident;
   const title = incident?.title ?? "the selected incident";
+  const reportPhrase = formatIncidentReportPhrase(incident?.title);
   const team = incident?.assignedRole ?? "the assigned team";
   const count = ctx.evidenceCount ?? ctx.incidentPackage?.evidence.length ?? 0;
 
   switch (ctx.commandType) {
     case "intro":
-      return `Hi, I'm Sentinel. I'm tracking ${title} and I'm happy to help. Ask me what happened, who's handling it, what changed, or what to do next.`;
+      if (reportPhrase) {
+        return `Hi, I'm Sentinel. I'm looking at ${reportPhrase} now. Ask me what happened, who's on it, what changed, or what needs to happen next.`;
+      }
+      return `Hi, I'm Sentinel. I help you keep up with live incident updates. Ask me what happened, who's on it, what changed, or what needs to happen next.`;
 
     case "mic_check":
-      return `Yes. I can hear you. Ask about this incident, who is handling it, what changed, or what to do next.`;
+      return `Yes, I can hear you. Ask me about the incident or tell me what you want done.`;
+
+    case "thank_you":
+      return `You're welcome. I'll stay ready if you need another update.`;
+
+    case "stop_session":
+      return `Got it. I'll stop here.`;
 
     case "open_evidence": {
       const countPhrase = count > 0 ? `I found ${count} source signal${count === 1 ? "" : "s"}` : "Evidence is open";
@@ -129,6 +143,6 @@ export function buildSpokenSentinelResponse(ctx: SentinelSpeechContext): string 
 
     case "fallback":
     default:
-      return `I can answer questions about the selected incident, including what happened, who is handling it, what changed, and what to do next.`;
+      return `I can answer questions about this incident or help you take the next step.`;
   }
 }

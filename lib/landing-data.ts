@@ -2,10 +2,25 @@ import type { PriorityLevel } from "@/lib/types";
 
 export const NAV_LINKS = [
   { label: "Workflow", href: "#workflow" },
+  { label: "Agent", href: "#agent" },
   { label: "Demo", href: "#demo" },
-  { label: "Agent Layer", href: "#agent-layer" },
   { label: "Command Center", href: "/command" },
 ] as const;
+
+export const LANDING_PROOF_STATS = {
+  heroAttendance: {
+    text: "Live sports moved 292 million U.S. attendees in one year. Every update matters.",
+    source: "Source: Two Circles, 2025",
+  },
+  staffingPressure: {
+    text: "When teams are stretched, scattered updates become operational risk.",
+    source: "Source: Two Circles, 2025",
+  },
+  searchFriction: {
+    text: "62% of workers struggle spending too much time searching for information.",
+    source: "Source: Microsoft Work Trend Index, 2023",
+  },
+} as const;
 
 export const COMMAND_FILE_META = {
   fileId: "FILE-2039",
@@ -155,25 +170,6 @@ export const CAPABILITY_CARDS = [
     icon: "memory" as const,
     title: "Keep everyone updated",
     body: "Preserve evidence, timeline, reports, and approved updates in one shared operational record.",
-  },
-] as const;
-
-export const TECH_APPENDIX_ITEMS = [
-  {
-    title: "Elasticsearch",
-    body: "Vector context & text search",
-  },
-  {
-    title: "Incident Memory",
-    body: "Persistent event logging",
-  },
-  {
-    title: "Elastic MCP",
-    body: "Agent tool integration",
-  },
-  {
-    title: "Platform Verification",
-    body: "Audit trails & access control",
   },
 ] as const;
 

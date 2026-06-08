@@ -198,8 +198,26 @@ describe("buildSpokenSentinelResponse", () => {
       incidentPackage: makeIncidentPackage(),
     });
     expect(text).toMatch(/Hi, I'm Sentinel/i);
-    expect(text).toMatch(/Gate B backed up/i);
+    expect(text).toMatch(/looking at the gate b backed up report/i);
     expect(text).toMatch(/what happened/i);
+    expect(text).not.toMatch(/happy to help/i);
+  });
+
+  it("intro without title uses generic live-updates copy", () => {
+    const text = buildSpokenSentinelResponse({
+      commandType: "intro",
+      incidentPackage: null,
+    });
+    expect(text).toMatch(/keep up with live incident updates/i);
+  });
+
+  it("thank_you and stop_session use friendly local responses", () => {
+    expect(buildSpokenSentinelResponse({ commandType: "thank_you" })).toMatch(
+      /You're welcome/i,
+    );
+    expect(buildSpokenSentinelResponse({ commandType: "stop_session" })).toBe(
+      "Got it. I'll stop here.",
+    );
   });
 
   it("mic_check case acknowledges without incident analysis", () => {
@@ -241,6 +259,8 @@ describe("buildSpokenSentinelResponse", () => {
     const contexts: SentinelSpeechContext[] = [
       { commandType: "intro", incidentPackage: makeIncidentPackage() },
       { commandType: "mic_check", incidentPackage: makeIncidentPackage() },
+      { commandType: "thank_you", incidentPackage: makeIncidentPackage() },
+      { commandType: "stop_session", incidentPackage: makeIncidentPackage() },
       { commandType: "open_evidence", incidentPackage: makeIncidentPackage(), evidenceCount: 3 },
       { commandType: "draft_report", incidentPackage: makeIncidentPackage() },
       { commandType: "dispatch_team", incidentPackage: makeIncidentPackage(), writebackStatus: null },
@@ -256,6 +276,8 @@ describe("buildSpokenSentinelResponse", () => {
     const allTypes: SentinelSpeechContext["commandType"][] = [
       "intro",
       "mic_check",
+      "thank_you",
+      "stop_session",
       "open_evidence",
       "draft_report",
       "open_report",

@@ -106,6 +106,7 @@ import {
   stopSentinelSpeech,
   type SentinelSpeechContext,
 } from "@/lib/sentinel-speech-output";
+import { classifyVoicePhrase } from "@/lib/sentinel-voice-phrases";
 import { SENTINEL_MOCK_VOICE_QUESTION } from "@/lib/sentinel-voice-shell";
 import type {
   EvidenceResult,
@@ -616,9 +617,7 @@ export function CommandCenter() {
             setReportSummary(buildPostEventReport(sortedPackages, nextTimeline));
             setSourceMode("elastic");
             setLastIngestionSummary(elasticPull.ingestionSummary);
-            setPullStatus(
-              `Live operations data pulled (${sortedPackages.length} incidents).`,
-            );
+            setPullStatus(null);
             recordSourceAudit(
               "elastic",
               elasticPull.ingestionSummary,
@@ -659,7 +658,7 @@ export function CommandCenter() {
       );
       setTimeline(nextTimeline);
       setReportSummary(buildPostEventReport(sortedPackages, nextTimeline));
-      setPullStatus(`Latest operations data loaded (${sortedPackages.length} incidents).`);
+      setPullStatus(null);
       recordSourceAudit(
         "demo",
         `Demo pull loaded ${sortedPackages.length} incident package(s).`,
@@ -669,6 +668,9 @@ export function CommandCenter() {
     } finally {
       pullInFlightRef.current = false;
       setPullLoading(false);
+      setPullStatus((current) =>
+        current === "Pulling latest reports..." ? null : current,
+      );
     }
   }
 
@@ -975,7 +977,7 @@ export function CommandCenter() {
     const session = getVoiceSession();
     if (!session.isSupported) {
       setSentinelUiState("action_failed");
-      setSentinelStatusMessage("Voice is unavailable in this browser. Type instead.");
+      setSentinelStatusMessage("Voice is unavailable in this browser.");
       return;
     }
 
@@ -1005,8 +1007,38 @@ export function CommandCenter() {
     startSentinelVoice();
   }
 
-  /** Patterns that indicate a mic-check rather than an incident query. */
-  const MIC_CHECK_PATTERNS = /^(hi|hello|hey|testing|test|can you hear me|are you there)\b/i;
+  function handleLocalVoicePhrase(
+    phraseKind: "mic_check" | "thank_you" | "stop_session",
+  ) {
+    stopSentinelSpeech();
+    voiceSessionRef.current?.stop();
+    voiceInitiatedRef.current = true;
+    const response = buildSpokenSentinelResponse({
+      commandType: phraseKind,
+      incidentPackage: selectedIncidentPackage,
+    });
+    setSentinelOpen(true);
+    setSentinelStatusMessage(response);
+
+    if (phraseKind === "stop_session") {
+      setSentinelUiState("speaking");
+      const spoken = speakSentinelResponse(response, undefined, () => {
+        closeSentinel();
+      });
+      if (!spoken) {
+        closeSentinel();
+      }
+      return;
+    }
+
+    setSentinelUiState("speaking");
+    const spoken = speakSentinelResponse(response, undefined, () => {
+      setSentinelUiState("idle");
+    });
+    if (!spoken) {
+      setSentinelUiState("idle");
+    }
+  }
 
   /** Return the first n sentences of text, capped at maxWords total words. */
   function extractFirstSentences(text: string, n: number, maxWords = 50): string {
@@ -1034,19 +1066,9 @@ export function CommandCenter() {
       return;
     }
 
-    // Mic-check: acknowledge without calling the API.
-    if (MIC_CHECK_PATTERNS.test(transcript)) {
-      stopSentinelSpeech();
-      voiceInitiatedRef.current = true;
-      const response = buildSpokenSentinelResponse({
-        commandType: "mic_check",
-        incidentPackage: selectedIncidentPackage,
-      });
-      speakSentinelResponse(response);
-      setSentinelOpen(true);
-      setSentinelUiState("idle");
-      setSentinelStatusMessage("Yes, I can hear you.");
-      voiceSessionRef.current?.stop();
+    const phraseKind = classifyVoicePhrase(transcript);
+    if (phraseKind) {
+      handleLocalVoicePhrase(phraseKind);
       return;
     }
 
