@@ -33,6 +33,7 @@ describe("classifyVoicePhrase", () => {
 describe("formatIncidentReportPhrase", () => {
   it("formats incident titles for intro copy", () => {
     expect(formatIncidentReportPhrase("Lost child")).toBe("the lost child report");
+    expect(formatIncidentReportPhrase("Lost child report")).toBe("the lost child report");
     expect(formatIncidentReportPhrase("Gate B backed up.")).toBe("the gate b backed up report");
   });
 

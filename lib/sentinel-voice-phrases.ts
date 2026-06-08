@@ -32,5 +32,9 @@ export function formatIncidentReportPhrase(title: string | null | undefined): st
   if (!cleaned) {
     return null;
   }
-  return `the ${cleaned.toLowerCase()} report`;
+  const lower = cleaned.toLowerCase();
+  if (lower.endsWith(" report")) {
+    return `the ${lower}`;
+  }
+  return `the ${lower} report`;
 }
