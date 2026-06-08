@@ -180,10 +180,20 @@ export function activeIncidentToPackage(
   incident: ElasticActiveIncident,
   context: ElasticPullRelatedContext,
 ): IncidentPackage {
-  const recommendedActions = recommendedActionsForTeam(incident.assignedRole);
+  const details = incident.details;
+  // Prefer seeded, incident-specific content; fall back to generic synthesis.
+  const recommendedActions =
+    details?.responseChecklist && details.responseChecklist.length > 0
+      ? details.responseChecklist
+      : recommendedActionsForTeam(incident.assignedRole);
   const guest = context.guestAssistance.find(
     (item) => item.relatedIncidentId === incident.id,
   );
+  const seededEvidence = details?.evidenceItems;
+  const evidence =
+    seededEvidence && seededEvidence.length > 0
+      ? seededEvidence
+      : buildEvidenceForIncident(incident, context);
 
   return {
     incident: {
@@ -201,9 +211,10 @@ export function activeIncidentToPackage(
       recommendedActions,
       approvedActionIds: [],
       assignedRole: incident.assignedRole,
+      details,
     },
-    evidence: buildEvidenceForIncident(incident, context),
-    staffUpdate: guest?.need ?? incident.rawText,
+    evidence,
+    staffUpdate: details?.staffUpdateSeed ?? guest?.need ?? incident.rawText,
   };
 }
 

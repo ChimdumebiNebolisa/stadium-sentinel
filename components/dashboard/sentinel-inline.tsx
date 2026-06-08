@@ -35,8 +35,7 @@ type SentinelInlineProps = {
   onToggle: () => void;
   onQuestionChange: (value: string) => void;
   onSubmit: () => void;
-  onStartVoice: () => void;
-  onStopVoice: () => void;
+  onToggleVoice: () => void;
   onMockVoice: () => void;
   onApplyAction: () => void;
 };
@@ -77,11 +76,11 @@ export function SentinelInline({
   onToggle,
   onQuestionChange,
   onSubmit,
-  onStartVoice,
-  onStopVoice,
+  onToggleVoice,
   onMockVoice,
   onApplyAction,
 }: SentinelInlineProps) {
+  const isListening = state === "listening";
   return (
     <div className="relative" data-testid="sentinel-command">
       <button
@@ -125,16 +124,13 @@ export function SentinelInline({
               <button
                 type="button"
                 data-testid="sentinel-push-to-talk"
-                aria-label="Push to talk"
-                onMouseDown={onStartVoice}
-                onMouseUp={onStopVoice}
-                onMouseLeave={onStopVoice}
-                onTouchStart={onStartVoice}
-                onTouchEnd={onStopVoice}
+                aria-label={isListening ? "Stop listening" : "Push to talk"}
+                aria-pressed={isListening}
+                onClick={onToggleVoice}
                 disabled={voiceUnsupported}
                 className="w-full rounded-md border border-violet-500/40 bg-violet-600 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {state === "listening" ? "Listening..." : "Push to talk"}
+                {isListening ? "Stop listening" : "Push to talk"}
               </button>
 
               {questionInput.trim() ? (

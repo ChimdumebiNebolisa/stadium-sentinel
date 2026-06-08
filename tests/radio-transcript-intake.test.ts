@@ -121,7 +121,16 @@ describe("radio transcript intake", () => {
     );
 
     expect(firstPass.evidence.some((item) => item.sourceType === "radio_log")).toBe(true);
-    expect(secondPass.evidence.filter((item) => item.sourceType === "radio_log")).toHaveLength(1);
+    // Re-extracting the same matched line must not add a duplicate radio_log entry.
+    const matchedExcerpt = "Gate B is backed up.";
+    expect(
+      secondPass.evidence.filter(
+        (item) => item.sourceType === "radio_log" && item.excerpt === matchedExcerpt,
+      ),
+    ).toHaveLength(1);
+    expect(
+      secondPass.evidence.filter((item) => item.sourceType === "radio_log").length,
+    ).toBe(firstPass.evidence.filter((item) => item.sourceType === "radio_log").length);
     expect(secondPass.incident.id).toBe(incidentPackage.incident.id);
   });
 

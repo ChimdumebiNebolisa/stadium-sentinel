@@ -10,6 +10,10 @@ export type SpeechRecognitionLike = {
   continuous: boolean;
   interimResults: boolean;
   lang: string;
+  onstart?: (() => void) | null;
+  onaudiostart?: (() => void) | null;
+  onspeechstart?: (() => void) | null;
+  onspeechend?: (() => void) | null;
   onresult: ((event: {
     resultIndex?: number;
     results: ArrayLike<SpeechRecognitionResult>;
@@ -20,6 +24,16 @@ export type SpeechRecognitionLike = {
   stop: () => void;
   abort: () => void;
 };
+
+// Development-only lifecycle tracing. Never surfaced in the main UI.
+function voiceTrace(event: string, detail?: unknown): void {
+  if (process.env.NODE_ENV === "production") return;
+  if (detail === undefined) {
+    console.debug(`[sentinel-voice] ${event}`);
+  } else {
+    console.debug(`[sentinel-voice] ${event}`, detail);
+  }
+}
 
 export type SentinelVoiceWindow = Window & {
   SpeechRecognition?: new () => SpeechRecognitionLike;
@@ -136,13 +150,25 @@ export function createSpeechRecognitionSession(input: {
       recognition.continuous = false;
       recognition.interimResults = false;
       recognition.lang = "en-US";
+      voiceTrace("session created");
+
+      recognition.onstart = () => voiceTrace("onstart");
+      recognition.onaudiostart = () => voiceTrace("onaudiostart");
+      recognition.onspeechstart = () => voiceTrace("onspeechstart");
+      recognition.onspeechend = () => voiceTrace("onspeechend");
 
       recognition.onresult = (event) => {
         hadAnyResult = true;
         const transcript = extractFinalTranscript(event.results, event.resultIndex);
+        voiceTrace("onresult", {
+          resultIndex: event.resultIndex,
+          length: event.results.length,
+          transcript,
+        });
         if (transcript) {
           hadFinalTranscript = true;
           clearListenTimeout();
+          voiceTrace("submit attempt", transcript);
           input.onTranscript(transcript);
           // Do not call onStatusChange here — command-center transitions state
           // via handleVoiceTranscript → submitSentinelQuestion
@@ -152,12 +178,14 @@ export function createSpeechRecognitionSession(input: {
 
       recognition.onerror = (event) => {
         clearListenTimeout();
+        voiceTrace("onerror", event.error);
         const msg = mapSpeechError(event.error);
         input.onStatusChange?.("error", msg);
       };
 
       recognition.onend = () => {
         clearListenTimeout();
+        voiceTrace("onend", { hadFinalTranscript, hadAnyResult, timeoutFired });
         if (timeoutFired) {
           // Timeout already fired onStatusChange("error", ...) — avoid double-fire
           timeoutFired = false;

@@ -98,7 +98,14 @@ export function EvidencePanel({
   return (
     <section className="h-full pr-2" data-testid="evidence-panel">
       <p className="ops-label">Why this is flagged</p>
-      <p className="mt-1.5 text-sm leading-6 text-slate-600">{getPrioritySummary(incident)}</p>
+      <p className="mt-1.5 text-sm leading-6 text-slate-600">
+        {incident.details?.operatorSummary ?? getPrioritySummary(incident)}
+      </p>
+      {incident.details?.operationalImplication ? (
+        <p className="mt-1.5 text-sm leading-6 text-slate-600">
+          {incident.details.operationalImplication}
+        </p>
+      ) : null}
       <p className="mt-2 text-xs text-slate-500">
         Selected incident context: {incident.title} · {incident.locationLabel} · {incident.assignedRole}
       </p>
@@ -112,7 +119,11 @@ export function EvidencePanel({
               className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 shadow-sm"
             >
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="ops-label">{formatEvidenceSourceType(item.sourceType)}</p>
+                <p className="ops-label">
+                  {item.sourceLabel
+                    ? `${formatEvidenceSourceType(item.sourceType)} · ${item.sourceLabel}`
+                    : formatEvidenceSourceType(item.sourceType)}
+                </p>
                 <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-0.5 text-[0.7rem] font-medium text-slate-600">
                   {incident.locationLabel}
                 </span>
@@ -121,15 +132,15 @@ export function EvidencePanel({
               <div className="mt-2 grid gap-1.5 text-sm leading-6 text-slate-600">
                 <p>
                   <span className="font-medium text-slate-700">Observed signal:</span>{" "}
-                  {item.excerpt}
+                  {item.observedSignal ?? item.excerpt}
                 </p>
                 <p>
                   <span className="font-medium text-slate-700">Operational meaning:</span>{" "}
-                  {getOperationalMeaning(item, incident)}
+                  {item.operationalMeaning ?? getOperationalMeaning(item, incident)}
                 </p>
                 <p>
                   <span className="font-medium text-slate-700">Action implication:</span>{" "}
-                  {getActionImplication(item, incident)}
+                  {item.actionImplication ?? getActionImplication(item, incident)}
                 </p>
                 <p className="text-xs text-slate-500">
                   <span className="font-medium text-slate-700">Current incident:</span>{" "}

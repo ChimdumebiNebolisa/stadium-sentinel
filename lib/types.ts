@@ -118,6 +118,7 @@ export type Incident = {
   recommendedActions: string[];
   approvedActionIds: string[];
   assignedRole: string;
+  details?: IncidentDetails;
 };
 
 export type EvidenceSourceType =
@@ -149,6 +150,61 @@ export type EvidenceResult = {
   excerpt: string;
   rationale: string;
   sourceId: string;
+  // Optional richer, incident-specific fields surfaced when Elastic seed data
+  // carries them. Existing renderers keep working when these are absent.
+  sourceLabel?: string;
+  observedSignal?: string;
+  operationalMeaning?: string;
+  actionImplication?: string;
+};
+
+export type IncidentLogEvent = {
+  eventId: string;
+  eventTime: string;
+  eventType: string;
+  title: string;
+  detail: string;
+  actorLabel: string;
+};
+
+export type SourceLogEvent = {
+  sourceEventId: string;
+  sourceType: string;
+  sourceLabel: string;
+  title: string;
+  detail: string;
+  memoryAction: string;
+};
+
+export type OperationsTimelineEvent = {
+  eventId: string;
+  eventTime: string;
+  title: string;
+  detail: string;
+};
+
+export type ReportDraftSeed = {
+  headline: string;
+  situation: string;
+  actionsTaken: string;
+  currentStatus: string;
+  nextSteps: string;
+  operatorNote?: string;
+};
+
+// Rich, incident-specific operational content. Additive and fully optional:
+// transformation passes it straight through and panels fall back to the
+// existing generic behavior whenever a field is absent.
+export type IncidentDetails = {
+  operatorSummary?: string;
+  operationalImplication?: string;
+  responseChecklist?: string[];
+  evidenceItems?: EvidenceResult[];
+  incidentLog?: IncidentLogEvent[];
+  sourceLog?: SourceLogEvent[];
+  operationsTimeline?: OperationsTimelineEvent[];
+  reportDraftSeed?: ReportDraftSeed;
+  staffUpdateSeed?: string;
 };
 
 export type RetrievalInput = {

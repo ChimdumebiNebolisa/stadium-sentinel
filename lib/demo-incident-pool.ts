@@ -1,3 +1,4 @@
+import { INCIDENT_DETAILS_SEED } from "@/lib/incident-details-seed";
 import type {
   IncidentCategory,
   IncidentPackage,
@@ -413,7 +414,23 @@ function buildAssumptions(stored: DemoStoredIncident): string[] {
 }
 
 export function localStorageIncidentToPackage(stored: DemoStoredIncident): IncidentPackage {
-  const recommendedActions = actionsForTeam(stored.team);
+  // Prefer the shared rich operational details (parity with the Elastic path);
+  // fall back to the lightweight stored fields when no details exist for this id.
+  const details = INCIDENT_DETAILS_SEED[stored.id];
+  const recommendedActions =
+    details?.responseChecklist && details.responseChecklist.length > 0
+      ? details.responseChecklist
+      : actionsForTeam(stored.team);
+  const evidence =
+    details?.evidenceItems && details.evidenceItems.length > 0
+      ? details.evidenceItems
+      : stored.evidence.map((e, index) => ({
+          title: e,
+          sourceType: "policy" as const,
+          excerpt: e,
+          rationale: "On-file incident evidence",
+          sourceId: `demo-${stored.id}-${index}`,
+        }));
   return {
     incident: {
       id: stored.id,
@@ -430,15 +447,10 @@ export function localStorageIncidentToPackage(stored: DemoStoredIncident): Incid
       recommendedActions,
       approvedActionIds: [],
       assignedRole: stored.team,
+      details,
     },
-    evidence: stored.evidence.map((e, index) => ({
-      title: e,
-      sourceType: "policy" as const,
-      excerpt: e,
-      rationale: "On-file incident evidence",
-      sourceId: `demo-${stored.id}-${index}`,
-    })),
-    staffUpdate: stored.summary,
+    evidence,
+    staffUpdate: details?.staffUpdateSeed ?? stored.summary,
   };
 }
 

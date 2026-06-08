@@ -21,6 +21,31 @@ export function SourceLogPanel({
         </p>
       ) : null}
 
+      {incidentPackage?.incident.details?.sourceLog &&
+      incidentPackage.incident.details.sourceLog.length > 0 ? (
+        <div className="mt-3" data-testid="source-log-incident">
+          <p className="ops-label">Operational memory for this incident</p>
+          <ol className="mt-1.5 space-y-2">
+            {incidentPackage.incident.details.sourceLog.map((entry) => (
+              <li
+                key={entry.sourceEventId}
+                className="rounded-md border border-slate-200 bg-white px-3 py-2"
+                data-testid="source-log-incident-entry"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-xs font-semibold uppercase tracking-[0.03em] text-slate-700">
+                    {entry.title}
+                  </p>
+                  <p className="text-[0.7rem] text-slate-500">{entry.sourceLabel}</p>
+                </div>
+                <p className="mt-1 text-sm leading-5 text-slate-700">{entry.detail}</p>
+                <p className="mt-1 text-xs text-slate-500">{entry.memoryAction}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      ) : null}
+
       {events.length === 0 ? (
         <p className="mt-3 text-sm text-slate-500" data-testid="source-log-empty">
           No source updates recorded yet.

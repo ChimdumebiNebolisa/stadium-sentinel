@@ -188,6 +188,24 @@ export function buildSentinelReportDraft(
       .at(-1)?.message ?? "Incident received and under review.";
   const answerLine = answer?.trim() ? `Sentinel summary: ${answer.trim()}` : null;
 
+  // Prefer the seeded, incident-specific report draft when present. Keep the
+  // "Operations report for ..." lead line so the editable field stays recognizable.
+  const seed = incident.details?.reportDraftSeed;
+  if (seed) {
+    return [
+      `Operations report for ${incident.title}.`,
+      seed.headline,
+      `Situation: ${seed.situation}`,
+      `Actions taken: ${seed.actionsTaken}`,
+      `Current status: ${seed.currentStatus}`,
+      `Next steps: ${seed.nextSteps}`,
+      seed.operatorNote ? `Operator note: ${seed.operatorNote}` : null,
+      answerLine,
+    ]
+      .filter(Boolean)
+      .join("\n\n");
+  }
+
   return [
     `Operations report for ${incident.title}.`,
     `${incident.priority} priority at ${incident.locationLabel}.`,

@@ -44,10 +44,25 @@ function SchematicAnchorDot({
       />
       <circle cx={anchor.x} cy={anchor.y} r={3.4} fill="#ef4444" />
       {(() => {
-        // Clamp the 36×7 label rect so it never clips outside the viewBox "6 8 88 48"
+        // Clamp the 36×7 label rect on BOTH axes so it never clips outside the
+        // viewBox "6 8 88 48" (x: 6..94, y: 8..56) for any selected anchor.
+        const VIEWBOX_MIN_X = 6;
+        const VIEWBOX_MAX_X = 94;
+        const VIEWBOX_MIN_Y = 8;
+        const VIEWBOX_MAX_Y = 56;
         const RECT_W = 36;
-        const rectX = Math.max(6, Math.min(anchor.x - RECT_W / 2, 94 - RECT_W));
-        const rectY = Math.max(10, anchor.y - 11);
+        const RECT_H = 7;
+        const PAD = 1;
+        const rectX = Math.max(
+          VIEWBOX_MIN_X + PAD,
+          Math.min(anchor.x - RECT_W / 2, VIEWBOX_MAX_X - RECT_W - PAD),
+        );
+        // Sit the label just above the anchor; clamp top and bottom so the full
+        // rect (and its text) stays inside the viewBox even for low anchors.
+        const rectY = Math.max(
+          VIEWBOX_MIN_Y + PAD,
+          Math.min(anchor.y - 11, VIEWBOX_MAX_Y - RECT_H - PAD),
+        );
         const labelX = rectX + RECT_W / 2;
         const labelY = rectY + 5;
         return (

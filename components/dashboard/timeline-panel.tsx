@@ -28,6 +28,10 @@ function buildIncidentLogEntries(input: {
 }): IncidentLogEntry[] {
   const { incidentPackage, timeline, activeWorkspace, reportDraft, sentinelActionTrace } = input;
   const { incident } = incidentPackage;
+  // Prefer seeded, incident-specific log copy when present, keyed by eventType.
+  const seededLog = incident.details?.incidentLog ?? [];
+  const seeded = (eventType: string) =>
+    seededLog.find((entry) => entry.eventType === eventType);
   const reportedEntry = timeline.find(
     (entry) => entry.incidentId === incident.id && entry.type === "reported",
   );
@@ -52,22 +56,29 @@ function buildIncidentLogEntries(input: {
     {
       id: "source-received",
       label: "Source received",
-      detail: reportedEntry?.message ?? `Source received for ${incident.title}.`,
-      time: reportedEntry?.timestamp ?? "Pending",
+      detail:
+        seeded("source_received")?.detail ??
+        reportedEntry?.message ??
+        `Source received for ${incident.title}.`,
+      time: seeded("source_received")?.eventTime ?? reportedEntry?.timestamp ?? "Pending",
       state: "done",
     },
     {
       id: "incident-created",
       label: "Incident created",
-      detail: `${incident.title} queued from ${incident.locationLabel}.`,
-      time: reportedEntry?.timestamp ?? "Pending",
+      detail:
+        seeded("incident_created")?.detail ??
+        `${incident.title} queued from ${incident.locationLabel}.`,
+      time: seeded("incident_created")?.eventTime ?? reportedEntry?.timestamp ?? "Pending",
       state: "done",
     },
     {
       id: "team-assigned",
       label: "Team assigned",
-      detail: `${incident.assignedRole} assigned to the selected incident.`,
-      time: suggestedEntry?.timestamp ?? "Pending",
+      detail:
+        seeded("team_assigned")?.detail ??
+        `${incident.assignedRole} assigned to the selected incident.`,
+      time: seeded("team_assigned")?.eventTime ?? suggestedEntry?.timestamp ?? "Pending",
       state: "done",
     },
     {

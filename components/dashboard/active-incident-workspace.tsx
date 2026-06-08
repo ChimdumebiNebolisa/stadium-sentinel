@@ -153,6 +153,11 @@ export function ActiveIncidentWorkspace({
   const location = getLocationRecord(incident.locationId);
   const copy = WORKSPACE_COPY[incident.id] ?? getFallbackWorkspaceCopy(incidentPackage);
   const teamName = location?.defaultTeams[0] ?? copy.teamName;
+  // Prefer the seeded, Elastic-backed response checklist (single source of truth).
+  const checklist =
+    incident.details?.responseChecklist && incident.details.responseChecklist.length > 0
+      ? incident.details.responseChecklist
+      : copy.checklist;
   const primaryAction = incident.recommendedActions[0];
   const secondaryActions = incident.recommendedActions.slice(1, 3);
   const approvedActionCount = incident.approvedActionIds.length;
@@ -186,6 +191,14 @@ export function ActiveIncidentWorkspace({
                 {location?.name ?? incident.locationLabel} |{" "}
                 {location ? formatZoneLayer(location.zoneLayer) : "Operations"} | {teamName}
               </p>
+              {incident.details?.operatorSummary ? (
+                <p
+                  className="mt-2 text-sm leading-6 text-slate-600"
+                  data-testid="incident-operator-summary"
+                >
+                  {incident.details.operatorSummary}
+                </p>
+              ) : null}
             </div>
 
             {copy.riskTags.length > 0 ? (
@@ -210,7 +223,7 @@ export function ActiveIncidentWorkspace({
             <article className="ops-subpanel p-4">
               <WorkspaceSectionTitle marker="A" title="Response checklist" />
               <div className="space-y-2">
-                {copy.checklist.map((item, index) => {
+                {checklist.map((item, index) => {
                   const status = getChecklistStatus(approvedActionCount, index);
 
                   return (

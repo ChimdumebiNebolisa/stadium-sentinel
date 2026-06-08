@@ -1,5 +1,6 @@
 import type {
   IncidentCategory,
+  IncidentDetails,
   IncidentPackage,
   IncidentStatus,
   IncidentType,
@@ -24,6 +25,7 @@ export type ElasticActiveIncident = {
   evidenceIds?: string[];
   guestAssistanceId?: string;
   facilityStatusId?: string;
+  details?: IncidentDetails;
   searchText: string;
 };
 

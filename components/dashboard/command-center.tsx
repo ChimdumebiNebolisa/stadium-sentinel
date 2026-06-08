@@ -919,9 +919,11 @@ export function CommandCenter() {
       return;
     }
 
-    setSentinelUiState("listening");
-    setSentinelStatusMessage("Listening for an incident command.");
-    session.start();
+    // Click-to-record: opening the panel does NOT auto-start listening. The
+    // operator explicitly clicks Push to talk (toggleSentinelVoice) to begin,
+    // so a real browser never starts and stops recognition in one gesture.
+    setSentinelUiState("idle");
+    setSentinelStatusMessage("Push to talk to start a voice command.");
   }
 
   function closeSentinel() {
@@ -956,6 +958,16 @@ export function CommandCenter() {
 
   function stopSentinelVoice() {
     voiceSessionRef.current?.stop();
+  }
+
+  function toggleSentinelVoice() {
+    // Click-to-record / click-to-stop: a normal click must not start and then
+    // immediately stop recognition (which previously never yielded a transcript).
+    if (sentinelUiStateRef.current === "listening") {
+      stopSentinelVoice();
+      return;
+    }
+    startSentinelVoice();
   }
 
   async function handleVoiceTranscript(text: string) {
@@ -1280,8 +1292,7 @@ export function CommandCenter() {
               onToggle={toggleSentinel}
               onQuestionChange={setSentinelQuestion}
               onSubmit={() => void submitSentinelQuestion()}
-              onStartVoice={startSentinelVoice}
-              onStopVoice={stopSentinelVoice}
+              onToggleVoice={toggleSentinelVoice}
               onMockVoice={() => setSentinelQuestion(SENTINEL_MOCK_VOICE_QUESTION)}
               onApplyAction={() => void applyPendingSentinelAction()}
             />

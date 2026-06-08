@@ -59,6 +59,50 @@ async function installMockSpeechRecognition(page: Page, transcript: string) {
   }, transcript);
 }
 
+// Deferred mock: start() begins listening but does NOT deliver a transcript.
+// The transcript is only emitted when stop() is called, proving click-to-record /
+// click-to-stop (a single click must not start and immediately stop recognition).
+async function installDeferredMockSpeechRecognition(page: Page, transcript: string) {
+  await page.addInitScript((mockTranscript) => {
+    class MockSpeechRecognition {
+      continuous = false;
+      interimResults = false;
+      lang = "en-US";
+      _ended = false;
+      onresult:
+        | ((event: { results: ArrayLike<{ isFinal?: boolean; 0: { transcript: string } }> }) => void)
+        | null = null;
+      onerror: ((event: { error?: string }) => void) | null = null;
+      onend: (() => void) | null = null;
+
+      start() {
+        // Intentionally no transcript here — wait for an explicit stop().
+        this._ended = false;
+      }
+
+      stop() {
+        if (this._ended) return;
+        this._ended = true;
+        this.onresult?.({
+          results: [{ isFinal: true, 0: { transcript: mockTranscript } }],
+        });
+        this.onend?.();
+      }
+
+      abort() {}
+    }
+
+    (window as Window & {
+      SpeechRecognition?: typeof MockSpeechRecognition;
+      webkitSpeechRecognition?: typeof MockSpeechRecognition;
+    }).SpeechRecognition = MockSpeechRecognition as unknown as typeof MockSpeechRecognition;
+    (window as Window & {
+      SpeechRecognition?: typeof MockSpeechRecognition;
+      webkitSpeechRecognition?: typeof MockSpeechRecognition;
+    }).webkitSpeechRecognition = MockSpeechRecognition as unknown as typeof MockSpeechRecognition;
+  }, transcript);
+}
+
 async function revealTypedSentinelInput(page: Page) {
   const input = page.getByTestId("sentinel-question-input");
   if ((await input.count()) === 0 || !(await input.first().isVisible())) {
@@ -255,7 +299,32 @@ test("voice transcript auto-submits through the typed command handler", async ({
   await installMockSpeechRecognition(page, "Show me the evidence for this incident.");
   await page.goto("/command");
   await openSentinelPanel(page);
+  await page.getByTestId("sentinel-push-to-talk").click();
 
+  await expect(page.getByTestId("sentinel-action-trace")).toContainText("Open Evidence");
+  await expect(page.getByTestId("evidence-panel")).toBeVisible();
+});
+
+test("push-to-talk is click-to-record / click-to-stop, not press-and-hold", async ({
+  page,
+}) => {
+  await installDeferredMockSpeechRecognition(
+    page,
+    "Show me the evidence for this incident.",
+  );
+  await page.goto("/command");
+  await openSentinelPanel(page);
+
+  const button = page.getByTestId("sentinel-push-to-talk");
+  await expect(button).toHaveText(/Push to talk/i);
+
+  // First click starts listening — recognition stays active (no transcript yet).
+  await button.click();
+  await expect(button).toHaveText(/Stop listening/i);
+  await expect(page.getByTestId("sentinel-action-trace")).toHaveCount(0);
+
+  // Second click stops listening — the transcript is delivered and the command runs.
+  await button.click();
   await expect(page.getByTestId("sentinel-action-trace")).toContainText("Open Evidence");
   await expect(page.getByTestId("evidence-panel")).toBeVisible();
 });
@@ -266,6 +335,7 @@ test("voice report drafting opens the report tab and fills the editable field", 
   await installMockSpeechRecognition(page, "Write a report for this incident.");
   await page.goto("/command");
   await openSentinelPanel(page);
+  await page.getByTestId("sentinel-push-to-talk").click();
 
   await expect(page.getByTestId("sentinel-action-trace")).toContainText("Draft a report");
   await expect(page.getByTestId("utility-drawer")).toHaveAttribute("data-state", "expanded");
@@ -280,6 +350,7 @@ test("voice dispatch proposals use the existing approval and write-back path", a
   await installMockSpeechRecognition(page, "Dispatch the assigned team.");
   await page.goto("/command");
   await openSentinelPanel(page);
+  await page.getByTestId("sentinel-push-to-talk").click();
 
   await expect(page.getByTestId("sentinel-apply-action")).toBeVisible();
   await page.getByTestId("sentinel-apply-action").click();

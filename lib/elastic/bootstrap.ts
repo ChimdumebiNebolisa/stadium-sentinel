@@ -3,6 +3,7 @@ import path from "node:path";
 
 import { elasticFetch, getElasticConfig } from "@/lib/elastic/client";
 import { resolveSeedHealth, type SeedHealth } from "@/lib/elastic/seed-health";
+import { INCIDENT_DETAILS_SEED } from "@/lib/incident-details-seed";
 
 type SeedDocument = Record<string, unknown> & { id: string };
 
@@ -175,15 +176,19 @@ export async function loadSeedSets(): Promise<SeedSet[]> {
       }),
     },
     {
-      documents: activeIncidents.map((document) =>
-        withSearchText(document, [
+      documents: activeIncidents.map((document) => {
+        // Merge the rich operational details (single source of truth) into each
+        // active-incident document so the live Elastic pull returns it in _source.
+        const details = INCIDENT_DETAILS_SEED[document.id];
+        const enriched = details ? { ...document, details } : document;
+        return withSearchText(enriched, [
           "title",
           "rawText",
           "locationLabel",
           "assignedRole",
           "category",
-        ]),
-      ),
+        ]);
+      }),
       indexName: config.activeIncidentsIndex,
       mapping: keywordMapping({
         id: { type: "keyword" },
