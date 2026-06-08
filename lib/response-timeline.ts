@@ -32,11 +32,12 @@ type PoolLine = {
 const STAGE_DEFINITIONS: Array<{
   id: ResponseStageId;
   label: string;
+  pendingLabel?: string;
 }> = [
   { id: "intake", label: "Intake" },
   { id: "acknowledged", label: "Acknowledged" },
   { id: "team-assigned", label: "Team assigned" },
-  { id: "dispatched", label: "Dispatched" },
+  { id: "dispatched", label: "Dispatched", pendingLabel: "Dispatch prepared" },
   { id: "resolved", label: "Resolved" },
 ];
 
@@ -228,10 +229,14 @@ export function buildResponseTimeline(
     }
 
     const details = getStageDetails(stage.id, context, state);
+    // Use pendingLabel (e.g. "Dispatch prepared") when the step is not yet done,
+    // so the column never reads "DISPATCHED" while approval is still pending.
+    const label =
+      stage.pendingLabel && state !== "done" ? stage.pendingLabel : stage.label;
 
     return {
       id: stage.id,
-      label: stage.label,
+      label,
       statusText: details.statusText,
       time: details.time,
       state,

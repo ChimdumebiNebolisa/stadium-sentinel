@@ -74,7 +74,7 @@ function SchematicAnchorDot({
               textAnchor="middle"
               className="fill-white text-[3px] font-bold uppercase tracking-wider"
             >
-              INCIDENT
+              ACTIVE
             </text>
           </>
         );

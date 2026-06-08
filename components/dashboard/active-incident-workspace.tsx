@@ -320,6 +320,9 @@ export function ActiveIncidentWorkspace({
           <p data-testid="evidence-drawer-pointer">
             Open drawer: Evidence, Staff Update, Incident log, Report, Source log.
           </p>
+          <p className="text-right text-[0.65rem] uppercase tracking-wider text-slate-400">
+            ↓ drawer tabs
+          </p>
         </div>
       </div>
     </section>

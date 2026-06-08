@@ -211,7 +211,7 @@ function buildCommandStripSummary(options: {
     return "Live operations data connected. Pull latest reports to load incidents.";
   }
 
-  return `Live operations data pulled. ${options.incidentCount} incidents loaded. Top priority: ${options.topIncidentTitle ?? "Operations review"}.`;
+  return `Live operations data pulled. ${options.incidentCount} incidents loaded. Highest priority queue item: ${options.topIncidentTitle ?? "Operations review"}.`;
 }
 
 export function CommandCenter() {

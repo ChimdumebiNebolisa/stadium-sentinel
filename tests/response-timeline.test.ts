@@ -17,11 +17,12 @@ describe("buildResponseTimeline", () => {
     });
 
     expect(stages).toHaveLength(5);
+    // "dispatched" stage shows its pendingLabel until approved.
     expect(stages.map((stage) => stage.label)).toEqual([
       "Intake",
       "Acknowledged",
       "Team assigned",
-      "Dispatched",
+      "Dispatch prepared",
       "Resolved",
     ]);
 
