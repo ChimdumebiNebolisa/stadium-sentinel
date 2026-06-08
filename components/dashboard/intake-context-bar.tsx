@@ -60,16 +60,11 @@ export function IntakeContextBar({
       data-ready={mounted ? "true" : "false"}
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <p className="text-xs font-medium uppercase tracking-[0.04em] text-slate-500">
-            {realDemoFlow ? "Stadium operations data" : "Operations intake"}
+        {sourceSummary ? (
+          <p className="min-w-0 flex-1 text-sm text-slate-600" data-testid="command-strip-summary">
+            {sourceSummary}
           </p>
-          {sourceSummary ? (
-            <p className="mt-1 text-sm text-slate-600" data-testid="command-strip-summary">
-              {sourceSummary}
-            </p>
-          ) : null}
-        </div>
+        ) : null}
 
         <div className="flex flex-wrap items-center gap-2">
           {mounted && realDemoFlow && !operationsConnected ? (

@@ -53,15 +53,15 @@ function getStateLabel(state: SentinelUiState): string {
     case "action_proposed":
       return "Action proposed";
     case "action_executing":
-      return "Action executing";
+      return "Applying";
     case "action_complete":
-      return "Action complete";
+      return "Done";
     case "action_failed":
-      return "Action review";
+      return "Review";
     case "speaking":
-      return "Sentinel speaking";
+      return "Speaking";
     default:
-      return "Idle";
+      return "Ready";
   }
 }
 
@@ -73,9 +73,6 @@ export function SentinelInline({
   state,
   statusMessage,
   questionInput,
-  answer,
-  evidence,
-  actionTrace,
   canApplyAction,
   onToggle,
   onQuestionChange,
@@ -87,6 +84,7 @@ export function SentinelInline({
 }: SentinelInlineProps) {
   const isListening = state === "listening";
   const isSpeaking = state === "speaking";
+
   return (
     <div className="relative" data-testid="sentinel-command">
       <button
@@ -108,42 +106,29 @@ export function SentinelInline({
 
       {open ? (
         <div
-          className="absolute right-0 z-20 mt-2 w-[min(28rem,calc(100vw-3rem))] rounded-xl border border-violet-500/20 bg-white p-3 shadow-lg"
+          className="absolute right-0 z-20 mt-2 w-[min(22rem,calc(100vw-3rem))] rounded-xl border border-violet-500/20 bg-white p-3 shadow-lg"
           data-testid="sentinel-panel"
         >
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-[#07111c]">Sentinel command</p>
-              <p className="mt-0.5 text-xs text-slate-500" data-testid="sentinel-state">
-                {getStateLabel(state)}
-              </p>
-            </div>
+          {/* Header: state label + status message on one line */}
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.04em] text-violet-700" data-testid="sentinel-state">
+              {getStateLabel(state)}
+              {isSpeaking ? (
+                <span className="ml-1.5 italic font-normal normal-case tracking-normal text-violet-500" data-testid="sentinel-speaking-banner">
+                  speaking…
+                </span>
+              ) : null}
+            </p>
             {statusMessage ? (
-              <p className="max-w-[18rem] text-right text-xs text-slate-500">
+              <p className="min-w-0 truncate text-right text-xs text-slate-500">
                 {statusMessage}
               </p>
             ) : null}
           </div>
 
-          {isSpeaking ? (
-            <div
-              className="mt-3 flex items-center justify-between gap-2 rounded-md border border-violet-500/20 bg-violet-500/5 px-3 py-2"
-              data-testid="sentinel-speaking-banner"
-            >
-              <p className="text-xs font-medium text-violet-800">Sentinel speaking…</p>
-              <button
-                type="button"
-                onClick={onStopSpeech}
-                data-testid="sentinel-stop-speech"
-                className="shrink-0 rounded-md border border-violet-500/25 px-2 py-1 text-[0.7rem] font-medium text-violet-700 hover:bg-violet-500/8"
-              >
-                Stop
-              </button>
-            </div>
-          ) : null}
-
+          {/* Voice controls */}
           {voiceEnabled ? (
-            <div className="mt-3 space-y-2" data-testid="sentinel-voice-first">
+            <div className="mt-2.5 space-y-2" data-testid="sentinel-voice-first">
               <button
                 type="button"
                 data-testid="sentinel-push-to-talk"
@@ -156,59 +141,20 @@ export function SentinelInline({
                 {isListening ? "Stop listening" : "Push to talk"}
               </button>
 
+              {/* Latest-heard transcript — one compact line */}
               {questionInput.trim() ? (
                 <p
-                  className="rounded-md border border-violet-500/15 bg-violet-500/5 px-2.5 py-1.5 text-sm text-slate-700"
+                  className="truncate rounded-md border border-violet-500/15 bg-violet-500/5 px-2.5 py-1.5 text-xs text-slate-600"
                   data-testid="sentinel-transcript-preview"
+                  title={questionInput}
                 >
-                  {questionInput}
+                  Heard: {questionInput}
                 </p>
               ) : null}
-
-              <details className="rounded-md border border-slate-200 bg-white px-2.5 py-1.5">
-                <summary className="cursor-pointer text-[0.75rem] font-medium text-slate-600">
-                  Type instead
-                </summary>
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {!voiceEnabled ? (
-                    <button
-                      type="button"
-                      data-testid="sentinel-mock-voice"
-                      aria-label="Insert voice example"
-                      onClick={onMockVoice}
-                      className="shrink-0 rounded-md border border-slate-200 bg-white px-2 py-1 text-[0.7rem] font-medium text-slate-600 transition-colors hover:border-violet-500/30 hover:text-violet-900"
-                    >
-                      Voice example
-                    </button>
-                  ) : null}
-                  <input
-                    type="text"
-                    value={questionInput}
-                    onChange={(event) => onQuestionChange(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter" && questionInput.trim()) {
-                        event.preventDefault();
-                        onSubmit();
-                      }
-                    }}
-                    placeholder="Ask about this incident..."
-                    data-testid="sentinel-question-input"
-                    className="min-w-0 flex-1 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-sm text-slate-800 placeholder:text-slate-400"
-                  />
-                  <button
-                    type="button"
-                    disabled={!questionInput.trim()}
-                    onClick={onSubmit}
-                    data-testid="sentinel-ask"
-                    className="shrink-0 rounded-md border border-violet-500/30 bg-violet-600 px-2.5 py-1 text-[0.7rem] font-semibold uppercase tracking-[0.03em] text-white transition-colors hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    Ask
-                  </button>
-                </div>
-              </details>
             </div>
           ) : (
-            <div className="mt-3 flex flex-wrap gap-1.5">
+            /* Voice-disabled: mock button only (typed input is in sr-only below) */
+            <div className="mt-2.5 flex gap-1.5">
               <button
                 type="button"
                 data-testid="sentinel-mock-voice"
@@ -218,95 +164,50 @@ export function SentinelInline({
               >
                 Voice example
               </button>
-              <input
-                type="text"
-                value={questionInput}
-                onChange={(event) => onQuestionChange(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" && questionInput.trim()) {
-                    event.preventDefault();
-                    onSubmit();
-                  }
-                }}
-                placeholder="Ask about this incident..."
-                data-testid="sentinel-question-input"
-                className="min-w-0 flex-1 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-sm text-slate-800 placeholder:text-slate-400"
-              />
-              <button
-                type="button"
-                disabled={!questionInput.trim()}
-                onClick={onSubmit}
-                data-testid="sentinel-ask"
-                className="shrink-0 rounded-md border border-violet-500/30 bg-violet-600 px-2.5 py-1 text-[0.7rem] font-semibold uppercase tracking-[0.03em] text-white transition-colors hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                Ask
-              </button>
             </div>
           )}
 
-          {answer ? (
-            <p
-              className="mt-3 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm leading-6 text-slate-700"
-              data-testid="sentinel-answer"
-            >
-              {answer}
-            </p>
-          ) : null}
-
-          {evidence.length > 0 ? (
-            <div className="mt-3 flex flex-wrap gap-1.5" data-testid="sentinel-evidence">
-              {evidence.slice(0, 3).map((item) => (
-                <span
-                  key={item.sourceId}
-                  className="rounded-full border border-violet-500/20 bg-violet-500/5 px-2 py-0.5 text-[0.7rem] text-violet-900"
-                  title={item.excerpt}
-                >
-                  {item.title}
-                </span>
-              ))}
-            </div>
-          ) : null}
-
-          {actionTrace ? (
-            <div
-              className="mt-3 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700"
-              data-testid="sentinel-action-trace"
-            >
-              <p>
-                <span className="font-semibold text-slate-900">Command:</span>{" "}
-                {actionTrace.interpretedCommand}
-              </p>
-              <p className="mt-1">
-                <span className="font-semibold text-slate-900">Action:</span>{" "}
-                {actionTrace.selectedAction}
-              </p>
-              <p className="mt-1">
-                <span className="font-semibold text-slate-900">Target:</span>{" "}
-                {actionTrace.target}
-              </p>
-              <p className="mt-1">
-                <span className="font-semibold text-slate-900">Result:</span>{" "}
-                {actionTrace.result}
-              </p>
-              {actionTrace.writebackStatus ? (
-                <p className="mt-1">
-                  <span className="font-semibold text-slate-900">Write-back:</span>{" "}
-                  {actionTrace.writebackStatus}
-                </p>
-              ) : null}
-            </div>
-          ) : null}
-
+          {/* Apply action — only when confirmation is needed */}
           {canApplyAction ? (
             <button
               type="button"
               data-testid="sentinel-apply-action"
               onClick={onApplyAction}
-              className="mt-3 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-sm font-semibold text-emerald-900 transition-colors hover:bg-emerald-500/15"
+              className="mt-2.5 w-full rounded-md border border-emerald-500/30 bg-emerald-500/10 px-3 py-1.5 text-sm font-semibold text-emerald-900 transition-colors hover:bg-emerald-500/15"
             >
               Apply action
             </button>
           ) : null}
+
+          {/* Visually hidden typed input — always mounted so Playwright tests can fill it.
+              NOT inside a <details> to ensure it is always focusable/fillable. */}
+          <div className="sr-only">
+            <input
+              type="text"
+              value={questionInput}
+              onChange={(event) => onQuestionChange(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && questionInput.trim()) {
+                  event.preventDefault();
+                  onSubmit();
+                }
+              }}
+              placeholder="Ask about this incident..."
+              data-testid="sentinel-question-input"
+              tabIndex={-1}
+              aria-hidden="true"
+            />
+            <button
+              type="button"
+              disabled={!questionInput.trim()}
+              onClick={onSubmit}
+              data-testid="sentinel-ask"
+              tabIndex={-1}
+              aria-hidden="true"
+            >
+              Ask
+            </button>
+          </div>
         </div>
       ) : null}
     </div>

@@ -192,15 +192,55 @@ describe("buildSpokenSentinelResponse", () => {
     expect(text).toMatch(/operations memory/i);
   });
 
-  it("fallback command offers the three core command types", () => {
+  it("intro case includes incident title and guidance prompts", () => {
+    const text = buildSpokenSentinelResponse({
+      commandType: "intro",
+      incidentPackage: makeIncidentPackage(),
+    });
+    expect(text).toMatch(/Sentinel online/i);
+    expect(text).toMatch(/Gate B backed up/i);
+    expect(text).toMatch(/what happened/i);
+  });
+
+  it("mic_check case acknowledges without incident analysis", () => {
+    const text = buildSpokenSentinelResponse({
+      commandType: "mic_check",
+      incidentPackage: makeIncidentPackage(),
+    });
+    expect(text).toMatch(/Yes.*hear you/i);
+    expect(text).not.toMatch(/Dispatched/i);
+    expect(text).not.toMatch(/evidence/i);
+  });
+
+  it("idle_answer uses spokenAnswer when provided", () => {
+    const text = buildSpokenSentinelResponse({
+      commandType: "idle_answer",
+      incidentPackage: makeIncidentPackage(),
+      spokenAnswer: "Gate B is backed up at the entry.",
+    });
+    expect(text).toBe("Gate B is backed up at the entry.");
+  });
+
+  it("idle_answer falls back to generic when spokenAnswer absent", () => {
+    const text = buildSpokenSentinelResponse({
+      commandType: "idle_answer",
+      incidentPackage: makeIncidentPackage(),
+    });
+    expect(text).toMatch(/Gate B backed up/i);
+  });
+
+  it("fallback no longer gives the rigid evidence/report/dispatch menu", () => {
     const text = buildSpokenSentinelResponse({ commandType: "fallback" });
-    expect(text).toMatch(/evidence/i);
-    expect(text).toMatch(/report/i);
-    expect(text).toMatch(/dispatch/i);
+    // Must not be the old menu phrase
+    expect(text).not.toMatch(/Try one of those commands/i);
+    // Should still be helpful about what Sentinel can answer
+    expect(text).toMatch(/questions/i);
   });
 
   it("spoken responses are short (under 50 words)", () => {
     const contexts: SentinelSpeechContext[] = [
+      { commandType: "intro", incidentPackage: makeIncidentPackage() },
+      { commandType: "mic_check", incidentPackage: makeIncidentPackage() },
       { commandType: "open_evidence", incidentPackage: makeIncidentPackage(), evidenceCount: 3 },
       { commandType: "draft_report", incidentPackage: makeIncidentPackage() },
       { commandType: "dispatch_team", incidentPackage: makeIncidentPackage(), writebackStatus: null },
@@ -214,6 +254,8 @@ describe("buildSpokenSentinelResponse", () => {
 
   it("does not contain forbidden wording in spoken output", () => {
     const allTypes: SentinelSpeechContext["commandType"][] = [
+      "intro",
+      "mic_check",
       "open_evidence",
       "draft_report",
       "open_report",

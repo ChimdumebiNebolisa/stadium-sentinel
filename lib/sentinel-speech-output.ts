@@ -55,6 +55,8 @@ export function speakSentinelResponse(
 
 export type SentinelSpeechContext = {
   commandType:
+    | "intro"
+    | "mic_check"
     | "open_evidence"
     | "draft_report"
     | "open_report"
@@ -69,6 +71,8 @@ export type SentinelSpeechContext = {
   incidentPackage?: IncidentPackage | null;
   evidenceCount?: number;
   writebackStatus?: string | null;
+  /** First 1–2 sentences of the Gemini answer; used for natural-question spoken responses. */
+  spokenAnswer?: string;
 };
 
 /**
@@ -82,6 +86,12 @@ export function buildSpokenSentinelResponse(ctx: SentinelSpeechContext): string 
   const count = ctx.evidenceCount ?? ctx.incidentPackage?.evidence.length ?? 0;
 
   switch (ctx.commandType) {
+    case "intro":
+      return `Sentinel online. I'm tracking ${title}. Ask what happened, who is handling it, what changed, or what to do next.`;
+
+    case "mic_check":
+      return `Yes, I can hear you. Ask about this incident, who is handling it, what changed, or what to do next.`;
+
     case "open_evidence": {
       const countPhrase = count > 0 ? `I found ${count} source signal${count === 1 ? "" : "s"}` : "Evidence is open";
       return `Evidence is open for ${title}. ${countPhrase} for this incident.`;
@@ -109,10 +119,14 @@ export function buildSpokenSentinelResponse(ctx: SentinelSpeechContext): string 
       return `Review the next action in the checklist for ${title}.`;
 
     case "idle_answer":
+      // Use the actual Gemini answer (first sentences) when available.
+      if (ctx.spokenAnswer?.trim()) {
+        return ctx.spokenAnswer.trim();
+      }
       return `Review the Sentinel response for ${title}.`;
 
     case "fallback":
     default:
-      return `I can help with evidence, report drafting, or dispatch. Try one of those commands.`;
+      return `I can answer questions about the selected incident, including what happened, who is handling it, what changed, and what to do next.`;
   }
 }

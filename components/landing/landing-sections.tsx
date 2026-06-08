@@ -15,8 +15,8 @@ import {
   MemoryIcon,
   MicIcon,
   PlayIcon,
-  SearchIcon,
 } from "@/components/landing/landing-icons";
+import { DispatchQueuePreview } from "@/components/landing/dispatch-queue-preview";
 
 const capabilityIcons = {
   mic: MicIcon,
@@ -24,13 +24,6 @@ const capabilityIcons = {
   memory: MemoryIcon,
 } as const;
 
-function StatusPill({ status }: { status: "DISPATCHED" | "PENDING" | "RESOLVED" }) {
-  return (
-    <span className={`landing-status-pill landing-status-${status.toLowerCase()}`}>
-      {status}
-    </span>
-  );
-}
 
 export function DispatchQueueSection() {
   return (
@@ -47,51 +40,7 @@ export function DispatchQueueSection() {
         </p>
       </div>
 
-      <div className="landing-mockup-panel landing-queue-panel">
-        <div className="landing-queue-toolbar">
-          <div className="landing-queue-tabs">
-            {DISPATCH_FILTERS.map((filter) => (
-              <span
-                key={filter.label}
-                className={filter.active ? "landing-queue-tab active" : "landing-queue-tab"}
-              >
-                {filter.label} ({filter.count})
-              </span>
-            ))}
-          </div>
-          <div className="landing-queue-search">
-            <SearchIcon />
-            <span>Filter queue...</span>
-          </div>
-        </div>
-
-        <table className="landing-dense-table">
-          <thead>
-            <tr>
-              <th>Time</th>
-              <th>Incident</th>
-              <th>Status</th>
-              <th>Location</th>
-              <th>Assigned to</th>
-            </tr>
-          </thead>
-          <tbody>
-            {DISPATCH_QUEUE_ROWS.map((row) => (
-              <tr key={`${row.time}-${row.incident}`}>
-                <td className="landing-mono">{row.time}</td>
-                <td className="landing-table-desc">{row.incident}</td>
-                <td>
-                  <StatusPill status={row.status} />
-                </td>
-                <td className="landing-table-team">{row.location}</td>
-                <td className={row.assigned ? "landing-table-team" : "landing-unassigned"}>
-                  {row.assigned ?? "Unassigned"}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <DispatchQueuePreview rows={DISPATCH_QUEUE_ROWS} filters={DISPATCH_FILTERS} />
     </section>
   );
 }

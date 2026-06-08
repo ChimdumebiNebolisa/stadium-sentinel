@@ -91,59 +91,70 @@ export const COMMAND_FILE_STICKIES = [
 ] as const;
 
 export const DISPATCH_FILTERS = [
-  { label: "ALL", count: 12, active: true },
-  { label: "SECURITY", count: 4, active: false },
-  { label: "FACILITIES", count: 5, active: false },
+  { label: "ALL", count: 4, active: true },
+  { label: "SECURITY", count: 1, active: false },
+  { label: "FACILITIES", count: 3, active: false },
 ] as const;
 
-export const DISPATCH_QUEUE_ROWS = [
+export const DISPATCH_QUEUE_ROWS: ReadonlyArray<{
+  time: string;
+  incident: string;
+  status: "DISPATCHED" | "PENDING" | "RESOLVED";
+  location: string;
+  assigned: string | null;
+  team: "SECURITY" | "FACILITIES";
+}> = [
   {
     time: "14:05",
-    incident: "Section 112 assist",
-    status: "DISPATCHED" as const,
-    location: "Section 112",
-    assigned: "Unit GS-4",
+    incident: "Elevator 4 down",
+    status: "DISPATCHED",
+    location: "Elevator 4",
+    assigned: "Unit FAC-2",
+    team: "FACILITIES",
   },
   {
     time: "14:02",
     incident: "Gate B backed up",
-    status: "DISPATCHED" as const,
+    status: "DISPATCHED",
     location: "Gate B",
     assigned: "Unit SEC-Alpha",
+    team: "SECURITY",
   },
   {
     time: "13:58",
     incident: "Restroom out of order",
-    status: "PENDING" as const,
-    location: "Section 204",
+    status: "PENDING",
+    location: "West Concourse",
     assigned: null,
+    team: "FACILITIES",
   },
   {
     time: "13:45",
-    incident: "Medical: Heat exhaustion",
-    status: "RESOLVED" as const,
-    location: "Section 118",
-    assigned: "Med Team 2",
+    incident: "Spill near aisle",
+    status: "PENDING",
+    location: "Section 204",
+    assigned: "Unit FAC-1",
+    team: "FACILITIES",
   },
-] as const;
+];
 
 export const SWIMLANE_TIME_MARKS = ["13:30", "13:45", "14:00", "NOW"] as const;
 
 export const CAPABILITY_CARDS = [
   {
     icon: "mic" as const,
-    title: "Operations intake",
-    body: "Connect stadium operations data and review current incident reports.",
+    title: "See live reports clearly",
+    body: "Turn messy staff notes, source-system updates, and live reports into clear incident context.",
   },
   {
     icon: "folder" as const,
-    title: "Command File",
-    body: "Every incident generates a structured artifact ready for post-event operational review.",
+    title: "Know who is handling it",
+    body: "Show the assigned team, current status, and next step so staff do not duplicate work.",
   },
   {
     icon: "memory" as const,
-    title: "Agent-Readable Incident Memory",
-    body: "Append-only incident memory gives agent workflows approved operational context.",
+    title: "Keep everyone updated",
+    body: "Preserve evidence, timeline, reports, and approved updates in one shared operational record.",
   },
 ] as const;
 

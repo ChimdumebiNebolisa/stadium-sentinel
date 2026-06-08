@@ -211,7 +211,7 @@ function buildCommandStripSummary(options: {
     return "Live operations data connected. Pull latest reports to load incidents.";
   }
 
-  return `Live operations data pulled. ${options.incidentCount} incidents loaded. Highest priority queue item: ${options.topIncidentTitle ?? "Operations review"}.`;
+  return `Live operations data pulled (${options.incidentCount} incidents).`;
 }
 
 export function CommandCenter() {
@@ -780,7 +780,7 @@ export function CommandCenter() {
     setBatchGeneratedAt(new Date().toISOString());
   }
 
-  const topPriority = incidentPackages[0]?.incident.priority ?? "Monitor";
+  // topPriority removed — no longer displayed in the header
   const latestEntry = selectedIncidentPackage
     ? [...timeline]
         .reverse()
@@ -916,25 +916,25 @@ export function CommandCenter() {
       return;
     }
 
+    // Speak the intro only when opening fresh (not if panel is already open).
+    const introText = buildSpokenSentinelResponse({
+      commandType: "intro",
+      incidentPackage: selectedIncidentPackage,
+    });
     setSentinelOpen(true);
+    setSentinelUiState("idle");
+    setSentinelStatusMessage(introText);
+    speakSentinelResponse(introText);
+
     if (!sentinelVoiceEnabled) {
-      setSentinelUiState("idle");
-      setSentinelStatusMessage(buildDefaultSentinelBrief(commandState));
       return;
     }
 
+    // Ensure the voice session is initialised so Push to talk is ready.
     const session = getVoiceSession();
     if (!session.isSupported) {
-      setSentinelUiState("action_failed");
-      setSentinelStatusMessage("Voice is unavailable in this browser. Type instead.");
-      return;
+      setSentinelStatusMessage("Voice is unavailable in this browser.");
     }
-
-    // Click-to-record: opening the panel does NOT auto-start listening. The
-    // operator explicitly clicks Push to talk (toggleSentinelVoice) to begin,
-    // so a real browser never starts and stops recognition in one gesture.
-    setSentinelUiState("idle");
-    setSentinelStatusMessage("Push to talk to start a voice command.");
   }
 
   function closeSentinel() {
@@ -983,6 +983,24 @@ export function CommandCenter() {
     startSentinelVoice();
   }
 
+  /** Patterns that indicate a mic-check rather than an incident query. */
+  const MIC_CHECK_PATTERNS = /^(hi|hello|hey|testing|test|can you hear me|are you there)\b/i;
+
+  /** Return the first n sentences of text, capped at maxWords total words. */
+  function extractFirstSentences(text: string, n: number, maxWords = 50): string {
+    const sentences = text.split(/(?<=[.!?])\s+/);
+    const parts: string[] = [];
+    let wordCount = 0;
+    for (const sentence of sentences) {
+      if (parts.length >= n) break;
+      const words = sentence.trim().split(/\s+/).filter(Boolean);
+      if (wordCount + words.length > maxWords) break;
+      parts.push(sentence.trim());
+      wordCount += words.length;
+    }
+    return parts.join(" ");
+  }
+
   async function handleVoiceTranscript(text: string) {
     const transcript = text.trim();
     if (!transcript || !selectedIncidentPackage) {
@@ -991,6 +1009,22 @@ export function CommandCenter() {
 
     const normalized = normalizeVoiceTranscript(transcript);
     if (!normalized) {
+      return;
+    }
+
+    // Mic-check: acknowledge without calling the API.
+    if (MIC_CHECK_PATTERNS.test(transcript)) {
+      stopSentinelSpeech();
+      voiceInitiatedRef.current = true;
+      const response = buildSpokenSentinelResponse({
+        commandType: "mic_check",
+        incidentPackage: selectedIncidentPackage,
+      });
+      speakSentinelResponse(response);
+      setSentinelOpen(true);
+      setSentinelUiState("idle");
+      setSentinelStatusMessage("Yes, I can hear you.");
+      voiceSessionRef.current?.stop();
       return;
     }
 
@@ -1290,10 +1324,12 @@ export function CommandCenter() {
           ? "Live response ready."
           : "Review response ready.",
       );
-      // No command matched — speak a short idle/fallback response for voice.
+      // Natural question — speak the first 1-2 sentences of the Gemini answer
+      // so the operator hears an actual answer, not a rigid command menu.
       speakIfVoiceInitiated({
-        commandType: "fallback",
+        commandType: "idle_answer",
         incidentPackage: selected,
+        spokenAnswer: extractFirstSentences(response.answer, 2),
       });
     } catch {
       const fallback = buildDefaultSentinelBrief(commandState);
@@ -1332,10 +1368,7 @@ export function CommandCenter() {
         data-operations-connected={operationsConnected ? "true" : "false"}
         data-incidents-pulled={incidentPackages.length > 0 ? "true" : "false"}
       >
-        <CommandHeader
-          incidentCount={incidentPackages.length}
-          topPriority={topPriority}
-        />
+        <CommandHeader />
 
         <IntakeContextBar
           onPullReports={handlePullLatestReports}

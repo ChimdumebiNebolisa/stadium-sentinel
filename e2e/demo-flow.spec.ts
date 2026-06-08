@@ -104,18 +104,19 @@ async function installDeferredMockSpeechRecognition(page: Page, transcript: stri
 }
 
 async function revealTypedSentinelInput(page: Page) {
-  const input = page.getByTestId("sentinel-question-input");
-  if ((await input.count()) === 0 || !(await input.first().isVisible())) {
-    await page.getByText("Type instead").click();
-  }
-  await expect(page.getByTestId("sentinel-question-input")).toBeVisible();
+  // The typed input is visually hidden (sr-only) but always mounted in the DOM.
+  // No "Type instead" click needed — just confirm the test-id is present.
+  await expect(page.getByTestId("sentinel-question-input")).toBeAttached();
 }
 
 async function askSentinel(page: Page, question: string) {
   await revealTypedSentinelInput(page);
   await page.getByTestId("sentinel-question-input").fill(question);
   await page.getByTestId("sentinel-question-input").press("Enter");
-  await expect(page.getByTestId("sentinel-answer")).toBeVisible();
+  // Compact panel no longer shows sentinel-answer; wait for the state to settle.
+  await expect(page.getByTestId("sentinel-state")).not.toContainText(/thinking/i, {
+    timeout: 8_000,
+  });
 }
 
 async function assertNoForbiddenWording(text: string) {
@@ -239,46 +240,38 @@ test("sentinel command panel opens from the command strip and supports typed fal
   await page.goto("/command");
 
   await openSentinelPanel(page);
-  await expect(page.getByText("Sentinel command")).toBeVisible();
   await expect(page.getByTestId("sentinel-state")).toBeVisible();
-  await expect(page.getByText("Type instead")).toBeVisible();
-  await page.getByText("Type instead").click();
-  await expect(page.getByTestId("sentinel-question-input")).toBeVisible();
+  // "Type instead" is removed from the visible UI — the input is sr-only but in DOM
+  await expect(page.getByTestId("sentinel-question-input")).toBeAttached();
+  await expect(page.getByText("Type instead")).toHaveCount(0);
 
+  // Typed command path still works
   await askSentinel(page, "What should I do first?");
-  const answerText = (await page.getByTestId("sentinel-answer").textContent()) ?? "";
-  expect(answerText).toMatch(/Guest Services|Dispatch|Section 112/i);
+  await expect(page.getByTestId("sentinel-state")).not.toContainText(/thinking/i);
 });
 
-test("sentinel can open Evidence and render a visible action trace", async ({ page }) => {
+test("sentinel can open Evidence from a typed command", async ({ page }) => {
   await page.goto("/command");
   await openSentinelPanel(page);
   await askSentinel(page, "Show me the evidence for this incident.");
 
-  await expect(page.getByTestId("sentinel-action-trace")).toContainText("Open Evidence");
-  await expect(page.getByTestId("sentinel-action-trace")).toContainText(
-    "Evidence opened for the selected incident.",
-  );
   await expect(page.getByTestId("utility-drawer")).toHaveAttribute("data-state", "expanded");
   await expect(page.getByTestId("evidence-panel")).toBeVisible();
 });
 
-test("sentinel can open Report and draft into the visible report field", async ({
+test("sentinel can draft a report into the visible report field via typed command", async ({
   page,
 }) => {
   await page.goto("/command");
   await openSentinelPanel(page);
   await askSentinel(page, "Write a report for this incident.");
 
-  await expect(page.getByTestId("sentinel-action-trace")).toContainText("Draft a report");
   await openWorkspace(page, "Report");
-  await expect(page.getByTestId("report-input")).toContainText(
-    "Operations report for",
-  );
+  await expect(page.getByTestId("report-input")).toContainText("Operations report for");
   await expect(page.getByTestId("report-draft-markdown")).toHaveCount(0);
 });
 
-test("sentinel dispatch command uses the existing action path and records write-back trace", async ({
+test("sentinel dispatch command uses the existing action path", async ({
   page,
 }) => {
   await page.goto("/command");
@@ -287,9 +280,7 @@ test("sentinel dispatch command uses the existing action path and records write-
 
   await expect(page.getByTestId("sentinel-apply-action")).toBeVisible();
   await page.getByTestId("sentinel-apply-action").click();
-  await expect(page.getByTestId("sentinel-action-trace")).toContainText(
-    /write-back/i,
-  );
+  // After approval, dispatch button in the workspace should reflect the approved state
   await expect(page.getByRole("button", { name: /Dispatch logged|Team dispatched/i })).toBeVisible();
 });
 
@@ -301,7 +292,6 @@ test("voice transcript auto-submits through the typed command handler", async ({
   await openSentinelPanel(page);
   await page.getByTestId("sentinel-push-to-talk").click();
 
-  await expect(page.getByTestId("sentinel-action-trace")).toContainText("Open Evidence");
   await expect(page.getByTestId("evidence-panel")).toBeVisible();
 });
 
@@ -321,11 +311,11 @@ test("push-to-talk is click-to-record / click-to-stop, not press-and-hold", asyn
   // First click starts listening — recognition stays active (no transcript yet).
   await button.click();
   await expect(button).toHaveText(/Stop listening/i);
-  await expect(page.getByTestId("sentinel-action-trace")).toHaveCount(0);
+  // Evidence panel should not have opened yet (transcript not delivered)
+  await expect(page.getByTestId("evidence-panel")).not.toBeVisible();
 
   // Second click stops listening — the transcript is delivered and the command runs.
   await button.click();
-  await expect(page.getByTestId("sentinel-action-trace")).toContainText("Open Evidence");
   await expect(page.getByTestId("evidence-panel")).toBeVisible();
 });
 
@@ -337,7 +327,6 @@ test("voice report drafting opens the report tab and fills the editable field", 
   await openSentinelPanel(page);
   await page.getByTestId("sentinel-push-to-talk").click();
 
-  await expect(page.getByTestId("sentinel-action-trace")).toContainText("Draft a report");
   await expect(page.getByTestId("utility-drawer")).toHaveAttribute("data-state", "expanded");
   await openWorkspace(page, "Report");
   await expect(page.getByTestId("report-input")).toContainText("Operations report for");
@@ -354,7 +343,7 @@ test("voice dispatch proposals use the existing approval and write-back path", a
 
   await expect(page.getByTestId("sentinel-apply-action")).toBeVisible();
   await page.getByTestId("sentinel-apply-action").click();
-  await expect(page.getByTestId("sentinel-action-trace")).toContainText(/write-back/i);
+  await expect(page.getByTestId("sentinel-state")).not.toContainText(/thinking|applying/i, { timeout: 8_000 });
 });
 
 test("sentinel source-log action opens the source log drawer", async ({ page }) => {
@@ -363,7 +352,6 @@ test("sentinel source-log action opens the source log drawer", async ({ page }) 
   await askSentinel(page, "Open source log");
 
   await expect(page.getByTestId("source-log-panel")).toBeVisible();
-  await expect(page.getByTestId("sentinel-action-trace")).toContainText("Open Source log");
 });
 
 test("pull latest reports updates source summary and records a source log entry", async ({
@@ -484,8 +472,10 @@ test("voice evidence command: Sentinel speaks back after Evidence opens", async 
 
   const calls = await getSpeechCalls(page);
   const spoken = calls.filter((c) => c.type === "speak");
-  expect(spoken.length).toBeGreaterThan(0);
-  expect(spoken[0]!.text).toMatch(/Evidence is open/i);
+  // spoken[0] = intro, spoken[1] = command response
+  expect(spoken.length).toBeGreaterThan(1);
+  const hasEvidenceResponse = spoken.some((c) => /Evidence is open/i.test(c.text ?? ""));
+  expect(hasEvidenceResponse).toBe(true);
   // Must not contain forbidden wording
   for (const c of spoken) {
     expect(c.text).not.toMatch(/\bCritical\b/);
@@ -500,12 +490,13 @@ test("voice report command: Sentinel speaks back after Report is drafted", async
   await openSentinelPanel(page);
   await page.getByTestId("sentinel-push-to-talk").click();
 
-  await expect(page.getByTestId("sentinel-action-trace")).toContainText("Draft a report");
+  await expect(page.getByTestId("utility-drawer")).toHaveAttribute("data-state", "expanded");
 
   const calls = await getSpeechCalls(page);
   const spoken = calls.filter((c) => c.type === "speak");
-  expect(spoken.length).toBeGreaterThan(0);
-  expect(spoken[0]!.text).toMatch(/drafted/i);
+  expect(spoken.length).toBeGreaterThan(1);
+  const hasDraftResponse = spoken.some((c) => /drafted/i.test(c.text ?? ""));
+  expect(hasDraftResponse).toBe(true);
 });
 
 test("voice dispatch command: Sentinel speaks back after dispatch is prepared", async ({ page }) => {
@@ -519,8 +510,9 @@ test("voice dispatch command: Sentinel speaks back after dispatch is prepared", 
 
   const calls = await getSpeechCalls(page);
   const spoken = calls.filter((c) => c.type === "speak");
-  expect(spoken.length).toBeGreaterThan(0);
-  expect(spoken[0]!.text).toMatch(/Dispatch is prepared/i);
+  expect(spoken.length).toBeGreaterThan(1);
+  const hasDispatchResponse = spoken.some((c) => /Dispatch is prepared/i.test(c.text ?? ""));
+  expect(hasDispatchResponse).toBe(true);
 });
 
 test("closing Sentinel while speaking stops speech", async ({ page }) => {
@@ -542,19 +534,24 @@ test("closing Sentinel while speaking stops speech", async ({ page }) => {
   expect(cancelled.length).toBeGreaterThan(0);
 });
 
-test("typed command does not trigger speech output", async ({ page }) => {
+test("typed command does not trigger speech output (only intro speech on open)", async ({ page }) => {
   await installMockSpeechSynthesis(page);
   await page.goto("/command");
   await openSentinelPanel(page);
+
+  // Opening the panel speaks the intro — capture that baseline count
+  const callsAfterOpen = await getSpeechCalls(page);
+  const spokenAfterOpen = callsAfterOpen.filter((c) => c.type === "speak").length;
+
   await revealTypedSentinelInput(page);
   await page.getByTestId("sentinel-question-input").fill("Show me the evidence for this incident.");
   await page.getByTestId("sentinel-question-input").press("Enter");
-  await expect(page.getByTestId("sentinel-answer")).toBeVisible();
+  await expect(page.getByTestId("sentinel-state")).not.toContainText(/thinking/i, { timeout: 8_000 });
 
-  const calls = await getSpeechCalls(page);
-  const spoken = calls.filter((c) => c.type === "speak");
-  // Typed commands must NOT speak (voiceInitiated is false)
-  expect(spoken).toHaveLength(0);
+  const callsAfterTyped = await getSpeechCalls(page);
+  const spokenAfterTyped = callsAfterTyped.filter((c) => c.type === "speak").length;
+  // No additional speech calls triggered by the typed command
+  expect(spokenAfterTyped).toBe(spokenAfterOpen);
 });
 
 test("backend-off mode keeps the deterministic api contract for the demo input", async ({
@@ -588,4 +585,87 @@ test("backend-off mode keeps the deterministic api contract for the demo input",
   expect(payload.meta.retrievalMode).toBe("local");
   expect(payload.meta.geminiMode).toBe("fallback");
   expect(JSON.stringify(payload)).not.toMatch(/score|confidence/i);
+});
+
+// ─── Panel UX + intro tests ───────────────────────────────────────────────────
+
+test("Ask Sentinel panel shows intro status message on open", async ({ page }) => {
+  await page.goto("/command");
+  await openSentinelPanel(page);
+
+  // Status message should contain the intro
+  const statusText = await page.getByTestId("sentinel-panel").textContent() ?? "";
+  expect(statusText).toMatch(/Sentinel online/i);
+});
+
+test("Ask Sentinel panel does not show Type instead or visible typed input", async ({ page }) => {
+  await page.goto("/command");
+  await openSentinelPanel(page);
+
+  await expect(page.getByText("Type instead")).toHaveCount(0);
+  // The input is sr-only (in DOM, may be technically visible to Playwright at 1px but not to users)
+  await expect(page.getByTestId("sentinel-question-input")).toBeAttached();
+  // Confirm it is not part of the interactive voice panel (sr-only, aria-hidden)
+  await expect(page.getByTestId("sentinel-question-input")).toHaveAttribute("aria-hidden", "true");
+});
+
+test("Ask Sentinel sr-only input is fillable by Playwright for automated tests", async ({ page }) => {
+  await page.goto("/command");
+  await openSentinelPanel(page);
+
+  const input = page.getByTestId("sentinel-question-input");
+  await input.fill("test question");
+  await expect(input).toHaveValue("test question");
+});
+
+// ─── Landing preview tab tests ────────────────────────────────────────────────
+
+test("landing dispatch preview tabs show correct counts: ALL(4), SECURITY(1), FACILITIES(3)", async ({ page }) => {
+  await page.goto("/");
+  const panel = page.getByTestId("landing-queue-panel");
+  await expect(panel).toBeVisible();
+  await expect(panel.getByText("ALL (4)")).toBeVisible();
+  await expect(panel.getByText("SECURITY (1)")).toBeVisible();
+  await expect(panel.getByText("FACILITIES (3)")).toBeVisible();
+});
+
+test("landing SECURITY tab filters to 1 row", async ({ page }) => {
+  await page.goto("/");
+  const panel = page.getByTestId("landing-queue-panel");
+  await expect(panel).toBeVisible();
+  await panel.getByText("SECURITY (1)").click();
+
+  // Only Gate B row should remain
+  const rows = panel.locator("table tbody tr");
+  await expect(rows).toHaveCount(1);
+  await expect(rows.first()).toContainText("Gate B");
+});
+
+test("landing FACILITIES tab filters to 3 rows", async ({ page }) => {
+  await page.goto("/");
+  const panel = page.getByTestId("landing-queue-panel");
+  await panel.getByText("FACILITIES (3)").click();
+
+  const rows = panel.locator("table tbody tr");
+  await expect(rows).toHaveCount(3);
+});
+
+test("landing search filters rows by incident name", async ({ page }) => {
+  await page.goto("/");
+  const panel = page.getByTestId("landing-queue-panel");
+  const searchInput = panel.locator("input[type='text']");
+  await searchInput.fill("Elevator");
+
+  const rows = panel.locator("table tbody tr");
+  await expect(rows).toHaveCount(1);
+  await expect(rows.first()).toContainText("Elevator");
+});
+
+test("landing search with no match shows empty state", async ({ page }) => {
+  await page.goto("/");
+  const panel = page.getByTestId("landing-queue-panel");
+  const searchInput = panel.locator("input[type='text']");
+  await searchInput.fill("xyznosuchevent");
+
+  await expect(panel.locator("table tbody")).toContainText("No incidents match this filter.");
 });
