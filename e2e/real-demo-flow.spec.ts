@@ -55,7 +55,7 @@ test.describe("real demo flow", () => {
 
     await page.getByTestId("connect-operations-data").click();
     await expect(page.getByTestId("connect-status")).toContainText(
-      "Operations data connected. Pull latest reports",
+      "Live operations data connected. Pull latest reports",
       { timeout: 5_000 },
     );
     await expect(page.locator(".workbench")).toHaveAttribute(

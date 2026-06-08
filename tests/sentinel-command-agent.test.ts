@@ -13,6 +13,7 @@ import {
   answerSentinelQuestion,
   buildDefaultSentinelBrief,
   buildSuggestedSentinelQuestions,
+  interpretSentinelCommand,
   type CommandState,
 } from "@/lib/sentinel-command-agent";
 
@@ -154,6 +155,20 @@ describe("sentinel command agent", () => {
 
     expect(excerpt).toBeTruthy();
     expect(answer).toContain(excerpt!);
+  });
+
+  it("maps exact voice evidence, report, and dispatch phrases to command proposals", () => {
+    const state = buildCommandState();
+
+    expect(
+      interpretSentinelCommand("Show me the evidence for this incident.", state)?.type,
+    ).toBe("open_evidence");
+    expect(
+      interpretSentinelCommand("Write a report for this incident.", state)?.type,
+    ).toBe("draft_report");
+    expect(
+      interpretSentinelCommand("Dispatch the assigned team.", state)?.type,
+    ).toBe("dispatch_team");
   });
 
   it("answers what changed using change summary lines", () => {

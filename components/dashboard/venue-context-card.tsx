@@ -67,7 +67,7 @@ export function VenueContextCard({
         <h3 className="text-sm font-semibold tracking-tight text-[#07111c]">Venue Context</h3>
       </div>
 
-      <div className="relative flex min-h-[220px] flex-1 items-center justify-center overflow-hidden rounded-md border border-slate-200/60 bg-slate-100 p-3">
+      <div className="relative flex min-h-[165px] flex-1 items-center justify-center overflow-hidden rounded-md border border-slate-200/60 bg-slate-100 p-3">
         <div className="absolute right-3 top-3 z-10 flex flex-col gap-2">
           <div className="rounded-md border border-slate-200 bg-white/95 px-2 py-1 shadow-sm">
             <span className="block text-[0.6rem] font-bold uppercase tracking-widest text-slate-500">
@@ -94,7 +94,7 @@ export function VenueContextCard({
           viewBox="6 8 88 48"
           role="img"
           aria-label="Venue context schematic"
-          className="h-full w-full"
+          className="h-[75%] w-[75%]"
           data-testid="venue-context-schematic"
         >
           <path

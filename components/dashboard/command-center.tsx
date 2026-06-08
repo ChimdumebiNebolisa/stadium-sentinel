@@ -101,7 +101,6 @@ import {
   type SpeechRecognitionStatus,
 } from "@/lib/sentinel-voice";
 import { SENTINEL_MOCK_VOICE_QUESTION } from "@/lib/sentinel-voice-shell";
-import { getActiveLocationIdsFromPackages } from "@/lib/venue-schematic";
 import type {
   EvidenceResult,
   IncidentPackage,
@@ -198,14 +197,14 @@ function buildCommandStripSummary(options: {
   pullStatus: string | null;
 }): string {
   if (!options.operationsConnected) {
-    return "Connect stadium operations data and review current incident reports.";
+    return "Connect live operations data and review current incident reports.";
   }
 
   if (options.incidentCount === 0) {
-    return "Elastic operations data connected. Pull latest reports to load incidents.";
+    return "Live operations data connected. Pull latest reports to load incidents.";
   }
 
-  return `Elastic operations data connected. ${options.incidentCount} incidents pulled. Top priority: ${options.topIncidentTitle ?? "Operations review"}.`;
+  return `Live operations data pulled. ${options.incidentCount} incidents loaded. Top priority: ${options.topIncidentTitle ?? "Operations review"}.`;
 }
 
 export function CommandCenter() {
@@ -271,12 +270,21 @@ export function CommandCenter() {
   const voiceSessionRef = useRef<ReturnType<typeof createSpeechRecognitionSession> | null>(
     null,
   );
+  const sentinelUiStateRef = useRef<SentinelUiState>("idle");
+  const lastVoiceSubmissionRef = useRef<{
+    signature: string;
+    timestamp: number;
+  } | null>(null);
   const trackedSentinelIncidentId = useRef<string | null>(null);
 
   useEffect(() => {
     setSourcesConnected(readSourcesConnected());
     setOperationsConnected(readOperationsConnected());
   }, []);
+
+  useEffect(() => {
+    sentinelUiStateRef.current = sentinelUiState;
+  }, [sentinelUiState]);
 
   useEffect(() => {
     const incidentId = selectedIncidentId || null;
@@ -529,7 +537,7 @@ export function CommandCenter() {
         clearDemoIncidentBatch();
         resetRealDemoQueueState();
         setConnectStatus(
-          "Operations data connected. Pull latest reports to load incidents.",
+          "Live operations data connected. Pull latest reports to load incidents.",
         );
         return;
       }
@@ -597,7 +605,7 @@ export function CommandCenter() {
             setSourceMode("elastic");
             setLastIngestionSummary(elasticPull.ingestionSummary);
             setPullStatus(
-              `Elastic operations data refreshed (${sortedPackages.length} incidents).`,
+              `Live operations data pulled (${sortedPackages.length} incidents).`,
             );
             recordSourceAudit(
               "elastic",
@@ -639,7 +647,7 @@ export function CommandCenter() {
       );
       setTimeline(nextTimeline);
       setReportSummary(buildPostEventReport(sortedPackages, nextTimeline));
-      setPullStatus(`Current incident reports loaded (${sortedPackages.length} incidents).`);
+      setPullStatus(`Latest operations data loaded (${sortedPackages.length} incidents).`);
       recordSourceAudit(
         "demo",
         `Demo pull loaded ${sortedPackages.length} incident package(s).`,
@@ -787,10 +795,6 @@ export function CommandCenter() {
     pullStatus,
     batchGeneratedAt,
   );
-  const activeLocationIds = useMemo(
-    () => getActiveLocationIdsFromPackages(incidentPackages),
-    [incidentPackages],
-  );
 
   const commandState = useMemo<CommandState>(
     () => ({
@@ -854,16 +858,21 @@ export function CommandCenter() {
     if (!voiceSessionRef.current) {
       voiceSessionRef.current = createSpeechRecognitionSession({
         onTranscript: (text) => {
-          setSentinelQuestion(text);
-          setSentinelUiState("transcribing");
-          setSentinelStatusMessage("Transcript ready. Review and ask.");
+          void handleVoiceTranscript(text);
         },
         onStatusChange: (status, message) => {
           setSentinelVoiceStatus(status);
-          if (status === "listening") {
+          const isVoiceActiveState =
+            sentinelUiStateRef.current === "listening" ||
+            sentinelUiStateRef.current === "transcribing";
+
+          if (status === "listening" && isVoiceActiveState) {
             setSentinelUiState("listening");
           }
-          setSentinelStatusMessage(message);
+
+          if (isVoiceActiveState) {
+            setSentinelStatusMessage(message);
+          }
         },
       });
     }
@@ -927,6 +936,45 @@ export function CommandCenter() {
 
   function stopSentinelVoice() {
     voiceSessionRef.current?.stop();
+  }
+
+  function normalizeVoiceTranscript(text: string): string {
+    return text
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}\s]/gu, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  async function handleVoiceTranscript(text: string) {
+    const transcript = text.trim();
+    if (!transcript || !selectedIncidentPackage) {
+      return;
+    }
+
+    const normalized = normalizeVoiceTranscript(transcript);
+    if (!normalized) {
+      return;
+    }
+
+    const signature = `${selectedIncidentPackage.incident.id}:${normalized}`;
+    const now = Date.now();
+    const lastSubmission = lastVoiceSubmissionRef.current;
+    if (
+      lastSubmission &&
+      lastSubmission.signature === signature &&
+      now - lastSubmission.timestamp < 1500
+    ) {
+      return;
+    }
+
+    lastVoiceSubmissionRef.current = { signature, timestamp: now };
+    setSentinelQuestion(transcript);
+    setSentinelOpen(true);
+    setSentinelUiState("transcribing");
+    setSentinelStatusMessage("Transcript ready. Submitting command.");
+    voiceSessionRef.current?.stop();
+    await submitSentinelQuestion(transcript);
   }
 
   function buildActionTrace(
@@ -1246,14 +1294,7 @@ export function CommandCenter() {
             {selectedIncidentPackage ? (
               <ActiveIncidentWorkspace
                 incidentPackage={selectedIncidentPackage}
-                commandState={commandState}
                 timeline={timeline}
-                activeLocationIds={activeLocationIds}
-                transcriptLine={
-                  latestTranscriptRecord?.matchedLines[
-                    selectedIncidentPackage.incident.id
-                  ] ?? null
-                }
                 onApprove={(incidentId, action, actionIndex) => {
                   void handleApprove(incidentId, action, actionIndex);
                 }}
@@ -1300,8 +1341,11 @@ export function CommandCenter() {
           }
           timelinePanel={
             <TimelinePanel
+              incidentPackage={selectedIncidentPackage}
               timeline={timeline}
-              incidentId={selectedIncidentPackage?.incident.id}
+              activeWorkspace={activeWorkspace}
+              reportDraft={report}
+              sentinelActionTrace={sentinelActionTrace}
             />
           }
           reportPanel={
@@ -1315,12 +1359,16 @@ export function CommandCenter() {
               />
               <PostEventReportPanel
                 reportSummary={reportSummary}
-                demoReportDraft={demoReportDraft}
                 demoMemoryPanel={<DemoMemoryPanel memorySummary={demoMemorySummary} />}
               />
             </>
           }
-          sourceLogPanel={<SourceLogPanel events={sourceAuditEvents} />}
+          sourceLogPanel={
+            <SourceLogPanel
+              events={sourceAuditEvents}
+              incidentPackage={selectedIncidentPackage}
+            />
+          }
         />
       </main>
     </div>

@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 const DEMO_SOURCE_IDS = ["guest-services", "security", "facilities", "radio"] as const;
 
 async function expectPullComplete(page: Parameters<typeof test>[0]["page"]) {
-  await expect(page.getByTestId("pull-status")).toContainText(/refreshed|loaded/i, {
+  await expect(page.getByTestId("pull-status")).toContainText(/pulled|loaded/i, {
     timeout: 5_000,
   });
 }

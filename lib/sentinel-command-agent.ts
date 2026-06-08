@@ -234,6 +234,7 @@ type QuestionIntent =
 
 function classifyQuestion(normalized: string): QuestionIntent {
   if (
+    normalized.includes("show me the evidence for this incident") ||
     normalized.includes("show me evidence") ||
     normalized.includes("open evidence") ||
     normalized.includes("why was this flagged")
@@ -248,12 +249,14 @@ function classifyQuestion(normalized: string): QuestionIntent {
     return "open-source-log";
   }
   if (
+    normalized.includes("show me the report for this incident") ||
     normalized.includes("open report") ||
     normalized.includes("show report")
   ) {
     return "open-report";
   }
   if (
+    normalized.includes("write a report for this incident") ||
     normalized.includes("write a report") ||
     normalized.includes("draft a report") ||
     normalized.includes("draft report")
@@ -268,6 +271,7 @@ function classifyQuestion(normalized: string): QuestionIntent {
     return "process-report";
   }
   if (
+    normalized.includes("dispatch the assigned team") ||
     normalized.includes("dispatch assigned team") ||
     normalized.includes("dispatch team") ||
     normalized.includes("send the team")

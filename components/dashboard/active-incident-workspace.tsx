@@ -1,17 +1,12 @@
 import { OperationsTimeline } from "@/components/dashboard/operations-timeline";
 import { PriorityBadge } from "@/components/dashboard/priority-badge";
 import { VenueContextCard } from "@/components/dashboard/venue-context-card";
-import { WorkflowCues } from "@/components/dashboard/workflow-cues";
 import { getLocationRecord } from "@/lib/data";
-import type { CommandState } from "@/lib/sentinel-command-agent";
 import type { IncidentPackage, TimelineEntry } from "@/lib/types";
 
 type ActiveIncidentWorkspaceProps = {
   incidentPackage: IncidentPackage;
-  commandState: CommandState;
   timeline: TimelineEntry[];
-  activeLocationIds?: string[];
-  transcriptLine?: string | null;
   onApprove: (incidentId: string, action: string, actionIndex: number) => void;
 };
 
@@ -151,7 +146,6 @@ function WorkspaceSectionTitle({
 
 export function ActiveIncidentWorkspace({
   incidentPackage,
-  commandState,
   timeline,
   onApprove,
 }: ActiveIncidentWorkspaceProps) {
@@ -176,7 +170,7 @@ export function ActiveIncidentWorkspace({
       </div>
 
       <div className="grid min-h-0 gap-3">
-        <article className="ops-subpanel p-4">
+        <article className="ops-subpanel p-4" data-testid="incident-header">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-3">
@@ -206,48 +200,6 @@ export function ActiveIncidentWorkspace({
                 ))}
               </div>
             ) : null}
-          </div>
-
-          <div className="mt-3 flex flex-wrap gap-2">
-            {primaryAction ? (
-              <button
-                type="button"
-                onClick={() => onApprove(incident.id, primaryAction, 0)}
-                disabled={dispatchApproved}
-                aria-label={`${copy.actionLabels[0]}: ${primaryAction}`}
-                className={`rounded-md border px-4 py-2 text-sm font-semibold transition-colors ${
-                  dispatchApproved
-                    ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-800"
-                    : "border-blue-500/40 bg-blue-600 text-white hover:bg-blue-500 disabled:cursor-not-allowed"
-                }`}
-              >
-                {dispatchApproved ? "Dispatch logged" : copy.actionLabels[0]}
-              </button>
-            ) : null}
-
-            {secondaryActions.map((action, index) => {
-              const actionIndex = index + 1;
-              const isApproved = incident.approvedActionIds.includes(
-                `${incident.id}-action-${actionIndex}`,
-              );
-
-              return (
-                <button
-                  key={`${incident.id}-secondary-${actionIndex}`}
-                  type="button"
-                  onClick={() => onApprove(incident.id, action, actionIndex)}
-                  disabled={isApproved}
-                  aria-label={`${copy.actionLabels[actionIndex]}: ${action}`}
-                  className={`rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
-                    isApproved
-                      ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-800"
-                      : "border-slate-200 bg-[var(--panel-inset)] text-slate-700 hover:border-slate-300 hover:bg-[var(--panel-hover)] disabled:cursor-not-allowed"
-                  }`}
-                >
-                  {isApproved ? "Logged" : copy.actionLabels[actionIndex]}
-                </button>
-              );
-            })}
           </div>
         </article>
 
@@ -281,6 +233,33 @@ export function ActiveIncidentWorkspace({
                   );
                 })}
               </div>
+              {secondaryActions.length > 0 ? (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {secondaryActions.map((action, index) => {
+                    const actionIndex = index + 1;
+                    const isApproved = incident.approvedActionIds.includes(
+                      `${incident.id}-action-${actionIndex}`,
+                    );
+
+                    return (
+                      <button
+                        key={`${incident.id}-secondary-${actionIndex}`}
+                        type="button"
+                        onClick={() => onApprove(incident.id, action, actionIndex)}
+                        disabled={isApproved}
+                        aria-label={`${copy.actionLabels[actionIndex]}: ${action}`}
+                        className={`rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
+                          isApproved
+                            ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-800"
+                            : "border-slate-200 bg-[var(--panel-inset)] text-slate-700 hover:border-slate-300 hover:bg-[var(--panel-hover)] disabled:cursor-not-allowed"
+                        }`}
+                      >
+                        {isApproved ? "Logged" : copy.actionLabels[actionIndex]}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : null}
             </article>
 
             <article className="ops-subpanel flex-1 p-4">
@@ -312,7 +291,7 @@ export function ActiveIncidentWorkspace({
                     ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-800"
                     : "border-blue-500/40 bg-blue-600 text-white hover:bg-blue-500 disabled:cursor-not-allowed"
                 }`}
-              >
+                >
                 {dispatchApproved ? "Team dispatched" : copy.teamButtonLabel}
               </button>
             </article>
@@ -320,12 +299,9 @@ export function ActiveIncidentWorkspace({
         </div>
 
         <OperationsTimeline
-          commandState={commandState}
+          incidentPackage={incidentPackage}
           timeline={timeline}
-          selectedIncidentId={incident.id}
         />
-
-        <WorkflowCues incidentPackage={incidentPackage} />
 
         <div className="flex items-center justify-between px-1 pt-1 text-xs text-slate-500">
           <p data-testid="evidence-drawer-pointer">

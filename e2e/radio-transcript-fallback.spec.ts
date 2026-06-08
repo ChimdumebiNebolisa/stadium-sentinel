@@ -65,7 +65,7 @@ async function enableDemoSources(page: Page) {
 
 async function pullLatestReports(page: Page) {
   await page.getByTestId("pull-latest-reports").click();
-  await expect(page.getByTestId("pull-status")).toContainText(/refreshed|loaded/i, {
+  await expect(page.getByTestId("pull-status")).toContainText(/pulled|loaded/i, {
     timeout: 5_000,
   });
 }
@@ -123,7 +123,8 @@ test("transcript extract preserves transcript-linked evidence and incident log e
 
   const incidentLogTab = page.getByRole("tab", { name: "Incident log", exact: true });
   await incidentLogTab.click();
-  await expect(page.getByTestId("timeline-panel")).toContainText(/Radio|matched/i);
+  await expect(page.getByTestId("timeline-panel")).toContainText("Source received");
+  await expect(page.getByTestId("timeline-panel")).toContainText("Sentinel evidence opened");
 });
 
 test("transcript extract keeps pull and sentinel follow-up paths working", async ({

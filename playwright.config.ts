@@ -22,6 +22,7 @@ export default defineConfig({
     reuseExistingServer: false,
     env: {
       ...process.env,
+      NEXT_PUBLIC_ENABLE_SENTINEL_VOICE: "true",
       NEXT_PUBLIC_REAL_DEMO_FLOW:
         process.env.REAL_DEMO_E2E === "1" ? "true" : "false",
     },

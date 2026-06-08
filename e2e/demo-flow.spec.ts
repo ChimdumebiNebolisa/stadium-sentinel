@@ -25,6 +25,40 @@ async function openSentinelPanel(page: Page) {
   await expect(page.getByTestId("sentinel-panel")).toBeVisible();
 }
 
+async function installMockSpeechRecognition(page: Page, transcript: string) {
+  await page.addInitScript((mockTranscript) => {
+    class MockSpeechRecognition {
+      continuous = false;
+      interimResults = false;
+      lang = "en-US";
+      onresult: ((event: { results: ArrayLike<{ 0: { transcript: string } }> }) => void) | null =
+        null;
+      onerror: ((event: { error?: string }) => void) | null = null;
+      onend: (() => void) | null = null;
+
+      start() {
+        this.onresult?.({
+          results: [{ 0: { transcript: mockTranscript } }],
+        });
+        this.onend?.();
+      }
+
+      stop() {}
+
+      abort() {}
+    }
+
+    (window as Window & {
+      SpeechRecognition?: typeof MockSpeechRecognition;
+      webkitSpeechRecognition?: typeof MockSpeechRecognition;
+    }).SpeechRecognition = MockSpeechRecognition as unknown as typeof MockSpeechRecognition;
+    (window as Window & {
+      SpeechRecognition?: typeof MockSpeechRecognition;
+      webkitSpeechRecognition?: typeof MockSpeechRecognition;
+    }).webkitSpeechRecognition = MockSpeechRecognition as unknown as typeof MockSpeechRecognition;
+  }, transcript);
+}
+
 async function revealTypedSentinelInput(page: Page) {
   const input = page.getByTestId("sentinel-question-input");
   if ((await input.count()) === 0 || !(await input.first().isVisible())) {
@@ -59,7 +93,7 @@ async function enableDemoSources(page: Page) {
 
 async function pullLatestReports(page: Page) {
   await page.getByTestId("pull-latest-reports").click();
-  await expect(page.getByTestId("pull-status")).toContainText(/refreshed|loaded/i, {
+  await expect(page.getByTestId("pull-status")).toContainText(/pulled|loaded/i, {
     timeout: 5_000,
   });
 }
@@ -77,7 +111,9 @@ test("command center shell stays intact and uses cleaned recording copy", async 
   await expect(page.getByText("Automatic ingest (prototype)")).toHaveCount(0);
   await expect(page.getByTestId("what-changed-summary")).toHaveCount(0);
   await expect(page.getByTestId("ingestion-status-banner")).toHaveCount(0);
-  await expect(page.getByTestId("command-strip-summary")).toContainText(/operations/i);
+  await expect(page.getByTestId("command-strip-summary")).toContainText(
+    /live operations data/i,
+  );
 });
 
 test("dispatch queue selection switches the active incident workspace", async ({
@@ -97,6 +133,41 @@ test("dispatch queue selection switches the active incident workspace", async ({
   );
 });
 
+test("selected queue item stays consistent across the workspace and drawer panels", async ({
+  page,
+}) => {
+  await page.goto("/command");
+  await page.locator('[data-incident-id="incident-gate-b"]').click();
+
+  await expect(page.getByTestId("selected-incident-title")).toContainText("Gate B");
+  await expect(page.getByTestId("operations-timeline-selected")).toContainText("Gate B");
+
+  await page.getByTestId("incident-drawer-handle").click();
+  await openWorkspace(page, "Evidence");
+  await expect(page.getByTestId("evidence-panel")).toContainText("Gate B");
+
+  await openWorkspace(page, "Report");
+  await expect(page.getByTestId("report-input")).toBeVisible();
+  await expect(page.getByTestId("report-summary-headline")).toBeVisible();
+
+  await openWorkspace(page, "Incident log");
+  await expect(page.getByTestId("timeline-panel")).toContainText("Gate B");
+  await expect(page.getByTestId("incident-log-entry-source-received")).toBeVisible();
+
+  await openWorkspace(page, "Source log");
+  await expect(page.getByTestId("source-log-panel")).toContainText("Gate B");
+});
+
+test("incident header does not keep workflow buttons in the summary area", async ({
+  page,
+}) => {
+  await page.goto("/command");
+
+  const header = page.getByTestId("incident-header");
+  await expect(header).toBeVisible();
+  await expect(header.getByRole("button", { name: /Dispatch logged|Route details|Radio handoff/i })).toHaveCount(0);
+});
+
 test("drawer, evidence panel, and report panel use the cleaned structures", async ({
   page,
 }) => {
@@ -109,12 +180,12 @@ test("drawer, evidence panel, and report panel use the cleaned structures", asyn
   await expect(page.getByText("Operational evidence")).toHaveCount(0);
   await expect(page.getByText("Evidence read path")).toHaveCount(0);
   await expect(page.getByText("Elastic search")).toHaveCount(0);
+  await expect(page.getByTestId("evidence-panel").getByText("Observed signal:").first()).toBeVisible();
 
   await openWorkspace(page, "Report");
   await expect(page.getByTestId("report-input")).not.toBeEmpty();
-  await expect(page.getByTestId("report-draft-markdown")).toContainText(
-    "Operations Report Draft",
-  );
+  await expect(page.getByTestId("report-summary-headline")).toBeVisible();
+  await expect(page.getByTestId("report-draft-markdown")).toHaveCount(0);
   await expect(page.getByTestId("demo-memory-panel")).toContainText("Recent command memory");
 });
 
@@ -126,9 +197,9 @@ test("sentinel command panel opens from the command strip and supports typed fal
   await openSentinelPanel(page);
   await expect(page.getByText("Sentinel command")).toBeVisible();
   await expect(page.getByTestId("sentinel-state")).toBeVisible();
-  await expect(
-    page.getByText("Type instead").or(page.getByTestId("sentinel-question-input")),
-  ).toBeVisible();
+  await expect(page.getByText("Type instead")).toBeVisible();
+  await page.getByText("Type instead").click();
+  await expect(page.getByTestId("sentinel-question-input")).toBeVisible();
 
   await askSentinel(page, "What should I do first?");
   const answerText = (await page.getByTestId("sentinel-answer").textContent()) ?? "";
@@ -138,7 +209,7 @@ test("sentinel command panel opens from the command strip and supports typed fal
 test("sentinel can open Evidence and render a visible action trace", async ({ page }) => {
   await page.goto("/command");
   await openSentinelPanel(page);
-  await askSentinel(page, "Show me evidence");
+  await askSentinel(page, "Show me the evidence for this incident.");
 
   await expect(page.getByTestId("sentinel-action-trace")).toContainText("Open Evidence");
   await expect(page.getByTestId("sentinel-action-trace")).toContainText(
@@ -153,13 +224,14 @@ test("sentinel can open Report and draft into the visible report field", async (
 }) => {
   await page.goto("/command");
   await openSentinelPanel(page);
-  await askSentinel(page, "Write a report");
+  await askSentinel(page, "Write a report for this incident.");
 
   await expect(page.getByTestId("sentinel-action-trace")).toContainText("Draft a report");
   await openWorkspace(page, "Report");
   await expect(page.getByTestId("report-input")).toContainText(
     "Operations report for",
   );
+  await expect(page.getByTestId("report-draft-markdown")).toHaveCount(0);
 });
 
 test("sentinel dispatch command uses the existing action path and records write-back trace", async ({
@@ -167,7 +239,7 @@ test("sentinel dispatch command uses the existing action path and records write-
 }) => {
   await page.goto("/command");
   await openSentinelPanel(page);
-  await askSentinel(page, "Dispatch assigned team");
+  await askSentinel(page, "Dispatch the assigned team.");
 
   await expect(page.getByTestId("sentinel-apply-action")).toBeVisible();
   await page.getByTestId("sentinel-apply-action").click();
@@ -175,6 +247,43 @@ test("sentinel dispatch command uses the existing action path and records write-
     /write-back/i,
   );
   await expect(page.getByRole("button", { name: /Dispatch logged|Team dispatched/i })).toBeVisible();
+});
+
+test("voice transcript auto-submits through the typed command handler", async ({
+  page,
+}) => {
+  await installMockSpeechRecognition(page, "Show me the evidence for this incident.");
+  await page.goto("/command");
+  await openSentinelPanel(page);
+
+  await expect(page.getByTestId("sentinel-action-trace")).toContainText("Open Evidence");
+  await expect(page.getByTestId("evidence-panel")).toBeVisible();
+});
+
+test("voice report drafting opens the report tab and fills the editable field", async ({
+  page,
+}) => {
+  await installMockSpeechRecognition(page, "Write a report for this incident.");
+  await page.goto("/command");
+  await openSentinelPanel(page);
+
+  await expect(page.getByTestId("sentinel-action-trace")).toContainText("Draft a report");
+  await expect(page.getByTestId("utility-drawer")).toHaveAttribute("data-state", "expanded");
+  await openWorkspace(page, "Report");
+  await expect(page.getByTestId("report-input")).toContainText("Operations report for");
+  await expect(page.getByTestId("report-draft-markdown")).toHaveCount(0);
+});
+
+test("voice dispatch proposals use the existing approval and write-back path", async ({
+  page,
+}) => {
+  await installMockSpeechRecognition(page, "Dispatch the assigned team.");
+  await page.goto("/command");
+  await openSentinelPanel(page);
+
+  await expect(page.getByTestId("sentinel-apply-action")).toBeVisible();
+  await page.getByTestId("sentinel-apply-action").click();
+  await expect(page.getByTestId("sentinel-action-trace")).toContainText(/write-back/i);
 });
 
 test("sentinel source-log action opens the source log drawer", async ({ page }) => {
@@ -193,20 +302,22 @@ test("pull latest reports updates source summary and records a source log entry"
   await enableDemoSources(page);
   await pullLatestReports(page);
 
-  await expect(page.getByTestId("command-strip-summary")).toContainText(/incidents pulled/i);
+  await expect(page.getByTestId("command-strip-summary")).toContainText(
+    /live operations data pulled|latest operations data loaded/i,
+  );
 
   await openWorkspace(page, "Source log");
   await expect(page.getByTestId("source-log-entry").first()).toBeVisible();
 });
 
-test("workspace pointer and dispatch note use cleaned copy", async ({ page }) => {
+test("workspace pointer uses cleaned copy and removes the dispatch note strip", async ({
+  page,
+}) => {
   await page.goto("/command");
 
-  await expect(page.getByTestId("workflow-cues")).toBeVisible();
-  await expect(page.getByTestId("dispatch-message")).not.toBeEmpty();
-  await expect(page.getByTestId("follow-up-sentinel-cue")).toHaveText(
-    "More follow-ups in Ask Sentinel.",
-  );
+  await expect(page.getByTestId("workflow-cues")).toHaveCount(0);
+  await expect(page.getByTestId("dispatch-message")).toHaveCount(0);
+  await expect(page.getByTestId("follow-up-sentinel-cue")).toHaveCount(0);
   await expect(page.getByTestId("evidence-drawer-pointer")).toHaveText(
     "Open drawer: Evidence, Staff Update, Incident log, Report, Source log.",
   );
@@ -236,10 +347,14 @@ test("venue context updates the selected marker and keeps venue orientation hidd
 
 test("operations timeline remains visible and avoids forbidden wording", async ({ page }) => {
   await page.goto("/command");
+  await page.locator('[data-incident-id="incident-gate-b"]').click();
 
   const opsTimeline = page.getByTestId("operations-timeline");
   await expect(opsTimeline).toBeVisible();
-  await expect(opsTimeline.getByText("Assigned").first()).toBeVisible();
+  await expect(opsTimeline.getByTestId("operations-timeline-selected")).toContainText(
+    "Gate B",
+  );
+  await expect(opsTimeline).not.toContainText("Elevator 4 down");
   await expect(page.getByText("Recent activity")).toHaveCount(0);
 
   const bodyText = (await page.locator("body").textContent()) ?? "";
