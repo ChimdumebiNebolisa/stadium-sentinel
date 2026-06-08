@@ -4,11 +4,16 @@ export type SpeechRecognitionStatus =
   | "listening"
   | "error";
 
+type SpeechRecognitionResult = { isFinal?: boolean; 0: { transcript: string } };
+
 export type SpeechRecognitionLike = {
   continuous: boolean;
   interimResults: boolean;
   lang: string;
-  onresult: ((event: { results: ArrayLike<{ 0: { transcript: string } }> }) => void) | null;
+  onresult: ((event: {
+    resultIndex?: number;
+    results: ArrayLike<SpeechRecognitionResult>;
+  }) => void) | null;
   onerror: ((event: { error?: string }) => void) | null;
   onend: (() => void) | null;
   start: () => void;
@@ -41,18 +46,45 @@ export function isSpeechSynthesisSupported(
 }
 
 export function extractFinalTranscript(
-  results: ArrayLike<{ 0: { transcript: string } }>,
+  results: ArrayLike<{ isFinal?: boolean; 0: { transcript: string } }>,
+  resultIndex?: number,
 ): string {
   const parts: string[] = [];
+  const start = resultIndex ?? 0;
 
-  for (let index = 0; index < results.length; index += 1) {
-    const transcript = results[index]?.[0]?.transcript?.trim();
+  for (let index = start; index < results.length; index += 1) {
+    const result = results[index];
+    // Skip interim results; undefined isFinal is treated as final for backward compat
+    if (result.isFinal === false) continue;
+    const transcript = result[0]?.transcript?.trim();
     if (transcript) {
       parts.push(transcript);
     }
   }
 
   return parts.join(" ").trim();
+}
+
+export function normalizeVoiceTranscript(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function mapSpeechError(error?: string): string {
+  switch (error) {
+    case "not-allowed":
+    case "service-not-allowed":
+      return "Microphone access denied. Use Type instead.";
+    case "no-speech":
+      return "No speech detected. Use Type instead.";
+    case "audio-capture":
+      return "Microphone unavailable. Use Type instead.";
+    default:
+      return "Voice input unavailable. Use Type instead.";
+  }
 }
 
 export function createSpeechRecognitionSession(input: {
@@ -81,6 +113,19 @@ export function createSpeechRecognitionSession(input: {
 
   let recognition: SpeechRecognitionLike | null = null;
 
+  // Closure-level tracking vars — survive across repeated start/stop on the same session
+  let hadFinalTranscript = false;
+  let hadAnyResult = false;
+  let timeoutFired = false;
+  let listeningTimeout: ReturnType<typeof setTimeout> | null = null;
+
+  function clearListenTimeout() {
+    if (listeningTimeout !== null) {
+      clearTimeout(listeningTimeout);
+      listeningTimeout = null;
+    }
+  }
+
   function ensureRecognition(): SpeechRecognitionLike {
     if (!Recognition) {
       throw new Error("Speech recognition is unavailable.");
@@ -91,23 +136,41 @@ export function createSpeechRecognitionSession(input: {
       recognition.continuous = false;
       recognition.interimResults = false;
       recognition.lang = "en-US";
+
       recognition.onresult = (event) => {
-        const transcript = extractFinalTranscript(event.results);
+        hadAnyResult = true;
+        const transcript = extractFinalTranscript(event.results, event.resultIndex);
         if (transcript) {
+          hadFinalTranscript = true;
+          clearListenTimeout();
           input.onTranscript(transcript);
-          input.onStatusChange?.("ready", "Transcript captured. Review and click Ask.");
+          // Do not call onStatusChange here — command-center transitions state
+          // via handleVoiceTranscript → submitSentinelQuestion
         }
+        // Interim-only results: wait for a final result or onend
       };
+
       recognition.onerror = (event) => {
-        input.onStatusChange?.(
-          "error",
-          event.error
-            ? `Speech recognition error: ${event.error}`
-            : "Speech recognition failed.",
-        );
+        clearListenTimeout();
+        const msg = mapSpeechError(event.error);
+        input.onStatusChange?.("error", msg);
       };
+
       recognition.onend = () => {
-        input.onStatusChange?.("ready", "Push-to-talk ready.");
+        clearListenTimeout();
+        if (timeoutFired) {
+          // Timeout already fired onStatusChange("error", ...) — avoid double-fire
+          timeoutFired = false;
+        } else if (!hadFinalTranscript) {
+          const msg = hadAnyResult
+            ? "Speech detected but could not be confirmed. Use Type instead."
+            : "Voice input unavailable. Use Type instead.";
+          input.onStatusChange?.("error", msg);
+        } else {
+          input.onStatusChange?.("ready", "Push-to-talk ready.");
+        }
+        hadFinalTranscript = false;
+        hadAnyResult = false;
       };
     }
 
@@ -117,11 +180,22 @@ export function createSpeechRecognitionSession(input: {
   return {
     isSupported: true,
     start: () => {
+      hadFinalTranscript = false;
+      hadAnyResult = false;
+      timeoutFired = false;
+      clearListenTimeout();
       const active = ensureRecognition();
       input.onStatusChange?.("listening", "Listening… release to review transcript.");
+      // Safety net: directly escape the UI if the browser never fires onend
+      listeningTimeout = setTimeout(() => {
+        timeoutFired = true;
+        input.onStatusChange?.("error", "Voice input unavailable. Use Type instead.");
+        active.stop();
+      }, 8000);
       active.start();
     },
     stop: () => {
+      clearListenTimeout();
       recognition?.stop();
     },
   };

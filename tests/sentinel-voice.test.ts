@@ -1,9 +1,10 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   createSpeechRecognitionSession,
   extractFinalTranscript,
   isSpeechRecognitionSupported,
+  normalizeVoiceTranscript,
   speakSentinelAnswer,
   type SpeechRecognitionLike,
   type SentinelVoiceWindow,
@@ -65,6 +66,44 @@ describe("sentinel voice", () => {
     ).toBe("Gate B is backed up. What should I do first?");
   });
 
+  it("skips interim results and extracts only final ones", () => {
+    expect(
+      extractFinalTranscript([
+        { isFinal: false, 0: { transcript: "uh..." } },
+        { isFinal: true, 0: { transcript: "Show me the evidence." } },
+      ]),
+    ).toBe("Show me the evidence.");
+  });
+
+  describe("normalizeVoiceTranscript — dedup key generation", () => {
+    // normalizeVoiceTranscript produces the signature key used by command-center's
+    // dedup check (normalized transcript + incident ID, 1.5 s window).
+    // The full ref+window dedup is covered by the e2e demo-flow voice test.
+    it("lowercases and strips punctuation", () => {
+      expect(normalizeVoiceTranscript("Show me the evidence!")).toBe(
+        "show me the evidence",
+      );
+    });
+
+    it("collapses whitespace", () => {
+      expect(normalizeVoiceTranscript("  dispatch   the team  ")).toBe(
+        "dispatch the team",
+      );
+    });
+
+    it("produces identical keys for semantically duplicate transcripts", () => {
+      const a = normalizeVoiceTranscript("Show me the evidence.");
+      const b = normalizeVoiceTranscript("Show me the evidence!");
+      expect(a).toBe(b);
+    });
+
+    it("produces different keys for different commands", () => {
+      const a = normalizeVoiceTranscript("Show me the evidence.");
+      const b = normalizeVoiceTranscript("Draft a report.");
+      expect(a).not.toBe(b);
+    });
+  });
+
   it("fills input via callback without auto-submitting", () => {
     const { recognition } = createMockRecognition();
     const win = {
@@ -121,5 +160,116 @@ describe("sentinel voice", () => {
     expect(speak).toHaveBeenCalledTimes(1);
 
     vi.unstubAllGlobals();
+  });
+
+  describe("hardened voice lifecycle", () => {
+    // Use fake timers so the 8-second listen timeout never fires unexpectedly
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    function createManualMockRecognition() {
+      const listeners: {
+        onresult: SpeechRecognitionLike["onresult"];
+        onerror: SpeechRecognitionLike["onerror"];
+        onend: SpeechRecognitionLike["onend"];
+      } = { onresult: null, onerror: null, onend: null };
+
+      const recognition: SpeechRecognitionLike = {
+        continuous: false,
+        interimResults: false,
+        lang: "en-US",
+        get onresult() { return listeners.onresult; },
+        set onresult(v) { listeners.onresult = v; },
+        get onerror() { return listeners.onerror; },
+        set onerror(v) { listeners.onerror = v; },
+        get onend() { return listeners.onend; },
+        set onend(v) { listeners.onend = v; },
+        start: vi.fn(),
+        stop: vi.fn(),
+        abort: vi.fn(),
+      };
+
+      const win = {
+        SpeechRecognition: class {
+          constructor() { return recognition; }
+        },
+      } as unknown as SentinelVoiceWindow;
+
+      return { recognition, listeners, win };
+    }
+
+    it("final result → onTranscript called once, ready on end", () => {
+      const { listeners, win } = createManualMockRecognition();
+      const onTranscript = vi.fn();
+      const onStatusChange = vi.fn();
+      const session = createSpeechRecognitionSession({ win, onTranscript, onStatusChange });
+
+      session.start();
+      listeners.onresult?.({
+        results: [{ isFinal: true, 0: { transcript: "Show me the evidence." } }],
+      });
+      listeners.onend?.();
+
+      expect(onTranscript).toHaveBeenCalledOnce();
+      expect(onTranscript).toHaveBeenCalledWith("Show me the evidence.");
+      const calls = onStatusChange.mock.calls;
+      expect(calls[calls.length - 1]).toEqual(["ready", "Push-to-talk ready."]);
+    });
+
+    it("no result → error on end with no-transcript message", () => {
+      const { listeners, win } = createManualMockRecognition();
+      const onTranscript = vi.fn();
+      const onStatusChange = vi.fn();
+      const session = createSpeechRecognitionSession({ win, onTranscript, onStatusChange });
+
+      session.start();
+      listeners.onend?.();
+
+      expect(onTranscript).not.toHaveBeenCalled();
+      expect(onStatusChange).toHaveBeenCalledWith(
+        "error",
+        "Voice input unavailable. Use Type instead.",
+      );
+    });
+
+    it("interim-only result → no transcript emitted, error on end", () => {
+      const { listeners, win } = createManualMockRecognition();
+      const onTranscript = vi.fn();
+      const onStatusChange = vi.fn();
+      const session = createSpeechRecognitionSession({ win, onTranscript, onStatusChange });
+
+      session.start();
+      listeners.onresult?.({
+        results: [{ isFinal: false, 0: { transcript: "uh..." } }],
+      });
+      listeners.onend?.();
+
+      expect(onTranscript).not.toHaveBeenCalled();
+      expect(onStatusChange).toHaveBeenCalledWith(
+        "error",
+        expect.stringContaining("could not be confirmed"),
+      );
+    });
+
+    it.each([
+      ["no-speech", "No speech detected. Use Type instead."],
+      ["audio-capture", "Microphone unavailable. Use Type instead."],
+      ["not-allowed", "Microphone access denied. Use Type instead."],
+    ])("onerror '%s' → friendly message", (errorCode, expectedMessage) => {
+      const { listeners, win } = createManualMockRecognition();
+      const onTranscript = vi.fn();
+      const onStatusChange = vi.fn();
+      const session = createSpeechRecognitionSession({ win, onTranscript, onStatusChange });
+
+      session.start();
+      listeners.onerror?.({ error: errorCode });
+
+      expect(onTranscript).not.toHaveBeenCalled();
+      expect(onStatusChange).toHaveBeenCalledWith("error", expectedMessage);
+    });
   });
 });

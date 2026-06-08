@@ -98,6 +98,7 @@ import {
 } from "@/lib/sentinel-command-agent";
 import {
   createSpeechRecognitionSession,
+  normalizeVoiceTranscript,
   type SpeechRecognitionStatus,
 } from "@/lib/sentinel-voice";
 import { SENTINEL_MOCK_VOICE_QUESTION } from "@/lib/sentinel-voice-shell";
@@ -862,16 +863,35 @@ export function CommandCenter() {
         },
         onStatusChange: (status, message) => {
           setSentinelVoiceStatus(status);
-          const isVoiceActiveState =
-            sentinelUiStateRef.current === "listening" ||
-            sentinelUiStateRef.current === "transcribing";
+          const currentUiState = sentinelUiStateRef.current;
 
-          if (status === "listening" && isVoiceActiveState) {
+          // Handle "listening" first — before any guard — so starting voice from idle
+          // (or any non-active state) still transitions to "listening" and sets the message.
+          if (status === "listening") {
             setSentinelUiState("listening");
+            setSentinelStatusMessage(message);
+            return;
           }
 
-          if (isVoiceActiveState) {
+          // For all other statuses only act when in a voice-active state so that
+          // "ready"/"error" cannot stomp thinking/action_complete/etc.
+          if (currentUiState !== "listening" && currentUiState !== "transcribing") {
+            return;
+          }
+
+          if (status === "error") {
+            setSentinelUiState("idle");
             setSentinelStatusMessage(message);
+            return;
+          }
+
+          if (status === "ready") {
+            // "ready" while "transcribing" = onend after captured transcript — don't touch state
+            if (currentUiState === "transcribing") return;
+            // "ready" while "listening" = recognition ended without a transcript
+            if (currentUiState === "listening") {
+              setSentinelUiState("idle");
+            }
           }
         },
       });
@@ -936,14 +956,6 @@ export function CommandCenter() {
 
   function stopSentinelVoice() {
     voiceSessionRef.current?.stop();
-  }
-
-  function normalizeVoiceTranscript(text: string): string {
-    return text
-      .toLowerCase()
-      .replace(/[^\p{L}\p{N}\s]/gu, " ")
-      .replace(/\s+/g, " ")
-      .trim();
   }
 
   async function handleVoiceTranscript(text: string) {

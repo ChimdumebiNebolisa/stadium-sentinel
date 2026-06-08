@@ -43,15 +43,27 @@ function SchematicAnchorDot({
         className="animate-pulse"
       />
       <circle cx={anchor.x} cy={anchor.y} r={3.4} fill="#ef4444" />
-      <rect x={anchor.x - 18} y={anchor.y - 11} width={36} height={7} rx={1.5} fill="#ef4444" />
-      <text
-        x={anchor.x}
-        y={anchor.y - 6}
-        textAnchor="middle"
-        className="fill-white text-[3px] font-bold uppercase tracking-wider"
-      >
-        INCIDENT
-      </text>
+      {(() => {
+        // Clamp the 36×7 label rect so it never clips outside the viewBox "6 8 88 48"
+        const RECT_W = 36;
+        const rectX = Math.max(6, Math.min(anchor.x - RECT_W / 2, 94 - RECT_W));
+        const rectY = Math.max(10, anchor.y - 11);
+        const labelX = rectX + RECT_W / 2;
+        const labelY = rectY + 5;
+        return (
+          <>
+            <rect x={rectX} y={rectY} width={RECT_W} height={7} rx={1.5} fill="#ef4444" />
+            <text
+              x={labelX}
+              y={labelY}
+              textAnchor="middle"
+              className="fill-white text-[3px] font-bold uppercase tracking-wider"
+            >
+              INCIDENT
+            </text>
+          </>
+        );
+      })()}
     </g>
   );
 }
