@@ -36,6 +36,7 @@ export function stopSentinelSpeech(
 export function speakSentinelResponse(
   text: string,
   win: SpeechOutputWindow = window as SpeechOutputWindow,
+  onEnd?: () => void,
 ): boolean {
   if (!text.trim() || !canSpeakSentinelResponse(win)) {
     return false;
@@ -47,6 +48,7 @@ export function speakSentinelResponse(
   const utterance = new SpeechSynthesisUtterance(text.trim());
   utterance.rate = 1;
   utterance.pitch = 1;
+  if (onEnd) utterance.onend = onEnd;
   win.speechSynthesis?.speak(utterance);
   return true;
 }
@@ -87,10 +89,10 @@ export function buildSpokenSentinelResponse(ctx: SentinelSpeechContext): string 
 
   switch (ctx.commandType) {
     case "intro":
-      return `Sentinel online. I'm tracking ${title}. Ask what happened, who is handling it, what changed, or what to do next.`;
+      return `Hi, I'm Sentinel. I'm tracking ${title} and I'm happy to help. Ask me what happened, who's handling it, what changed, or what to do next.`;
 
     case "mic_check":
-      return `Yes, I can hear you. Ask about this incident, who is handling it, what changed, or what to do next.`;
+      return `Yes. I can hear you. Ask about this incident, who is handling it, what changed, or what to do next.`;
 
     case "open_evidence": {
       const countPhrase = count > 0 ? `I found ${count} source signal${count === 1 ? "" : "s"}` : "Evidence is open";

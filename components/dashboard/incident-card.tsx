@@ -45,7 +45,7 @@ export function IncidentCard({
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">
-            <h3 className="min-w-0 text-[1.05rem] font-semibold leading-[1.25] tracking-tight text-[#07111c] [word-break:normal] [overflow-wrap:break-word]">
+            <h3 className="min-w-0 flex-1 text-[1.05rem] font-semibold leading-[1.25] tracking-tight text-[#07111c] [hyphens:none] [overflow-wrap:normal] [text-wrap:wrap] [word-break:normal]">
               {incident.title}
             </h3>
             <PriorityBadge level={incident.priority} />

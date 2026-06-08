@@ -3,12 +3,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { ActiveIncidentWorkspace } from "@/components/dashboard/active-incident-workspace";
-import { CommandHeader } from "@/components/dashboard/command-header";
+import { CommandBar } from "@/components/dashboard/command-bar";
 import { DemoMemoryPanel } from "@/components/dashboard/demo-memory-panel";
 import { EvidencePanel } from "@/components/dashboard/evidence-panel";
 import { IncidentDrawer } from "@/components/dashboard/incident-drawer";
 import { IncidentList } from "@/components/dashboard/incident-list";
-import { IntakeContextBar } from "@/components/dashboard/intake-context-bar";
 import { PostEventReportPanel } from "@/components/dashboard/post-event-report-panel";
 import { ReportInput } from "@/components/dashboard/report-input";
 import {
@@ -308,6 +307,7 @@ export function CommandCenter() {
     }
 
     trackedSentinelIncidentId.current = incidentId;
+    voiceSessionRef.current?.stop();
     stopSentinelSpeech();
     voiceInitiatedRef.current = false;
     setSentinelOpen(false);
@@ -916,24 +916,39 @@ export function CommandCenter() {
       return;
     }
 
-    // Speak the intro only when opening fresh (not if panel is already open).
     const introText = buildSpokenSentinelResponse({
       commandType: "intro",
       incidentPackage: selectedIncidentPackage,
     });
     setSentinelOpen(true);
-    setSentinelUiState("idle");
+    setSentinelUiState("speaking");
     setSentinelStatusMessage(introText);
-    speakSentinelResponse(introText);
 
     if (!sentinelVoiceEnabled) {
+      speakSentinelResponse(introText);
       return;
     }
 
-    // Ensure the voice session is initialised so Push to talk is ready.
+    // Pre-initialise the voice session so it's ready when intro finishes.
     const session = getVoiceSession();
     if (!session.isSupported) {
+      speakSentinelResponse(introText);
       setSentinelStatusMessage("Voice is unavailable in this browser.");
+      setSentinelUiState("idle");
+      return;
+    }
+
+    // Speak intro; auto-start listening when intro finishes.
+    // If speech is unavailable (e.g. browser blocked), start listening right away.
+    const spoken = speakSentinelResponse(introText, undefined, () => {
+      // Only start if the panel is still open and we're still in the speaking state.
+      if (sentinelUiStateRef.current === "speaking") {
+        startSentinelVoice();
+      }
+    });
+    if (!spoken) {
+      // Speech synthesis not available — start listening immediately.
+      startSentinelVoice();
     }
   }
 
@@ -974,9 +989,16 @@ export function CommandCenter() {
   }
 
   function toggleSentinelVoice() {
-    // Click-to-record / click-to-stop: a normal click must not start and then
-    // immediately stop recognition (which previously never yielded a transcript).
-    if (sentinelUiStateRef.current === "listening") {
+    const uiState = sentinelUiStateRef.current;
+    // Interrupt: if Sentinel is speaking, cancel speech and start listening.
+    if (uiState === "speaking") {
+      stopSentinelSpeech();
+      setSentinelUiState("idle");
+      startSentinelVoice();
+      return;
+    }
+    // Stop: if already listening, stop recognition.
+    if (uiState === "listening") {
       stopSentinelVoice();
       return;
     }
@@ -1368,9 +1390,7 @@ export function CommandCenter() {
         data-operations-connected={operationsConnected ? "true" : "false"}
         data-incidents-pulled={incidentPackages.length > 0 ? "true" : "false"}
       >
-        <CommandHeader />
-
-        <IntakeContextBar
+        <CommandBar
           onPullReports={handlePullLatestReports}
           pullStatus={pullStatus}
           batchCount={incidentPackages.length}

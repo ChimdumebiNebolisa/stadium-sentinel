@@ -197,7 +197,7 @@ describe("buildSpokenSentinelResponse", () => {
       commandType: "intro",
       incidentPackage: makeIncidentPackage(),
     });
-    expect(text).toMatch(/Sentinel online/i);
+    expect(text).toMatch(/Hi, I'm Sentinel/i);
     expect(text).toMatch(/Gate B backed up/i);
     expect(text).toMatch(/what happened/i);
   });

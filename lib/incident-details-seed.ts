@@ -21,8 +21,8 @@ export const INCIDENT_DETAILS_SEED: Record<string, IncidentDetails> = {
       "Time-sensitive: movement around the entry lanes can separate the guest from the original report location quickly.",
     responseChecklist: [
       "Dispatch Security",
-      "Hold guardian contact point",
-      "Confirm reunification or escalation",
+      "Hold contact point",
+      "Confirm handoff",
     ],
     evidenceItems: [
       {
@@ -298,9 +298,9 @@ export const INCIDENT_DETAILS_SEED: Record<string, IncidentDetails> = {
     operationalImplication:
       "Sits in the same general stands area as Section 112 assist, so workspace context must stay selected-incident specific and not mix reports.",
     responseChecklist: [
-      "Confirm guest location",
-      "Dispatch assigned team",
-      "Record care handoff",
+      "Confirm location",
+      "Dispatch team",
+      "Record handoff",
     ],
     evidenceItems: [
       {

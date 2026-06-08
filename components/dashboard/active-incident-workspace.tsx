@@ -101,6 +101,39 @@ function getChecklistStatus(approvedActionCount: number, index: number) {
   };
 }
 
+/** Short button labels — full detail stays in checklist rows and timeline. */
+function compactActionLabel(action: string): string {
+  const text = action.trim();
+  const shortcuts: [RegExp, string][] = [
+    [/^dispatch\b/i, "Dispatch team"],
+    [/overflow|relief path|relief route/i, "Open overflow"],
+    [/alternate route|accessible reroute|reroute/i, "Route support"],
+    [/confirm|handoff|reunification|outcome|resolve/i, "Confirm outcome"],
+    [/hold.*contact|contact point/i, "Hold contact"],
+    [/monitor/i, "Monitor flow"],
+    [/post alternate|direction/i, "Post direction"],
+    [/verify|verify outage/i, "Verify status"],
+    [/isolate|cleanup/i, "Isolate area"],
+    [/record/i, "Record handoff"],
+    [/route details|queue routing|gate advisory/i, "Route support"],
+    [/ops update|radio handoff/i, "Record handoff"],
+    [/send facilities/i, "Dispatch team"],
+  ];
+
+  for (const [pattern, label] of shortcuts) {
+    if (pattern.test(text)) {
+      return label;
+    }
+  }
+
+  if (text.length > 18) {
+    const words = text.split(/\s+/);
+    return words.length <= 2 ? text : `${words[0]} ${words[1]}`;
+  }
+
+  return text;
+}
+
 function getFallbackWorkspaceCopy(incidentPackage: IncidentPackage): WorkspaceCopy {
   const teamName = incidentPackage.incident.assignedRole || "Operations";
   const actions = incidentPackage.incident.recommendedActions;
@@ -160,6 +193,9 @@ export function ActiveIncidentWorkspace({
       : copy.checklist;
   const primaryAction = incident.recommendedActions[0];
   const secondaryActions = incident.recommendedActions.slice(1, 3);
+  const primaryButtonLabel = primaryAction
+    ? compactActionLabel(primaryAction)
+    : copy.teamButtonLabel;
   const approvedActionCount = incident.approvedActionIds.length;
   const dispatchApproved = incident.approvedActionIds.includes(`${incident.id}-action-0`);
 
@@ -260,14 +296,14 @@ export function ActiveIncidentWorkspace({
                         type="button"
                         onClick={() => onApprove(incident.id, action, actionIndex)}
                         disabled={isApproved}
-                        aria-label={`${copy.actionLabels[actionIndex]}: ${action}`}
-                        className={`rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
+                        aria-label={`${compactActionLabel(action)}: ${action}`}
+                        className={`whitespace-nowrap rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
                           isApproved
                             ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-800"
                             : "border-slate-200 bg-[var(--panel-inset)] text-slate-700 hover:border-slate-300 hover:bg-[var(--panel-hover)] disabled:cursor-not-allowed"
                         }`}
                       >
-                        {isApproved ? "Logged" : copy.actionLabels[actionIndex]}
+                        {isApproved ? "Logged" : compactActionLabel(action)}
                       </button>
                     );
                   })}
@@ -299,13 +335,13 @@ export function ActiveIncidentWorkspace({
                   }
                 }}
                 disabled={dispatchApproved || !primaryAction}
-                className={`mt-3 w-full rounded-md border px-3 py-2 text-sm font-semibold transition-colors ${
+                className={`mt-3 w-full whitespace-nowrap rounded-md border px-3 py-2 text-sm font-semibold transition-colors ${
                   dispatchApproved
                     ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-800"
                     : "border-blue-500/40 bg-blue-600 text-white hover:bg-blue-500 disabled:cursor-not-allowed"
                 }`}
                 >
-                {dispatchApproved ? "Team dispatched" : copy.teamButtonLabel}
+                {dispatchApproved ? "Team dispatched" : primaryButtonLabel}
               </button>
             </article>
           </div>

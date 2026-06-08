@@ -287,17 +287,18 @@ test("sentinel dispatch command uses the existing action path", async ({
 test("voice transcript auto-submits through the typed command handler", async ({
   page,
 }) => {
+  await installMockSpeechSynthesis(page);
   await installMockSpeechRecognition(page, "Show me the evidence for this incident.");
   await page.goto("/command");
   await openSentinelPanel(page);
-  await page.getByTestId("sentinel-push-to-talk").click();
 
-  await expect(page.getByTestId("evidence-panel")).toBeVisible();
+  await expect(page.getByTestId("evidence-panel")).toBeVisible({ timeout: 10_000 });
 });
 
-test("push-to-talk is click-to-record / click-to-stop, not press-and-hold", async ({
+test("voice control is click-to-stop after auto-start, not press-and-hold", async ({
   page,
 }) => {
+  await installMockSpeechSynthesis(page);
   await installDeferredMockSpeechRecognition(
     page,
     "Show me the evidence for this incident.",
@@ -306,15 +307,12 @@ test("push-to-talk is click-to-record / click-to-stop, not press-and-hold", asyn
   await openSentinelPanel(page);
 
   const button = page.getByTestId("sentinel-push-to-talk");
-  await expect(button).toHaveText(/Push to talk/i);
-
-  // First click starts listening — recognition stays active (no transcript yet).
-  await button.click();
+  await waitForSentinelListening(page);
   await expect(button).toHaveText(/Stop listening/i);
   // Evidence panel should not have opened yet (transcript not delivered)
   await expect(page.getByTestId("evidence-panel")).not.toBeVisible();
 
-  // Second click stops listening — the transcript is delivered and the command runs.
+  // Click stops listening — the transcript is delivered and the command runs.
   await button.click();
   await expect(page.getByTestId("evidence-panel")).toBeVisible();
 });
@@ -322,12 +320,14 @@ test("push-to-talk is click-to-record / click-to-stop, not press-and-hold", asyn
 test("voice report drafting opens the report tab and fills the editable field", async ({
   page,
 }) => {
+  await installMockSpeechSynthesis(page);
   await installMockSpeechRecognition(page, "Write a report for this incident.");
   await page.goto("/command");
   await openSentinelPanel(page);
-  await page.getByTestId("sentinel-push-to-talk").click();
 
-  await expect(page.getByTestId("utility-drawer")).toHaveAttribute("data-state", "expanded");
+  await expect(page.getByTestId("utility-drawer")).toHaveAttribute("data-state", "expanded", {
+    timeout: 10_000,
+  });
   await openWorkspace(page, "Report");
   await expect(page.getByTestId("report-input")).toContainText("Operations report for");
   await expect(page.getByTestId("report-draft-markdown")).toHaveCount(0);
@@ -336,12 +336,12 @@ test("voice report drafting opens the report tab and fills the editable field", 
 test("voice dispatch proposals use the existing approval and write-back path", async ({
   page,
 }) => {
+  await installMockSpeechSynthesis(page);
   await installMockSpeechRecognition(page, "Dispatch the assigned team.");
   await page.goto("/command");
   await openSentinelPanel(page);
-  await page.getByTestId("sentinel-push-to-talk").click();
 
-  await expect(page.getByTestId("sentinel-apply-action")).toBeVisible();
+  await expect(page.getByTestId("sentinel-apply-action")).toBeVisible({ timeout: 10_000 });
   await page.getByTestId("sentinel-apply-action").click();
   await expect(page.getByTestId("sentinel-state")).not.toContainText(/thinking|applying/i, { timeout: 8_000 });
 });
@@ -429,8 +429,12 @@ test("radio transcript panel is hidden by default", async ({ page }) => {
 // ─── Speech synthesis mock helpers ───────────────────────────────────────────
 
 /** Installs a mock SpeechSynthesis that records speak/cancel calls in window.__sentinelSpeech. */
-async function installMockSpeechSynthesis(page: Page) {
-  await page.addInitScript(() => {
+async function installMockSpeechSynthesis(
+  page: Page,
+  options?: { fireOnEnd?: boolean },
+) {
+  const fireOnEnd = options?.fireOnEnd ?? true;
+  await page.addInitScript((shouldFireOnEnd: boolean) => {
     const calls: { type: "speak" | "cancel"; text?: string }[] = [];
     (window as any).__sentinelSpeech = calls;
 
@@ -440,6 +444,9 @@ async function installMockSpeechSynthesis(page: Page) {
       value: {
         speak: (utterance: any) => {
           calls.push({ type: "speak", text: utterance.text });
+          if (shouldFireOnEnd) {
+            queueMicrotask(() => utterance.onend?.());
+          }
         },
         cancel: () => {
           calls.push({ type: "cancel" });
@@ -450,8 +457,15 @@ async function installMockSpeechSynthesis(page: Page) {
     (window as any).SpeechSynthesisUtterance = class {
       rate = 1;
       pitch = 1;
+      onend: (() => void) | null = null;
       constructor(public text: string) {}
     };
+  }, fireOnEnd);
+}
+
+async function waitForSentinelListening(page: Page) {
+  await expect(page.getByTestId("sentinel-state")).toContainText(/listening/i, {
+    timeout: 5_000,
   });
 }
 
@@ -466,9 +480,8 @@ test("voice evidence command: Sentinel speaks back after Evidence opens", async 
   await installMockSpeechRecognition(page, "Show me the evidence for this incident.");
   await page.goto("/command");
   await openSentinelPanel(page);
-  await page.getByTestId("sentinel-push-to-talk").click();
 
-  await expect(page.getByTestId("evidence-panel")).toBeVisible();
+  await expect(page.getByTestId("evidence-panel")).toBeVisible({ timeout: 10_000 });
 
   const calls = await getSpeechCalls(page);
   const spoken = calls.filter((c) => c.type === "speak");
@@ -488,9 +501,10 @@ test("voice report command: Sentinel speaks back after Report is drafted", async
   await installMockSpeechRecognition(page, "Write a report for this incident.");
   await page.goto("/command");
   await openSentinelPanel(page);
-  await page.getByTestId("sentinel-push-to-talk").click();
 
-  await expect(page.getByTestId("utility-drawer")).toHaveAttribute("data-state", "expanded");
+  await expect(page.getByTestId("utility-drawer")).toHaveAttribute("data-state", "expanded", {
+    timeout: 10_000,
+  });
 
   const calls = await getSpeechCalls(page);
   const spoken = calls.filter((c) => c.type === "speak");
@@ -504,9 +518,8 @@ test("voice dispatch command: Sentinel speaks back after dispatch is prepared", 
   await installMockSpeechRecognition(page, "Dispatch the assigned team.");
   await page.goto("/command");
   await openSentinelPanel(page);
-  await page.getByTestId("sentinel-push-to-talk").click();
 
-  await expect(page.getByTestId("sentinel-apply-action")).toBeVisible();
+  await expect(page.getByTestId("sentinel-apply-action")).toBeVisible({ timeout: 10_000 });
 
   const calls = await getSpeechCalls(page);
   const spoken = calls.filter((c) => c.type === "speak");
@@ -520,9 +533,8 @@ test("closing Sentinel while speaking stops speech", async ({ page }) => {
   await installMockSpeechRecognition(page, "Show me the evidence for this incident.");
   await page.goto("/command");
   await openSentinelPanel(page);
-  await page.getByTestId("sentinel-push-to-talk").click();
 
-  await expect(page.getByTestId("evidence-panel")).toBeVisible();
+  await expect(page.getByTestId("evidence-panel")).toBeVisible({ timeout: 10_000 });
 
   // Close the Sentinel panel
   await page.getByTestId("sentinel-control").click();
@@ -589,13 +601,67 @@ test("backend-off mode keeps the deterministic api contract for the demo input",
 
 // ─── Panel UX + intro tests ───────────────────────────────────────────────────
 
-test("Ask Sentinel panel shows intro status message on open", async ({ page }) => {
+test("Ask Sentinel panel shows friendly intro status message on open", async ({ page }) => {
   await page.goto("/command");
   await openSentinelPanel(page);
 
-  // Status message should contain the intro
   const statusText = await page.getByTestId("sentinel-panel").textContent() ?? "";
-  expect(statusText).toMatch(/Sentinel online/i);
+  expect(statusText).toMatch(/Hi, I'm Sentinel/i);
+  expect(statusText).toMatch(/happy to help/i);
+});
+
+test("Ask Sentinel auto-starts listening after intro without Push to talk", async ({
+  page,
+}) => {
+  await installMockSpeechSynthesis(page);
+  await installDeferredMockSpeechRecognition(page, "can you hear me");
+  await page.goto("/command");
+  await openSentinelPanel(page);
+
+  await waitForSentinelListening(page);
+  await expect(page.getByTestId("sentinel-push-to-talk")).toHaveText(/Stop listening/i);
+});
+
+test("interrupt while Sentinel is speaking cancels speech and starts listening", async ({
+  page,
+}) => {
+  await installMockSpeechSynthesis(page, { fireOnEnd: false });
+  await installDeferredMockSpeechRecognition(page, "what happened");
+  await page.goto("/command");
+  await openSentinelPanel(page);
+
+  const button = page.getByTestId("sentinel-push-to-talk");
+  await expect(button).toHaveText(/Interrupt/i);
+  await button.click();
+  await waitForSentinelListening(page);
+});
+
+test("command center uses one unified top bar", async ({ page }) => {
+  await page.goto("/command");
+
+  await expect(page.getByTestId("command-bar")).toHaveCount(1);
+  await expect(page.getByTestId("intake-context-bar")).toHaveCount(1);
+  await expect(page.getByTestId("pull-latest-reports")).toBeVisible();
+  await expect(page.getByTestId("sentinel-control")).toBeVisible();
+});
+
+test("queue card titles use normal word wrapping classes", async ({ page }) => {
+  await page.goto("/command");
+
+  const title = page.locator('[data-incident-id="incident-section-112"] h3');
+  await expect(title).toBeVisible();
+  const className = await title.getAttribute("class");
+  expect(className).toContain("text-wrap:wrap");
+  expect(className).not.toMatch(/break-words/);
+});
+
+test("venue ACTIVE label is visible for default queue incidents", async ({ page }) => {
+  await page.goto("/command");
+
+  for (const id of ["incident-section-112", "incident-gate-b", "incident-elevator-4"]) {
+    await page.locator(`[data-incident-id="${id}"]`).click();
+    await expect(page.getByTestId("venue-context-schematic").getByText("ACTIVE")).toBeVisible();
+  }
 });
 
 test("Ask Sentinel panel does not show Type instead or visible typed input", async ({ page }) => {
