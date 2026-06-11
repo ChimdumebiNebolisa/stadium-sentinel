@@ -88,10 +88,14 @@ import {
 } from "@/lib/source-audit";
 import { askSentinel } from "@/lib/sentinel-agent-client";
 import {
+  applyVoiceConfirmationGate,
   buildDefaultSentinelBrief,
+  buildProposalFromRecommendedAction,
   buildSentinelActionFailureMessage,
   buildSentinelReportDraft,
+  buildSentinelStaffUpdateDraft,
   interpretSentinelCommand,
+  resolveSafeApprovalHandler,
   type CommandState,
   type SentinelCommandProposal,
 } from "@/lib/sentinel-command-agent";
@@ -106,7 +110,12 @@ import {
   stopSentinelSpeech,
   type SentinelSpeechContext,
 } from "@/lib/sentinel-speech-output";
-import { classifyVoicePhrase } from "@/lib/sentinel-voice-phrases";
+import {
+  classifyApprovalPhrase,
+  classifyRejectionPhrase,
+  classifyVoicePhrase,
+  isCasualAcknowledgment,
+} from "@/lib/sentinel-voice-phrases";
 import { SENTINEL_MOCK_VOICE_QUESTION } from "@/lib/sentinel-voice-shell";
 import type {
   EvidenceResult,
@@ -275,6 +284,7 @@ export function CommandCenter() {
     useState<SentinelActionTrace | null>(null);
   const [sentinelPendingAction, setSentinelPendingAction] =
     useState<SentinelCommandProposal | null>(null);
+  const sentinelPendingActionRef = useRef<SentinelCommandProposal | null>(null);
   const [sentinelVoiceStatus, setSentinelVoiceStatus] =
     useState<SpeechRecognitionStatus>("ready");
   const voiceSessionRef = useRef<ReturnType<typeof createSpeechRecognitionSession> | null>(
@@ -298,6 +308,10 @@ export function CommandCenter() {
     setSourcesConnected(readSourcesConnected());
     setOperationsConnected(readOperationsConnected());
   }, []);
+
+  useEffect(() => {
+    sentinelPendingActionRef.current = sentinelPendingAction;
+  }, [sentinelPendingAction]);
 
   useEffect(() => {
     const incidentId = selectedIncidentId || null;
@@ -1117,6 +1131,34 @@ export function CommandCenter() {
       return;
     }
 
+    const pendingAction = sentinelPendingActionRef.current;
+    if (pendingAction) {
+      if (classifyRejectionPhrase(transcript)) {
+        handleRejectPendingAction();
+        return;
+      }
+      if (classifyApprovalPhrase(transcript)) {
+        voiceInitiatedRef.current = true;
+        setSentinelQuestion(transcript);
+        speakIfVoiceInitiated({
+          commandType: "approval_received",
+          incidentPackage: selectedIncidentPackage,
+        });
+        await applyPendingSentinelAction();
+        return;
+      }
+    }
+
+    if (!pendingAction && isCasualAcknowledgment(normalized)) {
+      voiceInitiatedRef.current = true;
+      updateSentinelUiState("speaking");
+      setSentinelStatusMessage("Okay. Ask me about the incident or tell me what you want done.");
+      speakAndMaybeListen(
+        "Okay. Ask me about the incident or tell me what you want done.",
+      );
+      return;
+    }
+
     const phraseKind = classifyVoicePhrase(transcript);
     if (phraseKind) {
       handleLocalVoicePhrase(phraseKind);
@@ -1165,6 +1207,20 @@ export function CommandCenter() {
     if (!voiceInitiatedRef.current) return;
     const text = buildSpokenSentinelResponse(ctx);
     speakAndMaybeListen(text);
+  }
+
+  function handleRejectPendingAction() {
+    setSentinelPendingAction(null);
+    setSentinelActionTrace(null);
+    updateSentinelUiState("speaking");
+    setSentinelStatusMessage("Okay, I won't apply that.");
+    voiceInitiatedRef.current = true;
+    speakAndMaybeListen(
+      buildSpokenSentinelResponse({
+        commandType: "rejection_received",
+        incidentPackage: selectedIncidentPackage,
+      }),
+    );
   }
 
   async function executeSentinelAction(
@@ -1273,6 +1329,7 @@ export function CommandCenter() {
             selected.incident.id,
             action,
             proposal.actionIndex,
+            { sentinelRecommendationId: proposal.sentinelRecommendationId },
           );
           openWorkspace("timeline");
           setSentinelActionTrace(
@@ -1311,23 +1368,106 @@ export function CommandCenter() {
           });
           return;
         }
-        case "recommend_next_action": {
+        case "draft_staff_update": {
           const selected = selectedIncidentPackage;
-          const actionLabel =
-            selected && proposal.actionIndex !== undefined
-              ? selected.incident.recommendedActions[proposal.actionIndex] ?? proposal.label
-              : proposal.label;
+          if (!selected) {
+            throw new Error("No incident is selected.");
+          }
+
+          const draft =
+            proposal.staffUpdateDraft ??
+            buildSentinelStaffUpdateDraft(commandState, sentinelAnswer);
+          const nextPackages = incidentPackages.map((incidentPackage) =>
+            incidentPackage.incident.id === selected.incident.id
+              ? { ...incidentPackage, staffUpdate: draft }
+              : incidentPackage,
+          );
+          setIncidentPackages(nextPackages);
+
+          const entryId = `${selected.incident.id}-staff-update-${Date.now()}`;
+          setTimeline((current) => [
+            ...current,
+            {
+              id: entryId,
+              incidentId: selected.incident.id,
+              timestamp: `20:${20 + current.length}`,
+              type: "update" as const,
+              message: draft,
+              actor: "Sentinel",
+            },
+          ]);
+
+          recordSourceAudit(
+            "demo",
+            `Staff update saved to the incident record for ${selected.incident.title}.`,
+            "success",
+            1,
+          );
+          openWorkspace("staff");
           setSentinelActionTrace(
             buildActionTrace(
               interpretedCommand,
               proposal,
-              `Next action: ${actionLabel}.`,
+              "Saved to the incident record and added to the incident timeline.",
             ),
           );
           updateSentinelUiState("action_complete");
           speakIfVoiceInitiated({
-            commandType: "recommend_next_action",
-            incidentPackage: selected ?? null,
+            commandType: "draft_staff_update",
+            incidentPackage: { ...selected, staffUpdate: draft },
+          });
+          return;
+        }
+        case "recommend_next_action": {
+          const selected = selectedIncidentPackage;
+          const handler = resolveSafeApprovalHandler(proposal);
+
+          if (
+            handler === "highlight_only" ||
+            !selected ||
+            proposal.actionIndex === undefined ||
+            proposal.actionIndex < 0
+          ) {
+            openWorkspace("timeline");
+            const actionLabel = proposal.spokenPreview ?? proposal.label;
+            setSentinelActionTrace(
+              buildActionTrace(
+                interpretedCommand,
+                proposal,
+                `Review the recommended next step in the workspace: ${actionLabel}.`,
+              ),
+            );
+            updateSentinelUiState("action_complete");
+            speakIfVoiceInitiated({
+              commandType: "recommend_next_action",
+              incidentPackage: selected ?? null,
+              spokenPreview: actionLabel,
+            });
+            return;
+          }
+
+          const action =
+            selected.incident.recommendedActions[proposal.actionIndex] ?? proposal.label;
+          const approval = await handleApprove(
+            selected.incident.id,
+            action,
+            proposal.actionIndex,
+            { sentinelRecommendationId: proposal.sentinelRecommendationId },
+          );
+          openWorkspace("timeline");
+          setSentinelActionTrace(
+            buildActionTrace(
+              interpretedCommand,
+              proposal,
+              approval.result,
+              approval.writebackStatus,
+            ),
+          );
+          updateSentinelUiState("action_complete");
+          speakIfVoiceInitiated({
+            commandType: "dispatch_team",
+            incidentPackage: selected,
+            writebackStatus: approval.writebackStatus,
           });
           return;
         }
@@ -1381,12 +1521,15 @@ export function CommandCenter() {
       setSentinelEvidence(response.evidence);
       appendSentinelExchange(interpretedCommand, response.answer);
 
-      const proposal = interpretSentinelCommand(
-        interpretedCommand,
-        commandState,
-        response.answer,
-      );
+      let proposal =
+        interpretSentinelCommand(interpretedCommand, commandState, response.answer) ??
+        (response.recommendedAction
+          ? buildProposalFromRecommendedAction(response.recommendedAction, commandState)
+          : null);
+
       if (proposal) {
+        proposal = applyVoiceConfirmationGate(proposal, voiceInitiatedRef.current);
+
         if (proposal.requiresConfirmation) {
           setSentinelPendingAction(proposal);
           setSentinelActionTrace(
@@ -1398,10 +1541,10 @@ export function CommandCenter() {
           );
           updateSentinelUiState("action_proposed");
           setSentinelStatusMessage("Review the proposed action and apply when ready.");
-          // Speak before confirmation so the operator hears what's proposed.
           speakIfVoiceInitiated({
-            commandType: proposal.type as SentinelSpeechContext["commandType"],
+            commandType: "action_proposed",
             incidentPackage: selected,
+            spokenPreview: proposal.spokenPreview ?? proposal.label,
           });
           return;
         }

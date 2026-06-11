@@ -84,8 +84,13 @@ export type SentinelSpeechContext = {
     | "open_source_log"
     | "select_top_incident"
     | "recommend_next_action"
+    | "draft_staff_update"
+    | "action_proposed"
+    | "approval_received"
+    | "rejection_received"
     | "idle_answer"
     | "fallback";
+  spokenPreview?: string;
   incidentPackage?: IncidentPackage | null;
   evidenceCount?: number;
   writebackStatus?: string | null;
@@ -145,6 +150,21 @@ export function buildSpokenSentinelResponse(ctx: SentinelSpeechContext): string 
 
     case "recommend_next_action":
       return `Review the next action in the checklist for ${title}.`;
+
+    case "draft_staff_update":
+      return "Staff update saved to the incident record and added to the incident timeline.";
+
+    case "action_proposed":
+      if (ctx.spokenPreview?.trim()) {
+        return `${ctx.spokenPreview.trim()} Say approve or go ahead when ready.`;
+      }
+      return `I prepared that update for ${title}. Say approve or go ahead when ready.`;
+
+    case "approval_received":
+      return `Approved. Applying that now for ${title}.`;
+
+    case "rejection_received":
+      return "Okay, I won't apply that.";
 
     case "idle_answer":
       // Use the actual Gemini answer (first sentences) when available.

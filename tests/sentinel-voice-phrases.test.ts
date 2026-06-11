@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  classifyApprovalPhrase,
+  classifyRejectionPhrase,
   classifyVoicePhrase,
+  isCasualAcknowledgment,
   formatIncidentReportPhrase,
 } from "@/lib/sentinel-voice-phrases";
 
@@ -16,6 +19,26 @@ describe("classifyVoicePhrase", () => {
     expect(classifyVoicePhrase("thank you")).toBe("thank_you");
     expect(classifyVoicePhrase("thanks")).toBe("thank_you");
     expect(classifyVoicePhrase("that's all")).toBe("thank_you");
+  });
+
+  it("classifies strong approval phrases only", () => {
+    expect(classifyApprovalPhrase("go ahead")).toBe(true);
+    expect(classifyApprovalPhrase("dispatch it")).toBe(true);
+    expect(classifyApprovalPhrase("yes")).toBe(false);
+    expect(classifyApprovalPhrase("ok")).toBe(false);
+    expect(classifyApprovalPhrase("sure")).toBe(false);
+  });
+
+  it("treats bare acknowledgments as casual", () => {
+    expect(isCasualAcknowledgment("yes")).toBe(true);
+    expect(isCasualAcknowledgment("ok")).toBe(true);
+    expect(isCasualAcknowledgment("go ahead")).toBe(false);
+  });
+
+  it("classifies rejection phrases", () => {
+    expect(classifyRejectionPhrase("no")).toBe(true);
+    expect(classifyRejectionPhrase("cancel that")).toBe(true);
+    expect(classifyRejectionPhrase("never mind")).toBe(true);
   });
 
   it("routes stop phrases locally", () => {

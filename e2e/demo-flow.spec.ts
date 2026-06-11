@@ -325,6 +325,8 @@ test("voice report drafting opens the report tab and fills the editable field", 
   await page.goto("/command");
   await openSentinelPanel(page);
 
+  await expect(page.getByTestId("sentinel-apply-action")).toBeVisible({ timeout: 10_000 });
+  await page.getByTestId("sentinel-apply-action").click();
   await expect(page.getByTestId("utility-drawer")).toHaveAttribute("data-state", "expanded", {
     timeout: 10_000,
   });
@@ -502,15 +504,15 @@ test("voice report command: Sentinel speaks back after Report is drafted", async
   await page.goto("/command");
   await openSentinelPanel(page);
 
-  await expect(page.getByTestId("utility-drawer")).toHaveAttribute("data-state", "expanded", {
-    timeout: 10_000,
-  });
+  await expect(page.getByTestId("sentinel-apply-action")).toBeVisible({ timeout: 10_000 });
 
   const calls = await getSpeechCalls(page);
   const spoken = calls.filter((c) => c.type === "speak");
   expect(spoken.length).toBeGreaterThan(1);
-  const hasDraftResponse = spoken.some((c) => /drafted/i.test(c.text ?? ""));
-  expect(hasDraftResponse).toBe(true);
+  const hasProposalResponse = spoken.some((c) =>
+    /approve|go ahead|report/i.test(c.text ?? ""),
+  );
+  expect(hasProposalResponse).toBe(true);
 });
 
 test("voice dispatch command: Sentinel speaks back after dispatch is prepared", async ({ page }) => {
@@ -524,7 +526,9 @@ test("voice dispatch command: Sentinel speaks back after dispatch is prepared", 
   const calls = await getSpeechCalls(page);
   const spoken = calls.filter((c) => c.type === "speak");
   expect(spoken.length).toBeGreaterThan(1);
-  const hasDispatchResponse = spoken.some((c) => /Dispatch is prepared/i.test(c.text ?? ""));
+  const hasDispatchResponse = spoken.some((c) =>
+    /approve|go ahead|dispatch/i.test(c.text ?? ""),
+  );
   expect(hasDispatchResponse).toBe(true);
 });
 
@@ -670,6 +674,17 @@ test("interrupt while Sentinel is speaking cancels speech and starts listening",
   });
   await page.getByTestId("sentinel-orb").click();
   await waitForSentinelListening(page);
+});
+
+test("casual yes does not approve when no Sentinel action is pending", async ({ page }) => {
+  await installMockSpeechSynthesis(page);
+  await installMockSpeechRecognition(page, "yes");
+  await page.goto("/command");
+  await openSentinelPanel(page);
+  await page.waitForTimeout(1_000);
+
+  await expect(page.getByTestId("sentinel-apply-action")).toHaveCount(0);
+  await expect(page.getByTestId("sentinel-state")).not.toContainText(/applying/i);
 });
 
 test("thank-you voice phrase does not call incident analysis API", async ({ page }) => {

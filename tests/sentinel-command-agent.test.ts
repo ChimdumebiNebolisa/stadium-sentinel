@@ -13,7 +13,11 @@ import {
   answerSentinelQuestion,
   buildDefaultSentinelBrief,
   buildSuggestedSentinelQuestions,
+  applyVoiceConfirmationGate,
+  buildProposalFromRecommendedAction,
+  buildSentinelStaffUpdateDraft,
   interpretSentinelCommand,
+  resolveSafeApprovalHandler,
   type CommandState,
 } from "@/lib/sentinel-command-agent";
 
@@ -155,6 +159,61 @@ describe("sentinel command agent", () => {
 
     expect(excerpt).toBeTruthy();
     expect(answer).toContain(excerpt!);
+  });
+
+  it("maps prepare staff update to a guarded draft_staff_update proposal", () => {
+    const state = buildCommandState();
+    const proposal = interpretSentinelCommand("Prepare staff update for this incident.", state);
+
+    expect(proposal?.type).toBe("draft_staff_update");
+    expect(proposal?.requiresConfirmation).toBe(true);
+    expect(proposal?.staffUpdateDraft).toContain("Ops update:");
+  });
+
+  it("builds staff update drafts from incident context", () => {
+    const state = buildCommandState();
+    const draft = buildSentinelStaffUpdateDraft(state);
+
+    expect(draft).toContain("Guest Services");
+    expect(draft).not.toMatch(/\bseverity\b/i);
+  });
+
+  it("maps recommended actions to guarded dispatch proposals", () => {
+    const state = buildCommandState();
+    const proposal = buildProposalFromRecommendedAction(
+      {
+        label: state.selectedIncidentPackage!.incident.recommendedActions[0]!,
+        actionIndex: 0,
+        rationale: "Guest needs immediate routing support.",
+      },
+      state,
+    );
+
+    expect(proposal?.type).toBe("dispatch_team");
+    expect(proposal?.requiresConfirmation).toBe(true);
+    expect(proposal?.safeHandlerId).toBe("dispatch_team");
+  });
+
+  it("requires voice confirmation for draft report proposals", () => {
+    const state = buildCommandState();
+    const proposal = interpretSentinelCommand("Write a report for this incident.", state);
+
+    expect(proposal?.requiresConfirmation).toBe(false);
+    expect(
+      applyVoiceConfirmationGate(proposal!, true).requiresConfirmation,
+    ).toBe(true);
+  });
+
+  it("highlights unsafe next-action approvals instead of dispatching", () => {
+    const proposal = {
+      type: "recommend_next_action" as const,
+      label: "Recommend next action",
+      targetLabel: "Guest incident",
+      requiresConfirmation: true,
+      actionIndex: -1,
+    };
+
+    expect(resolveSafeApprovalHandler(proposal)).toBe("highlight_only");
   });
 
   it("maps exact voice evidence, report, and dispatch phrases to command proposals", () => {

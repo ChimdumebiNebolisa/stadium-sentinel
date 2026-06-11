@@ -1,3 +1,5 @@
+import { buildStaffUpdate } from "@/lib/action-plan";
+import type { SentinelRecommendedAction } from "@/lib/agent/sentinel-schema";
 import {
   buildDispatchMessage,
   buildFollowUpQuestions,
@@ -45,7 +47,16 @@ export type SentinelCommandActionType =
   | "dispatch_team"
   | "advance_checklist"
   | "recommend_next_action"
+  | "draft_staff_update"
   | "select_top_incident";
+
+export type SentinelApprovalKind =
+  | "confirm_staff_update"
+  | "confirm_report"
+  | "confirm_next_action"
+  | "confirm_dispatch";
+
+export type SafeApprovalHandlerId = "dispatch_team" | "advance_checklist" | "highlight_only";
 
 export type SentinelCommandProposal = {
   type: SentinelCommandActionType;
@@ -54,6 +65,11 @@ export type SentinelCommandProposal = {
   requiresConfirmation: boolean;
   actionIndex?: number;
   draftText?: string;
+  staffUpdateDraft?: string;
+  spokenPreview?: string;
+  approvalKind?: SentinelApprovalKind;
+  safeHandlerId?: SafeApprovalHandlerId;
+  sentinelRecommendationId?: string;
 };
 
 export type SentinelContext = {
@@ -247,8 +263,129 @@ type QuestionIntent =
   | "process-report"
   | "dispatch-team"
   | "advance-checklist"
+  | "draft-staff-update"
   | "select-top-incident"
   | "unknown";
+
+function pendingActionIndex(selected: IncidentPackage): number {
+  return selected.incident.recommendedActions.findIndex(
+    (_, index) =>
+      !selected.incident.approvedActionIds.includes(
+        `${selected.incident.id}-action-${index}`,
+      ),
+  );
+}
+
+export function buildSentinelStaffUpdateDraft(
+  state: CommandState,
+  answer?: string | null,
+): string {
+  const selected = state.selectedIncidentPackage;
+  if (!selected) {
+    return "";
+  }
+
+  const nextIndex = pendingActionIndex(selected);
+  const firstAction =
+    nextIndex >= 0
+      ? selected.incident.recommendedActions[nextIndex]!
+      : selected.incident.recommendedActions[0] ?? "Review and respond";
+
+  const base = buildStaffUpdate({
+    incident: selected.incident,
+    assignedRole: selected.incident.assignedRole,
+    firstAction,
+  });
+
+  const enrichment = answer?.trim();
+  if (!enrichment) {
+    return base;
+  }
+
+  return `${base} ${enrichment.slice(0, 200)}`.trim();
+}
+
+export function resolveSafeApprovalHandler(
+  proposal: SentinelCommandProposal,
+): SafeApprovalHandlerId {
+  if (proposal.safeHandlerId) {
+    return proposal.safeHandlerId;
+  }
+
+  if (proposal.type === "advance_checklist") {
+    return "advance_checklist";
+  }
+
+  if (
+    proposal.type === "dispatch_team" ||
+    (proposal.type === "recommend_next_action" &&
+      proposal.actionIndex !== undefined &&
+      proposal.actionIndex >= 0)
+  ) {
+    return "dispatch_team";
+  }
+
+  return "highlight_only";
+}
+
+export function buildProposalFromRecommendedAction(
+  recommendedAction: SentinelRecommendedAction,
+  state: CommandState,
+): SentinelCommandProposal | null {
+  const selected = state.selectedIncidentPackage;
+  if (!selected) {
+    return null;
+  }
+
+  const matchedIndex = selected.incident.recommendedActions.findIndex(
+    (action) => action.toLowerCase() === recommendedAction.label.trim().toLowerCase(),
+  );
+  const actionIndex =
+    recommendedAction.actionIndex ?? (matchedIndex >= 0 ? matchedIndex : pendingActionIndex(selected));
+
+  if (actionIndex < 0) {
+    return {
+      type: "recommend_next_action",
+      label: recommendedAction.label,
+      targetLabel: selected.incident.title,
+      requiresConfirmation: true,
+      spokenPreview: recommendedAction.rationale,
+      approvalKind: "confirm_next_action",
+      safeHandlerId: "highlight_only",
+    };
+  }
+
+  return {
+    type: "dispatch_team",
+    label: "Dispatch assigned team",
+    targetLabel: selected.incident.title,
+    requiresConfirmation: true,
+    actionIndex,
+    spokenPreview: recommendedAction.rationale,
+    approvalKind: "confirm_dispatch",
+    safeHandlerId: "dispatch_team",
+    sentinelRecommendationId: `sentinel-rec-${selected.incident.id}-${actionIndex}`,
+  };
+}
+
+export function applyVoiceConfirmationGate(
+  proposal: SentinelCommandProposal,
+  voiceInitiated: boolean,
+): SentinelCommandProposal {
+  if (!voiceInitiated) {
+    return proposal;
+  }
+
+  if (
+    proposal.type === "draft_report" ||
+    proposal.type === "draft_staff_update" ||
+    proposal.type === "recommend_next_action"
+  ) {
+    return { ...proposal, requiresConfirmation: true };
+  }
+
+  return proposal;
+}
 
 function classifyQuestion(normalized: string): QuestionIntent {
   if (
@@ -302,6 +439,15 @@ function classifyQuestion(normalized: string): QuestionIntent {
     normalized.includes("advance the checklist")
   ) {
     return "advance-checklist";
+  }
+  if (
+    normalized.includes("prepare staff update") ||
+    normalized.includes("draft staff update") ||
+    normalized.includes("prepare a staff update") ||
+    (normalized.includes("staff update") &&
+      (normalized.includes("prepare") || normalized.includes("draft")))
+  ) {
+    return "draft-staff-update";
   }
   if (
     normalized.includes("select highest priority") ||
@@ -786,14 +932,7 @@ export function interpretSentinelCommand(
   }
 
   const selected = state.selectedIncidentPackage;
-  const nextActionIndex = selected
-    ? selected.incident.recommendedActions.findIndex(
-        (_, index) =>
-          !selected.incident.approvedActionIds.includes(
-            `${selected.incident.id}-action-${index}`,
-          ),
-      )
-    : -1;
+  const nextActionIndex = selected ? pendingActionIndex(selected) : -1;
   const nextAction =
     selected && nextActionIndex >= 0
       ? selected.incident.recommendedActions[nextActionIndex]
@@ -828,6 +967,21 @@ export function interpretSentinelCommand(
         targetLabel: selected?.incident.title ?? "Report",
         requiresConfirmation: false,
         draftText: buildSentinelReportDraft(state, answer),
+        approvalKind: "confirm_report",
+        spokenPreview: "Review the report draft in the Report tab before processing.",
+      };
+    case "draft-staff-update":
+      if (!selected) {
+        return null;
+      }
+      return {
+        type: "draft_staff_update",
+        label: "Prepare staff update",
+        targetLabel: selected.incident.title,
+        requiresConfirmation: true,
+        staffUpdateDraft: buildSentinelStaffUpdateDraft(state, answer),
+        approvalKind: "confirm_staff_update",
+        spokenPreview: buildSentinelStaffUpdateDraft(state, answer).slice(0, 120),
       };
     case "process-report":
       return {
@@ -880,8 +1034,12 @@ export function interpretSentinelCommand(
         type: "recommend_next_action",
         label: "Recommend next action",
         targetLabel: selected.incident.title,
-        requiresConfirmation: false,
+        requiresConfirmation: true,
         actionIndex: nextActionIndex,
+        approvalKind: "confirm_next_action",
+        safeHandlerId: nextActionIndex >= 0 ? "dispatch_team" : "highlight_only",
+        spokenPreview: nextAction ?? undefined,
+        sentinelRecommendationId: `sentinel-rec-${selected.incident.id}-${nextActionIndex}`,
       };
     default:
       return null;
