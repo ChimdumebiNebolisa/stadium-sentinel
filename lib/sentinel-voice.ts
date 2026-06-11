@@ -91,13 +91,13 @@ function mapSpeechError(error?: string): string {
   switch (error) {
     case "not-allowed":
     case "service-not-allowed":
-      return "Microphone access denied. Use Type instead.";
+      return "Microphone access denied. Check browser permissions and try again.";
     case "no-speech":
-      return "No speech detected. Use Type instead.";
+      return "No speech detected. Try asking again.";
     case "audio-capture":
-      return "Microphone unavailable. Use Type instead.";
+      return "Microphone unavailable. Check your device and try again.";
     default:
-      return "Voice input unavailable. Use Type instead.";
+      return "Voice input unavailable in this browser. Try asking again.";
   }
 }
 
@@ -191,8 +191,8 @@ export function createSpeechRecognitionSession(input: {
           timeoutFired = false;
         } else if (!hadFinalTranscript) {
           const msg = hadAnyResult
-            ? "Speech detected but could not be confirmed. Use Type instead."
-            : "Voice input unavailable. Use Type instead.";
+            ? "Speech detected but could not be confirmed. Try asking again."
+            : "No speech detected. Try asking again.";
           input.onStatusChange?.("error", msg);
         } else {
           input.onStatusChange?.("ready", "Push-to-talk ready.");
@@ -217,7 +217,7 @@ export function createSpeechRecognitionSession(input: {
       // Safety net: directly escape the UI if the browser never fires onend
       listeningTimeout = setTimeout(() => {
         timeoutFired = true;
-        input.onStatusChange?.("error", "Voice input unavailable. Use Type instead.");
+        input.onStatusChange?.("error", "Voice input timed out. Try asking again.");
         active.stop();
       }, 8000);
       active.start();

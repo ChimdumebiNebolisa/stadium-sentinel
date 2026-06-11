@@ -278,6 +278,10 @@ export function CommandCenter() {
     null,
   );
   const sentinelUiStateRef = useRef<SentinelUiState>("idle");
+  const updateSentinelUiState = (state: SentinelUiState) => {
+    sentinelUiStateRef.current = state;
+    setSentinelUiState(state);
+  };
   const lastVoiceSubmissionRef = useRef<{
     signature: string;
     timestamp: number;
@@ -291,10 +295,6 @@ export function CommandCenter() {
     setSourcesConnected(readSourcesConnected());
     setOperationsConnected(readOperationsConnected());
   }, []);
-
-  useEffect(() => {
-    sentinelUiStateRef.current = sentinelUiState;
-  }, [sentinelUiState]);
 
   useEffect(() => {
     const incidentId = selectedIncidentId || null;
@@ -316,7 +316,7 @@ export function CommandCenter() {
     setSentinelAnswer(null);
     setSentinelEvidence([]);
     setSentinelStatusMessage(null);
-    setSentinelUiState("idle");
+    updateSentinelUiState("idle");
     setSentinelActionTrace(null);
     setSentinelPendingAction(null);
   }, [selectedIncidentId]);
@@ -881,7 +881,7 @@ export function CommandCenter() {
           // Handle "listening" first — before any guard — so starting voice from idle
           // (or any non-active state) still transitions to "listening" and sets the message.
           if (status === "listening") {
-            setSentinelUiState("listening");
+            updateSentinelUiState("listening");
             setSentinelStatusMessage(message);
             return;
           }
@@ -893,7 +893,7 @@ export function CommandCenter() {
           }
 
           if (status === "error") {
-            setSentinelUiState("idle");
+            updateSentinelUiState("idle");
             setSentinelStatusMessage(message);
             return;
           }
@@ -903,7 +903,7 @@ export function CommandCenter() {
             if (currentUiState === "transcribing") return;
             // "ready" while "listening" = recognition ended without a transcript
             if (currentUiState === "listening") {
-              setSentinelUiState("idle");
+              updateSentinelUiState("idle");
             }
           }
         },
@@ -911,6 +911,31 @@ export function CommandCenter() {
     }
 
     return voiceSessionRef.current;
+  }
+
+  function speakAndMaybeListen(
+    text: string,
+    options?: { resumeListening?: boolean; onEnd?: () => void },
+  ) {
+    const shouldResume =
+      options?.resumeListening ??
+      (voiceInitiatedRef.current && sentinelOpen);
+
+    const onEnd = () => {
+      options?.onEnd?.();
+      if (shouldResume && sentinelOpen) {
+        startSentinelVoice();
+      }
+    };
+
+    const speaking = speakSentinelResponse(text, undefined, onEnd);
+    if (speaking) {
+      updateSentinelUiState("speaking");
+      setSentinelStatusMessage("Sentinel speaking…");
+    } else if (shouldResume && sentinelOpen) {
+      startSentinelVoice();
+    }
+    return speaking;
   }
 
   function openSentinel() {
@@ -923,7 +948,7 @@ export function CommandCenter() {
       incidentPackage: selectedIncidentPackage,
     });
     setSentinelOpen(true);
-    setSentinelUiState("speaking");
+    updateSentinelUiState("speaking");
     setSentinelStatusMessage(introText);
 
     if (!sentinelVoiceEnabled) {
@@ -936,7 +961,7 @@ export function CommandCenter() {
     if (!session.isSupported) {
       speakSentinelResponse(introText);
       setSentinelStatusMessage("Voice is unavailable in this browser.");
-      setSentinelUiState("idle");
+      updateSentinelUiState("idle");
       return;
     }
 
@@ -959,7 +984,7 @@ export function CommandCenter() {
     stopSentinelSpeech();
     voiceInitiatedRef.current = false;
     setSentinelOpen(false);
-    setSentinelUiState("idle");
+    updateSentinelUiState("idle");
     setSentinelPendingAction(null);
   }
 
@@ -976,12 +1001,12 @@ export function CommandCenter() {
     setSentinelOpen(true);
     const session = getVoiceSession();
     if (!session.isSupported) {
-      setSentinelUiState("action_failed");
+      updateSentinelUiState("action_failed");
       setSentinelStatusMessage("Voice is unavailable in this browser.");
       return;
     }
 
-    setSentinelUiState("listening");
+    updateSentinelUiState("listening");
     setSentinelStatusMessage("Listening for an incident command.");
     session.start();
   }
@@ -995,7 +1020,7 @@ export function CommandCenter() {
     // Interrupt: if Sentinel is speaking, cancel speech and start listening.
     if (uiState === "speaking") {
       stopSentinelSpeech();
-      setSentinelUiState("idle");
+      updateSentinelUiState("idle");
       startSentinelVoice();
       return;
     }
@@ -1021,7 +1046,7 @@ export function CommandCenter() {
     setSentinelStatusMessage(response);
 
     if (phraseKind === "stop_session") {
-      setSentinelUiState("speaking");
+      updateSentinelUiState("speaking");
       const spoken = speakSentinelResponse(response, undefined, () => {
         closeSentinel();
       });
@@ -1031,12 +1056,20 @@ export function CommandCenter() {
       return;
     }
 
-    setSentinelUiState("speaking");
+    updateSentinelUiState("speaking");
     const spoken = speakSentinelResponse(response, undefined, () => {
-      setSentinelUiState("idle");
+      if (sentinelOpen && voiceInitiatedRef.current) {
+        startSentinelVoice();
+        return;
+      }
+      updateSentinelUiState("idle");
     });
     if (!spoken) {
-      setSentinelUiState("idle");
+      if (sentinelOpen && voiceInitiatedRef.current) {
+        startSentinelVoice();
+      } else {
+        updateSentinelUiState("idle");
+      }
     }
   }
 
@@ -1089,7 +1122,7 @@ export function CommandCenter() {
     voiceInitiatedRef.current = true;
     setSentinelQuestion(transcript);
     setSentinelOpen(true);
-    setSentinelUiState("transcribing");
+    updateSentinelUiState("transcribing");
     setSentinelStatusMessage("Transcript ready. Submitting command.");
     voiceSessionRef.current?.stop();
     await submitSentinelQuestion(transcript);
@@ -1113,11 +1146,7 @@ export function CommandCenter() {
   function speakIfVoiceInitiated(ctx: SentinelSpeechContext) {
     if (!voiceInitiatedRef.current) return;
     const text = buildSpokenSentinelResponse(ctx);
-    const speaking = speakSentinelResponse(text);
-    if (speaking) {
-      setSentinelUiState("speaking");
-      setSentinelStatusMessage("Sentinel speaking…");
-    }
+    speakAndMaybeListen(text);
   }
 
   async function executeSentinelAction(
@@ -1125,7 +1154,7 @@ export function CommandCenter() {
     interpretedCommand: string,
   ) {
     setSentinelPendingAction(null);
-    setSentinelUiState("action_executing");
+    updateSentinelUiState("action_executing");
     setSentinelStatusMessage("Applying Sentinel action.");
 
     try {
@@ -1139,7 +1168,7 @@ export function CommandCenter() {
               "Evidence opened for the selected incident.",
             ),
           );
-          setSentinelUiState("action_complete");
+          updateSentinelUiState("action_complete");
           speakIfVoiceInitiated({
             commandType: "open_evidence",
             incidentPackage: selectedIncidentPackage,
@@ -1155,7 +1184,7 @@ export function CommandCenter() {
               "Source log opened in the workspace drawer.",
             ),
           );
-          setSentinelUiState("action_complete");
+          updateSentinelUiState("action_complete");
           speakIfVoiceInitiated({
             commandType: "open_source_log",
             incidentPackage: selectedIncidentPackage,
@@ -1170,7 +1199,7 @@ export function CommandCenter() {
               "Report opened in the workspace drawer.",
             ),
           );
-          setSentinelUiState("action_complete");
+          updateSentinelUiState("action_complete");
           speakIfVoiceInitiated({
             commandType: "open_report",
             incidentPackage: selectedIncidentPackage,
@@ -1188,7 +1217,7 @@ export function CommandCenter() {
               "Report draft added to the visible report field.",
             ),
           );
-          setSentinelUiState("action_complete");
+          updateSentinelUiState("action_complete");
           speakIfVoiceInitiated({
             commandType: "draft_report",
             incidentPackage: selectedIncidentPackage,
@@ -1206,7 +1235,7 @@ export function CommandCenter() {
               ? "Report processed and the command board refreshed."
               : "Report is ready for review in the visible report field.";
           setSentinelActionTrace(buildActionTrace(interpretedCommand, proposal, resultText));
-          setSentinelUiState("action_complete");
+          updateSentinelUiState("action_complete");
           speakIfVoiceInitiated({
             commandType: "process_report",
             incidentPackage: selectedIncidentPackage,
@@ -1236,7 +1265,7 @@ export function CommandCenter() {
               approval.writebackStatus,
             ),
           );
-          setSentinelUiState("action_complete");
+          updateSentinelUiState("action_complete");
           speakIfVoiceInitiated({
             commandType: "dispatch_team",
             incidentPackage: selected,
@@ -1257,7 +1286,7 @@ export function CommandCenter() {
               `${topIncident.incident.title} is now highlighted in the queue.`,
             ),
           );
-          setSentinelUiState("action_complete");
+          updateSentinelUiState("action_complete");
           speakIfVoiceInitiated({
             commandType: "select_top_incident",
             incidentPackage: topIncident,
@@ -1277,7 +1306,7 @@ export function CommandCenter() {
               `Next action: ${actionLabel}.`,
             ),
           );
-          setSentinelUiState("action_complete");
+          updateSentinelUiState("action_complete");
           speakIfVoiceInitiated({
             commandType: "recommend_next_action",
             incidentPackage: selected ?? null,
@@ -1295,7 +1324,7 @@ export function CommandCenter() {
           buildSentinelActionFailureMessage(commandState),
         ),
       );
-      setSentinelUiState("action_failed");
+      updateSentinelUiState("action_failed");
     }
   }
 
@@ -1310,7 +1339,7 @@ export function CommandCenter() {
     setSentinelOpen(true);
     setSentinelPendingAction(null);
     setSentinelActionTrace(null);
-    setSentinelUiState("thinking");
+    updateSentinelUiState("thinking");
     setSentinelStatusMessage("Sentinel is reviewing the current command state.");
 
     try {
@@ -1348,7 +1377,7 @@ export function CommandCenter() {
               "Ready to apply in the current workspace.",
             ),
           );
-          setSentinelUiState("action_proposed");
+          updateSentinelUiState("action_proposed");
           setSentinelStatusMessage("Review the proposed action and apply when ready.");
           // Speak before confirmation so the operator hears what's proposed.
           speakIfVoiceInitiated({
@@ -1362,7 +1391,7 @@ export function CommandCenter() {
         return;
       }
 
-      setSentinelUiState("idle");
+      updateSentinelUiState("idle");
       setSentinelStatusMessage(
         response.meta.geminiMode === "live"
           ? "Live response ready."
@@ -1379,8 +1408,10 @@ export function CommandCenter() {
       const fallback = buildDefaultSentinelBrief(commandState);
       setSentinelAnswer(fallback);
       setSentinelEvidence(selected.evidence);
-      setSentinelUiState("action_failed");
-      setSentinelStatusMessage("Sentinel returned a review response. Type or retry the command.");
+      updateSentinelUiState("action_failed");
+      setSentinelStatusMessage(
+        "Sentinel could not reach the agent. Try asking again.",
+      );
       speakIfVoiceInitiated({
         commandType: "fallback",
         incidentPackage: selected,
@@ -1444,7 +1475,7 @@ export function CommandCenter() {
               onToggleVoice={toggleSentinelVoice}
               onStopSpeech={() => {
                 stopSentinelSpeech();
-                setSentinelUiState("action_complete");
+                updateSentinelUiState("action_complete");
               }}
               onMockVoice={() => setSentinelQuestion(SENTINEL_MOCK_VOICE_QUESTION)}
               onApplyAction={() => void applyPendingSentinelAction()}

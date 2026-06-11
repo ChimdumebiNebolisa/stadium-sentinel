@@ -21,6 +21,10 @@ describe("classifyVoicePhrase", () => {
   it("routes stop phrases locally", () => {
     expect(classifyVoicePhrase("stop")).toBe("stop_session");
     expect(classifyVoicePhrase("stop talking")).toBe("stop_session");
+    expect(classifyVoicePhrase("stop listening")).toBe("stop_session");
+    expect(classifyVoicePhrase("stop listening please")).toBe("stop_session");
+    expect(classifyVoicePhrase("alright I'm done")).toBe("stop_session");
+    expect(classifyVoicePhrase("alright im done")).toBe("stop_session");
     expect(classifyVoicePhrase("never mind")).toBe("stop_session");
   });
 

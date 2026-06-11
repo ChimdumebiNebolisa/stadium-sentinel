@@ -25,11 +25,17 @@ export function canSpeakSentinelResponse(
   );
 }
 
+let activeSentinelUtterance: SpeechSynthesisUtterance | null = null;
+
 // ─── Stop ────────────────────────────────────────────────────────────────────
 
 export function stopSentinelSpeech(
   win: SpeechOutputWindow = window as SpeechOutputWindow,
 ): void {
+  if (activeSentinelUtterance) {
+    activeSentinelUtterance.onend = null;
+    activeSentinelUtterance = null;
+  }
   win.speechSynthesis?.cancel();
 }
 
@@ -50,7 +56,13 @@ export function speakSentinelResponse(
   const utterance = new SpeechSynthesisUtterance(text.trim());
   utterance.rate = 1;
   utterance.pitch = 1;
-  if (onEnd) utterance.onend = onEnd;
+  if (onEnd) {
+    utterance.onend = () => {
+      activeSentinelUtterance = null;
+      onEnd();
+    };
+  }
+  activeSentinelUtterance = utterance;
   win.speechSynthesis?.speak(utterance);
   return true;
 }

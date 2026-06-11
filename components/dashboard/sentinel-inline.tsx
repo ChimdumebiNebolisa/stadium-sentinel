@@ -166,16 +166,6 @@ export function SentinelInline({
     };
   }, [open, updatePanelPosition, state]);
 
-  function handleOrbClick() {
-    if (!voiceEnabled || voiceUnsupported) {
-      return;
-    }
-    if (isThinking) {
-      return;
-    }
-    onToggleVoice();
-  }
-
   return (
     <div className="relative" data-testid="sentinel-command">
       <button
@@ -209,19 +199,32 @@ export function SentinelInline({
           data-testid="sentinel-panel"
         >
           <div className="flex flex-col items-center gap-2">
-            <button
-              type="button"
-              data-testid="sentinel-orb"
-              aria-label={voiceControlLabel}
-              onClick={handleOrbClick}
-              disabled={!voiceEnabled || voiceUnsupported || isThinking}
-              className={`sentinel-orb ${getOrbStateClass(state)}`}
-            >
-              <span className="sentinel-orb-ring" aria-hidden="true" />
-              <span className="sentinel-orb-core" aria-hidden="true">
-                S
-              </span>
-            </button>
+            {isSpeaking ? (
+              <button
+                type="button"
+                data-testid="sentinel-orb"
+                aria-label="Interrupt Sentinel speech"
+                onClick={onToggleVoice}
+                className={`sentinel-orb sentinel-orb-button ${getOrbStateClass(state)}`}
+              >
+                <span className="sentinel-orb-ring" aria-hidden="true" />
+                <span className="sentinel-orb-core" aria-hidden="true">
+                  S
+                </span>
+              </button>
+            ) : (
+              <div
+                data-testid="sentinel-orb"
+                role="img"
+                aria-label={`Sentinel ${getStateLabel(state).toLowerCase()}`}
+                className={`sentinel-orb ${getOrbStateClass(state)}`}
+              >
+                <span className="sentinel-orb-ring" aria-hidden="true" />
+                <span className="sentinel-orb-core" aria-hidden="true">
+                  S
+                </span>
+              </div>
+            )}
 
             <p
               className="text-[0.65rem] font-semibold uppercase tracking-[0.06em] text-violet-700"
@@ -246,16 +249,6 @@ export function SentinelInline({
               </p>
             ) : null}
 
-            {voiceEnabled && (isListening || isSpeaking) ? (
-              <button
-                type="button"
-                data-testid="sentinel-voice-control"
-                onClick={onToggleVoice}
-                className="text-[0.7rem] font-medium text-violet-700 underline-offset-2 hover:underline"
-              >
-                {voiceControlLabel}
-              </button>
-            ) : null}
           </div>
 
           {voiceEnabled ? (

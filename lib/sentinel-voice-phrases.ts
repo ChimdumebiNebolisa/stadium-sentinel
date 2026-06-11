@@ -8,7 +8,8 @@ const MIC_CHECK_PATTERNS =
 const THANK_YOU_PATTERNS =
   /^(thanks?|thank you|that'?s all|cool thanks)\b/i;
 
-const STOP_PATTERNS = /^(stop|stop talking|cancel|never\s?mind)\b/i;
+const STOP_PATTERNS =
+  /^(stop|stop talking|stop listening(?: please)?|cancel|never\s?mind|alright i'?m done|alright im done|i'?m done|we'?re done)\b/i;
 
 export function classifyVoicePhrase(transcript: string): SentinelVoicePhraseKind {
   const trimmed = transcript.trim();

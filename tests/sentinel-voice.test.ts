@@ -232,7 +232,7 @@ describe("sentinel voice", () => {
       expect(onTranscript).not.toHaveBeenCalled();
       expect(onStatusChange).toHaveBeenCalledWith(
         "error",
-        "Voice input unavailable. Use Type instead.",
+        "No speech detected. Try asking again.",
       );
     });
 
@@ -256,9 +256,9 @@ describe("sentinel voice", () => {
     });
 
     it.each([
-      ["no-speech", "No speech detected. Use Type instead."],
-      ["audio-capture", "Microphone unavailable. Use Type instead."],
-      ["not-allowed", "Microphone access denied. Use Type instead."],
+      ["no-speech", "No speech detected. Try asking again."],
+      ["audio-capture", "Microphone unavailable. Check your device and try again."],
+      ["not-allowed", "Microphone access denied. Check browser permissions and try again."],
     ])("onerror '%s' → friendly message", (errorCode, expectedMessage) => {
       const { listeners, win } = createManualMockRecognition();
       const onTranscript = vi.fn();

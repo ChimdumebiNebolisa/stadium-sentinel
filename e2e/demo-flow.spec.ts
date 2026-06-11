@@ -295,7 +295,7 @@ test("voice transcript auto-submits through the typed command handler", async ({
   await expect(page.getByTestId("evidence-panel")).toBeVisible({ timeout: 10_000 });
 });
 
-test("voice control is click-to-stop after auto-start, not press-and-hold", async ({
+test("sr-only voice control stops listening and submits the deferred transcript", async ({
   page,
 }) => {
   await installMockSpeechSynthesis(page);
@@ -306,15 +306,15 @@ test("voice control is click-to-stop after auto-start, not press-and-hold", asyn
   await page.goto("/command");
   await openSentinelPanel(page);
 
-  const control = page.getByTestId("sentinel-voice-control");
+  const control = page.getByTestId("sentinel-push-to-talk");
   await waitForSentinelListening(page);
   await expect(control).toHaveText(/Stop listening/i);
   // Evidence panel should not have opened yet (transcript not delivered)
   await expect(page.getByTestId("evidence-panel")).not.toBeVisible();
 
   // Click stops listening — the transcript is delivered and the command runs.
-  await control.click();
-  await expect(page.getByTestId("evidence-panel")).toBeVisible();
+  await control.click({ force: true });
+  await expect(page.getByTestId("evidence-panel")).toBeVisible({ timeout: 10_000 });
 });
 
 test("voice report drafting opens the report tab and fills the editable field", async ({
@@ -665,6 +665,9 @@ test("interrupt while Sentinel is speaking cancels speech and starts listening",
   await page.goto("/command");
   await openSentinelPanel(page);
 
+  await expect(page.getByTestId("sentinel-state")).toContainText(/speaking/i, {
+    timeout: 5_000,
+  });
   await page.getByTestId("sentinel-orb").click();
   await waitForSentinelListening(page);
 });
