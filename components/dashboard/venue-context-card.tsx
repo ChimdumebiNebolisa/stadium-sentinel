@@ -67,39 +67,26 @@ export function VenueContextCard({
   const viewBox = `${VENUE_SCHEMATIC_VIEWBOX.minX} ${VENUE_SCHEMATIC_VIEWBOX.minY} ${VENUE_SCHEMATIC_VIEWBOX.width} ${VENUE_SCHEMATIC_VIEWBOX.height}`;
 
   return (
-    <article className="ops-subpanel flex flex-col p-4" data-testid="venue-context-card">
-      <div className="mb-2">
-        <h3 className="text-sm font-semibold tracking-tight text-[#07111c]">Venue Context</h3>
+    <article
+      className="ops-subpanel flex min-h-0 flex-col p-2.5"
+      data-testid="venue-context-card"
+    >
+      <div className="mb-1.5 flex items-center justify-between gap-2">
+        <h3 className="text-[0.8125rem] font-semibold tracking-tight text-[#07111c]">
+          Venue Context
+        </h3>
+        <div className="flex items-center gap-2 text-[0.65rem] text-slate-500">
+          <span>Elevators</span>
+          <span className="text-slate-300">·</span>
+          <span>Sections</span>
+        </div>
       </div>
 
-      <div className="relative flex min-h-[165px] flex-1 items-center justify-center overflow-hidden rounded-md border border-slate-200/60 bg-slate-100 p-3">
-        <div className="absolute right-3 top-3 z-10 flex flex-col gap-2">
-          <div className="rounded-md border border-slate-200 bg-white/95 px-2 py-1 shadow-sm">
-            <span className="block text-[0.6rem] font-bold uppercase tracking-widest text-slate-500">
-              Elevators
-            </span>
-            <div className="mt-1 flex items-center gap-1 text-[0.7rem] text-slate-600">
-              <span className="font-semibold text-slate-700">Up / Down</span>
-              <span>North</span>
-            </div>
-            <div className="mt-1 flex items-center gap-1 text-[0.7rem] text-slate-600">
-              <span className="font-semibold text-slate-700">Up / Down</span>
-              <span>South</span>
-            </div>
-          </div>
-          <div className="rounded-md border border-slate-200 bg-white/95 px-2 py-1 text-center shadow-sm">
-            <span className="block text-[0.6rem] font-bold uppercase tracking-widest text-slate-500">
-              Sections
-            </span>
-            <span className="mt-1 block text-[0.8rem] text-slate-700">List</span>
-          </div>
-        </div>
-
+      <div className="venue-context-schematic-wrap">
         <svg
           viewBox={viewBox}
           role="img"
           aria-label="Venue context schematic"
-          className="h-[80%] w-[80%]"
           data-testid="venue-context-schematic"
         >
           <path

@@ -86,7 +86,7 @@ export function IncidentDrawer({
       data-testid="utility-drawer"
     >
       <div className="incident-drawer-content">
-        <div className="incident-drawer-body min-h-0 overflow-hidden px-4 py-3">
+        <div className="incident-drawer-body min-h-0 overflow-hidden px-3 py-2">
           <div
             id="workspace-panel-evidence"
             data-state={activeWorkspace === "evidence" ? "open" : "closed"}

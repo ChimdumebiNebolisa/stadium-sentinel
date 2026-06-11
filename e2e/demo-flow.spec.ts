@@ -379,8 +379,8 @@ test("workspace pointer uses cleaned copy and removes the dispatch note strip", 
   await expect(page.getByTestId("workflow-cues")).toHaveCount(0);
   await expect(page.getByTestId("dispatch-message")).toHaveCount(0);
   await expect(page.getByTestId("follow-up-sentinel-cue")).toHaveCount(0);
-  await expect(page.getByTestId("evidence-drawer-pointer")).toHaveText(
-    "Open drawer: Evidence, Staff Update, Incident log, Report, Source log.",
+  await expect(page.getByTestId("evidence-drawer-pointer")).toContainText(
+    "Evidence, Staff Update, Incident log, Report, and Source log",
   );
 });
 

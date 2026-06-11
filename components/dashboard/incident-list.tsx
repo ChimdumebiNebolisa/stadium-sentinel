@@ -19,13 +19,13 @@ export function IncidentList({
       className="ops-panel flex h-full min-h-0 flex-col"
       data-testid="dispatch-queue"
     >
-      <div className="mb-2 flex items-center justify-between gap-3 border-b border-slate-200 pb-2">
-        <h2 className="ops-heading text-sm">Dispatch queue</h2>
-        <span className="inline-flex h-9 min-w-9 items-center justify-center rounded-full bg-[var(--panel-muted)] px-2 text-sm font-semibold text-slate-700">
+      <div className="mb-1.5 flex items-center justify-between gap-2 border-b border-slate-200 pb-1.5">
+        <h2 className="ops-heading text-[0.8125rem]">Dispatch queue</h2>
+        <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-[var(--panel-muted)] px-1.5 text-xs font-semibold text-slate-700">
           {incidentPackages.length}
         </span>
       </div>
-      <div className="queue-scroll min-h-0 flex-1 space-y-3 overflow-y-auto pr-0.5">
+      <div className="queue-scroll min-h-0 flex-1 space-y-2 overflow-y-auto pr-0.5">
         {incidentPackages.length === 0 && emptyMessage ? (
           <p
             className="rounded-md border border-dashed border-slate-200 bg-slate-50 px-3 py-4 text-sm leading-6 text-slate-600"

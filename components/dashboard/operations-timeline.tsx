@@ -40,56 +40,52 @@ export function OperationsTimeline({ incidentPackage, timeline }: OperationsTime
 
   return (
     <section
-      className="ops-subpanel mt-3 flex min-h-[260px] flex-1 flex-col overflow-hidden"
+      className="ops-subpanel mt-1 flex flex-col"
       data-testid="operations-timeline"
     >
-      <div className="flex items-center justify-between gap-3 border-b border-slate-200/60 bg-slate-50/50 px-4 py-2.5">
-        <div>
-          <h3 className="text-sm font-semibold tracking-tight text-[#07111c]">
+      <div className="flex items-center justify-between gap-2 border-b border-slate-200/60 px-3 py-2">
+        <div className="min-w-0">
+          <h3 className="text-[0.8125rem] font-semibold tracking-tight text-[#07111c]">
             Operations timeline
           </h3>
-          <p className="mt-0.5 text-xs text-slate-600" data-testid="operations-timeline-selected">
-            Selected queue item: {incident.title} · {locationSummary}
+          <p
+            className="mt-0.5 truncate text-[0.7rem] text-slate-600"
+            data-testid="operations-timeline-selected"
+          >
+            {incident.title} · {locationSummary}
           </p>
         </div>
-        <span className="rounded-full border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-600">
+        <span className="shrink-0 rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[0.68rem] font-medium text-slate-600">
           {incident.priority}
         </span>
       </div>
 
-      <div
-        className="flex-1 px-4 py-4"
-        style={{
-          backgroundImage:
-            "linear-gradient(to right, rgba(124, 146, 170, 0.08) 1px, transparent 1px), linear-gradient(to bottom, rgba(124, 146, 170, 0.08) 1px, transparent 1px)",
-          backgroundSize: "2rem 2rem",
-        }}
-      >
-        <div className="rounded-xl border border-slate-200 bg-white/95 p-3 shadow-sm">
-          <div className="grid gap-2 md:grid-cols-5">
-            {stages.map((stage) => (
-              <article
-                key={stage.id}
-                className="rounded-lg border border-slate-200 bg-[var(--panel-inset)] p-3"
-                data-testid={`operations-timeline-stage-${stage.id}`}
-                data-state={stage.state}
-              >
-                <div className="flex items-center gap-2">
-                  <span
-                    className={`h-2.5 w-2.5 rounded-full ${getStageMarkerClass(stage.state)}`}
-                    aria-hidden="true"
-                  />
-                  <p className={`text-xs font-semibold uppercase tracking-wider ${getStageTextClass(stage.state)}`}>
-                    {stage.label}
-                  </p>
-                </div>
-                <p className={`mt-2 text-sm leading-6 ${getStageTextClass(stage.state)}`}>
-                  {stage.statusText}
+      <div className="response-timeline-compact px-3 py-2.5">
+        <div className="grid gap-1.5 md:grid-cols-5">
+          {stages.map((stage) => (
+            <article
+              key={stage.id}
+              className="rounded border border-slate-200/80 bg-[var(--panel-inset)] px-2 py-1.5"
+              data-testid={`operations-timeline-stage-${stage.id}`}
+              data-state={stage.state}
+            >
+              <div className="flex items-center gap-1.5">
+                <span
+                  className={`h-2 w-2 rounded-full ${getStageMarkerClass(stage.state)}`}
+                  aria-hidden="true"
+                />
+                <p
+                  className={`text-[0.65rem] font-semibold uppercase tracking-wider ${getStageTextClass(stage.state)}`}
+                >
+                  {stage.label}
                 </p>
-                <p className="mt-2 text-xs font-medium text-slate-500">{stage.time}</p>
-              </article>
-            ))}
-          </div>
+              </div>
+              <p className={`mt-1 text-[0.75rem] leading-5 ${getStageTextClass(stage.state)}`}>
+                {stage.statusText}
+              </p>
+              <p className="mt-1 text-[0.65rem] font-medium text-slate-500">{stage.time}</p>
+            </article>
+          ))}
         </div>
       </div>
     </section>

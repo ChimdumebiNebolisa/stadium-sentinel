@@ -112,12 +112,9 @@ export function EvidencePanel({
 
       <div className="mt-3 border-t border-slate-200 pt-3">
         <p className="ops-label">Evidence used</p>
-        <div className="mt-1.5 space-y-2">
+        <div className="evidence-file-list mt-1.5">
           {visibleEvidence.map((item) => (
-            <article
-              key={normalizeEvidenceKey(item)}
-              className="rounded-lg border border-slate-200 bg-white px-3 py-2.5 shadow-sm"
-            >
+            <article key={normalizeEvidenceKey(item)}>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="ops-label">
                   {item.sourceLabel

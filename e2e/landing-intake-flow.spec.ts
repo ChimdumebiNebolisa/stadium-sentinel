@@ -135,8 +135,8 @@ test("pull button is disabled with updated helper copy when sources are not conn
   await page.reload();
 
   await expect(page.getByTestId("pull-latest-reports")).toBeDisabled({ timeout: 5_000 });
-  await expect(page.getByTestId("pull-helper-text")).toHaveText(
-    "Connect operations data first.",
+  await expect(page.getByTestId("command-strip-summary")).toContainText(
+    /connect.*operations data/i,
   );
 });
 

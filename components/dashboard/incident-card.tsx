@@ -42,7 +42,7 @@ export function IncidentCard({
       data-testid="incident-card"
       data-incident-id={incident.id}
       data-queue-completed={completed ? "true" : "false"}
-      className={`w-full rounded-xl border px-3 py-3.5 text-left transition-colors ${
+      className={`w-full rounded-lg border px-2.5 py-2 text-left transition-colors ${
         completed
           ? isSelected
             ? "border-slate-300/70 bg-slate-50/90"
@@ -52,9 +52,9 @@ export function IncidentCard({
             : "border-slate-200 bg-[var(--panel-elevated)] hover:border-slate-300 hover:bg-[var(--panel-hover)]"
       }`}
     >
-      <div className="flex items-start gap-4">
+      <div className="flex items-start gap-2.5">
         <span
-          className={`ops-value inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border text-base ${
+          className={`ops-value inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-xs ${
             completed
               ? "border-slate-200 bg-slate-100 text-slate-500"
               : "border-slate-200 bg-[var(--panel-inset)] text-slate-700"
@@ -63,18 +63,18 @@ export function IncidentCard({
           {sequenceNumber}
         </span>
         <div className="min-w-0 flex-1">
-          <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start justify-between gap-2">
             <h3
-              className={`min-w-0 flex-1 text-[1.05rem] font-semibold leading-[1.25] tracking-tight [hyphens:none] [overflow-wrap:normal] [text-wrap:wrap] [word-break:normal] ${
+              className={`min-w-0 flex-1 text-[0.9rem] font-semibold leading-[1.2] tracking-tight [hyphens:none] [overflow-wrap:normal] [text-wrap:wrap] [word-break:normal] ${
                 completed ? "text-slate-600" : "text-[#07111c]"
               }`}
             >
               {incident.title}
             </h3>
-            <div className="flex shrink-0 flex-col items-end gap-1.5">
+            <div className="flex shrink-0 flex-col items-end gap-1">
               {completionLabel ? (
                 <span
-                  className="inline-flex rounded-md border border-slate-300/70 bg-slate-100 px-2 py-0.5 text-[0.68rem] font-semibold uppercase tracking-wide text-slate-600"
+                  className="inline-flex rounded border border-slate-300/70 bg-slate-100 px-1.5 py-0.5 text-[0.62rem] font-semibold uppercase tracking-wide text-slate-600"
                   data-testid="incident-completion-badge"
                 >
                   {completionLabel}
@@ -83,7 +83,7 @@ export function IncidentCard({
               <PriorityBadge level={incident.priority} />
             </div>
           </div>
-          <p className="mt-3 text-[0.98rem] font-medium text-slate-600">
+          <p className="mt-1 text-[0.75rem] font-medium text-slate-500">
             {leadTeam || "Operations"}
           </p>
         </div>
