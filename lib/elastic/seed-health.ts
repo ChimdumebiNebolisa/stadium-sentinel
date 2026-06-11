@@ -58,7 +58,12 @@ export const SEED_INDEX_REQUIREMENTS: SeedIndexRequirement[] = [
   {
     envKey: "ELASTICSEARCH_DISPATCH_TIMELINE_INDEX",
     defaultName: "stadium_dispatch_timeline",
-    minimumRequired: 3,
+    minimumRequired: 8,
+  },
+  {
+    envKey: "ELASTICSEARCH_EVIDENCE_INDEX",
+    defaultName: "stadium_evidence",
+    minimumRequired: 15,
   },
 ];
 

@@ -205,6 +205,7 @@ export async function loadSeedSets(): Promise<SeedSet[]> {
         evidenceIds: { type: "keyword" },
         guestAssistanceId: { type: "keyword" },
         facilityStatusId: { type: "keyword" },
+        details: { type: "object", enabled: true },
         searchText: { type: "text" },
       }),
     },
