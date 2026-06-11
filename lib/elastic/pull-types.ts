@@ -118,7 +118,7 @@ export type ElasticDispatchTimelineEntry = {
   type: TimelineEntryType;
   message: string;
   actor: string;
-  source: "operator" | "sentinel" | "system";
+  source: "operator" | "sentinel" | "system" | "command_center";
   recommendedActionId?: string;
   searchText?: string;
 };
@@ -131,6 +131,7 @@ export type ElasticPullRelatedContext = {
   policies: ElasticPolicyDocument[];
   radioTranscripts: ElasticRadioTranscript[];
   evidence: ElasticEvidenceDocument[];
+  dispatchTimeline: ElasticDispatchTimelineEntry[];
 };
 
 export type IngestPullRequest = {

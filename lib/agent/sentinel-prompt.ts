@@ -1,3 +1,7 @@
+import {
+  formatOperationalContextLines,
+  operationalCitationHints,
+} from "@/lib/agent/sentinel-operational-context";
 import type { AgentRetrievalBundle } from "@/lib/types";
 import type { SentinelAskRequest } from "@/lib/agent/sentinel-schema";
 
@@ -11,6 +15,8 @@ export function buildSentinelSystemPrompt(): string {
     "Use priority language only: Immediate, High, Moderate, Monitor.",
     "Never use Critical, Low, severity, confidence, score, or numeric scoring.",
     "Do not autonomously dispatch — recommend actions for operator approval.",
+    "Cite source record IDs, staff call signs, and media IDs when present.",
+    "Do not describe upstream records as CRM tickets or a ticketing system.",
   ].join(" ");
 }
 
@@ -30,6 +36,12 @@ export function buildSentinelUserPrompt(input: {
   );
   const transcriptLines = input.retrieval.evidence.map(
     (item) => `- ${item.excerpt}`,
+  );
+  const operationalLines = formatOperationalContextLines(
+    input.request.context.incidentPackage,
+  );
+  const citationHints = operationalCitationHints(
+    input.request.context.incidentPackage.incident.details,
   );
 
   return [
@@ -58,6 +70,14 @@ export function buildSentinelUserPrompt(input: {
     "",
     "Retrieved operational notes:",
     ...(transcriptLines.length > 0 ? transcriptLines : ["- none retrieved"]),
+    "",
+    "Operational context (source records, roster, updates, media):",
+    ...(operationalLines.length > 0 ? operationalLines : ["- none attached"]),
+    "",
+    "Citation hints (use when relevant):",
+    ...(citationHints.length > 0
+      ? citationHints.map((hint) => `- ${hint}`)
+      : ["- none attached"]),
     "",
     "Return JSON with answer, recommendedAction, and citations from retrieved sources.",
   ].join("\n");

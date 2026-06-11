@@ -5,10 +5,12 @@ import type {
   EvidenceResult,
   EvidenceSourceType,
   IncidentPackage,
+  TimelineEntry,
 } from "@/lib/types";
 
 import type {
   ElasticActiveIncident,
+  ElasticDispatchTimelineEntry,
   ElasticEvidenceDocument,
   ElasticFacilityStatus,
   ElasticGateFlowLog,
@@ -16,6 +18,7 @@ import type {
   ElasticPolicyDocument,
   ElasticPullRelatedContext,
   ElasticRadioTranscript,
+  ElasticStaffRosterEntry,
   IngestPullResponse,
 } from "@/lib/elastic/pull-types";
 
@@ -176,6 +179,63 @@ function buildEvidenceForIncident(
   return [...deduped.values()].slice(0, 6);
 }
 
+function staffAssignmentsForIncident(
+  incident: ElasticActiveIncident,
+  roster: ElasticStaffRosterEntry[],
+) {
+  return roster
+    .filter(
+      (entry) =>
+        entry.relatedIncidentIds?.includes(incident.id) ||
+        entry.team === incident.assignedRole,
+    )
+    .map((entry) => ({
+      callSign: entry.callSign,
+      team: entry.team,
+      displayName: entry.displayName,
+      zone: entry.zone,
+    }));
+}
+
+export function buildElasticPullTimeline(
+  incidentPackages: IncidentPackage[],
+  dispatchEntries: ElasticDispatchTimelineEntry[],
+): TimelineEntry[] {
+  const seedEntries = buildTimelineSeed(incidentPackages);
+  const seedByIncident = new Map<string, TimelineEntry[]>();
+
+  for (const entry of seedEntries) {
+    const existing = seedByIncident.get(entry.incidentId) ?? [];
+    existing.push(entry);
+    seedByIncident.set(entry.incidentId, existing);
+  }
+
+  const merged: TimelineEntry[] = [];
+
+  for (const incidentPackage of incidentPackages) {
+    const incidentId = incidentPackage.incident.id;
+    const dispatchForIncident = dispatchEntries
+      .filter((entry) => entry.incidentId === incidentId)
+      .sort((left, right) => left.timestamp.localeCompare(right.timestamp))
+      .map((entry) => ({
+        id: entry.id,
+        incidentId: entry.incidentId,
+        timestamp: entry.timestamp,
+        type: entry.type,
+        message: entry.message,
+        actor: entry.actor,
+      }));
+
+    merged.push(
+      ...(dispatchForIncident.length > 0
+        ? dispatchForIncident
+        : (seedByIncident.get(incidentId) ?? [])),
+    );
+  }
+
+  return merged.sort((left, right) => left.timestamp.localeCompare(right.timestamp));
+}
+
 export function activeIncidentToPackage(
   incident: ElasticActiveIncident,
   context: ElasticPullRelatedContext,
@@ -215,6 +275,7 @@ export function activeIncidentToPackage(
     },
     evidence,
     staffUpdate: details?.staffUpdateSeed ?? guest?.need ?? incident.rawText,
+    assignedStaff: staffAssignmentsForIncident(incident, context.staffRoster),
   };
 }
 
@@ -229,7 +290,9 @@ export function normalizeElasticActiveIncidents(
   const incidentPackages = sortIncidentPackages(
     sortedIncidents.map((incident) => activeIncidentToPackage(incident, context)),
   );
-  const timeline = includeTimeline ? buildTimelineSeed(incidentPackages) : [];
+  const timeline = includeTimeline
+    ? buildElasticPullTimeline(incidentPackages, context.dispatchTimeline)
+    : [];
   const reportSummary = buildPostEventReport(incidentPackages, timeline);
   const count = incidentPackages.length;
 

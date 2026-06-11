@@ -5,7 +5,10 @@ import {
   buildDemoPullFallbackResponse,
   mapActiveIncidentToPackage,
 } from "@/lib/elastic/pull";
-import { normalizeElasticActiveIncidents } from "@/lib/elastic/normalize-pull";
+import {
+  buildElasticPullTimeline,
+  normalizeElasticActiveIncidents,
+} from "@/lib/elastic/normalize-pull";
 import type {
   ElasticActiveIncident,
   ElasticPullRelatedContext,
@@ -37,6 +40,7 @@ const emptyContext: ElasticPullRelatedContext = {
   policies: [],
   radioTranscripts: [],
   evidence: [],
+  dispatchTimeline: [],
 };
 
 describe("elastic pull normalization", () => {
@@ -110,6 +114,53 @@ describe("elastic pull normalization", () => {
     expect(fallback.outcome).toBe("fallback");
     expect(fallback.incidentPackages.length).toBeGreaterThan(0);
     expect(fallback.meta.incidentCount).toBe(fallback.incidentPackages.length);
+  });
+
+  it("attaches staff roster assignments to incident packages", () => {
+    const incidentPackage = mapActiveIncidentToPackage(sampleIncident, {
+      ...emptyContext,
+      staffRoster: [
+        {
+          id: "roster-guest-services-1",
+          roleId: "guest-services-lead",
+          team: "Guest Services",
+          callSign: "GS-1",
+          displayName: "Guest Services Lead",
+          onDuty: true,
+          zone: "Lower bowl",
+          relatedIncidentIds: ["incident-section-112"],
+          searchText: "guest services gs-1",
+        },
+      ],
+    });
+
+    expect(incidentPackage.assignedStaff).toEqual([
+      {
+        callSign: "GS-1",
+        team: "Guest Services",
+        displayName: "Guest Services Lead",
+        zone: "Lower bowl",
+      },
+    ]);
+  });
+
+  it("prefers elastic dispatch timeline entries over synthetic seed timeline", () => {
+    const incidentPackage = mapActiveIncidentToPackage(sampleIncident, emptyContext);
+    const timeline = buildElasticPullTimeline([incidentPackage], [
+      {
+        id: "timeline-section-112-reported",
+        incidentId: "incident-section-112",
+        timestamp: "2026-06-07T11:42:00.000Z",
+        type: "reported",
+        message: "Guest reported need for wheelchair access near Section 112.",
+        actor: "System",
+        source: "system",
+      },
+    ]);
+
+    expect(timeline).toHaveLength(1);
+    expect(timeline[0]?.id).toBe("timeline-section-112-reported");
+    expect(timeline[0]?.message).toContain("wheelchair access");
   });
 
   it("normalizes elastic pull response through command-state normalizer", () => {

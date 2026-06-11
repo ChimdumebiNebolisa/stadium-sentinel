@@ -313,10 +313,18 @@ export type RetrievalContext = {
   mode: "elastic" | "local";
 };
 
+export type IncidentStaffAssignment = {
+  callSign: string;
+  team: string;
+  displayName: string;
+  zone?: string;
+};
+
 export type IncidentPackage = {
   incident: Incident;
   evidence: EvidenceResult[];
   staffUpdate: string;
+  assignedStaff?: IncidentStaffAssignment[];
 };
 
 export type TimelineEntry = {

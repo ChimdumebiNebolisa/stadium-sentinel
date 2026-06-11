@@ -12,6 +12,7 @@ import type {
   ElasticEvidenceDocument,
   ElasticFacilityStatus,
   ElasticGateFlowLog,
+  ElasticDispatchTimelineEntry,
   ElasticGuestAssistanceRequest,
   ElasticPolicyDocument,
   ElasticPullRelatedContext,
@@ -123,6 +124,7 @@ export async function fetchRelatedPullContext(
     policies,
     radioTranscripts,
     evidence,
+    dispatchTimeline,
   ] = await Promise.all([
     searchIndex<ElasticGuestAssistanceRequest>(
       config.guestAssistanceIndex,
@@ -162,6 +164,11 @@ export async function fetchRelatedPullContext(
       },
     }),
     fetchDocumentsByIds<ElasticEvidenceDocument>(config.evidenceIndex, evidenceIds),
+    searchIndex<ElasticDispatchTimelineEntry>(config.dispatchTimelineIndex, {
+      terms: {
+        incidentId: incidentIds,
+      },
+    }),
   ]);
 
   return {
@@ -172,6 +179,7 @@ export async function fetchRelatedPullContext(
     policies,
     radioTranscripts,
     evidence,
+    dispatchTimeline,
   };
 }
 
