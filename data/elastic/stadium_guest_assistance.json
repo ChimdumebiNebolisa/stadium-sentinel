@@ -29,7 +29,7 @@
     "need": "Medical response for guest reporting dizziness",
     "priority": "Immediate",
     "relatedIncidentId": "incident-medical-assist",
-    "locationId": "section-112",
+    "locationId": "section-318",
     "status": "open",
     "requestedAt": "2026-06-07T11:52:00.000Z",
     "assignedRole": "Guest Services",
