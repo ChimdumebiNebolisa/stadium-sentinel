@@ -1,0 +1,25 @@
+substitutions:
+  _TAG: latest
+
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -t
+      - us-central1-docker.pkg.dev/stadium-sentinel/cloud-run-source-deploy/stadium-sentinel:$_TAG
+      - --build-arg
+      - NEXT_PUBLIC_REAL_DEMO_FLOW=true
+      - --build-arg
+      - NEXT_PUBLIC_ENABLE_ELASTIC_PULL=true
+      - --build-arg
+      - NEXT_PUBLIC_ENABLE_SENTINEL_AGENT=true
+      - --build-arg
+      - NEXT_PUBLIC_ENABLE_SENTINEL_VOICE=true
+      - --build-arg
+      - NEXT_PUBLIC_SHOW_VENUE_ORIENTATION=false
+      - --build-arg
+      - NEXT_PUBLIC_SHOW_RADIO_TRANSCRIPT=false
+      - .
+
+images:
+  - us-central1-docker.pkg.dev/stadium-sentinel/cloud-run-source-deploy/stadium-sentinel:$_TAG

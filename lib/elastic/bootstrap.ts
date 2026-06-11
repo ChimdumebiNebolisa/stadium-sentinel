@@ -12,7 +12,7 @@ type SeedSet = {
   mapping: {
     mappings: {
       dynamic: string;
-      properties: Record<string, { type: string }>;
+      properties: Record<string, { type: string; enabled?: boolean }>;
     };
   };
   documents: SeedDocument[];
@@ -60,7 +60,7 @@ function withSearchText(
   };
 }
 
-function keywordMapping(properties: Record<string, { type: string }>) {
+function keywordMapping(properties: Record<string, { type: string; enabled?: boolean }>) {
   return {
     mappings: {
       dynamic: "false",

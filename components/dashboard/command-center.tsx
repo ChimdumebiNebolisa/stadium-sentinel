@@ -1391,7 +1391,7 @@ export function CommandCenter() {
               id: entryId,
               incidentId: selected.incident.id,
               timestamp: `20:${20 + current.length}`,
-              type: "update" as const,
+              type: "suggested" as const,
               message: draft,
               actor: "Sentinel",
             },
