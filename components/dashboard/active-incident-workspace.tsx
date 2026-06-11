@@ -2,6 +2,7 @@ import { OperationsTimeline } from "@/components/dashboard/operations-timeline";
 import { PriorityBadge } from "@/components/dashboard/priority-badge";
 import { VenueContextCard } from "@/components/dashboard/venue-context-card";
 import { getLocationRecord } from "@/lib/data";
+import { getIncidentCompletionLabel } from "@/lib/incident-completion";
 import type { IncidentPackage, TimelineEntry } from "@/lib/types";
 
 type ActiveIncidentWorkspaceProps = {
@@ -198,6 +199,8 @@ export function ActiveIncidentWorkspace({
     : copy.teamButtonLabel;
   const approvedActionCount = incident.approvedActionIds.length;
   const dispatchApproved = incident.approvedActionIds.includes(`${incident.id}-action-0`);
+  const completionInput = { incident, timeline };
+  const completionLabel = getIncidentCompletionLabel(completionInput);
 
   return (
     <section
@@ -216,6 +219,14 @@ export function ActiveIncidentWorkspace({
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-3">
                 <PriorityBadge level={incident.priority} />
+                {completionLabel ? (
+                  <span
+                    className="inline-flex rounded-md border border-slate-300/70 bg-slate-100 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-slate-600"
+                    data-testid="workspace-completion-badge"
+                  >
+                    {completionLabel}
+                  </span>
+                ) : null}
               </div>
               <h3
                 className="mt-2 text-[1.35rem] font-semibold leading-tight tracking-[-0.02em] text-[#07111c]"

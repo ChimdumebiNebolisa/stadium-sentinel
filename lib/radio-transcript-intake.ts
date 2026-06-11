@@ -4,7 +4,7 @@ import {
   type DemoIncidentBatch,
   type DemoStoredIncident,
 } from "@/lib/demo-incident-pool";
-import { comparePriority } from "@/lib/priority";
+import { compareIncidentQueueOrder } from "@/lib/incident-completion";
 import type { EvidenceResult, IncidentPackage, PriorityLevel, TimelineEntry } from "@/lib/types";
 
 export const RADIO_TRANSCRIPT_KEY = "stadium-sentinel-radio-transcript";
@@ -318,9 +318,12 @@ export function enrichPackagesWithTranscriptEvidence(
   });
 }
 
-export function sortIncidentPackages(packages: IncidentPackage[]): IncidentPackage[] {
+export function sortIncidentPackages(
+  packages: IncidentPackage[],
+  timeline?: TimelineEntry[],
+): IncidentPackage[] {
   return [...packages].sort((left, right) =>
-    comparePriority(left.incident, right.incident),
+    compareIncidentQueueOrder(left, right, timeline),
   );
 }
 

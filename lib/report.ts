@@ -1,3 +1,4 @@
+import { isIncidentCompleted } from "@/lib/incident-completion";
 import {
   getReportPriorityLabel,
   getTimelineTypeLabel,
@@ -31,8 +32,7 @@ export function buildPostEventReport(
 ): ReportSummary {
   const unresolvedItems = incidentPackages
     .filter(
-      ({ incident }) =>
-        incident.approvedActionIds.length < incident.recommendedActions.length,
+      ({ incident }) => !isIncidentCompleted({ incident, timeline }),
     )
     .map(({ incident }) => `${incident.title} is still awaiting response steps.`);
 

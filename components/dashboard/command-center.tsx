@@ -478,12 +478,12 @@ export function CommandCenter() {
     actionIndex: number,
     options?: { sentinelRecommendationId?: string },
   ): Promise<ApprovalResult> {
-    const nextIncidentPackages = updateIncidentPackages(
+    const updatedPackages = updateIncidentPackages(
       incidentPackages,
       incidentId,
       actionIndex,
     );
-    if (nextIncidentPackages === incidentPackages) {
+    if (updatedPackages === incidentPackages) {
       return {
         result: "Action already recorded for this incident.",
         writebackStatus: "No additional write-back needed.",
@@ -503,6 +503,7 @@ export function CommandCenter() {
             actor: "Operations Lead",
           },
         ];
+    const nextIncidentPackages = sortIncidentPackages(updatedPackages, nextTimeline);
 
     setIncidentPackages(nextIncidentPackages);
     setTimeline(nextTimeline);
