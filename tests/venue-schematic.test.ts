@@ -1,12 +1,16 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  buildVenueIncidentMarkers,
   buildVenueSchematicModel,
   getActiveLabelPlacement,
   getActiveLocationIdsFromPackages,
   getSchematicAnchorForLocation,
+  getSchematicCoordsForLocation,
   isAnchorInsideViewBox,
   resolveOrientationSelection,
+  VENUE_INCIDENT_MARKER_LIMIT,
+  VENUE_SCHEMATIC_LOCATION_COORDS,
   VENUE_SCHEMATIC_VIEWBOX,
 } from "@/lib/venue-schematic";
 import { buildDemoState } from "@/lib/demo";
@@ -84,5 +88,39 @@ describe("venue schematic anchor model", () => {
     expect(anchor).toBeDefined();
     const placement = getActiveLabelPlacement(anchor!);
     expect(placement.rectY + 7).toBeLessThanOrEqual(anchor!.y);
+  });
+
+  it("maps canonical venue locations to explicit schematic coordinates", () => {
+    for (const locationId of Object.keys(VENUE_SCHEMATIC_LOCATION_COORDS)) {
+      const coords = getSchematicCoordsForLocation(locationId);
+      expect(coords, `coords for ${locationId}`).toEqual(
+        VENUE_SCHEMATIC_LOCATION_COORDS[locationId],
+      );
+    }
+  });
+
+  it("builds exactly three incident markers from the demo dispatch queue", () => {
+    const demo = buildDemoState();
+    const markers = buildVenueIncidentMarkers(demo.incidentPackages, demo.timeline);
+
+    expect(markers).toHaveLength(VENUE_INCIDENT_MARKER_LIMIT);
+    expect(markers.map((marker) => marker.incidentId)).toEqual(
+      demo.incidentPackages.slice(0, VENUE_INCIDENT_MARKER_LIMIT).map(({ incident }) => incident.id),
+    );
+    expect(new Set(markers.map((marker) => marker.incidentId)).size).toBe(3);
+    expect(markers.every((marker) => marker.incidentId.startsWith("incident-"))).toBe(true);
+    expect(markers.every((marker) => marker.label.length > 0)).toBe(true);
+  });
+
+  it("keeps incident markers inside the venue schematic viewBox", () => {
+    const demo = buildDemoState();
+    const markers = buildVenueIncidentMarkers(demo.incidentPackages, demo.timeline);
+
+    for (const marker of markers) {
+      expect(
+        isAnchorInsideViewBox(marker),
+        `marker ${marker.incidentId} inside viewBox`,
+      ).toBe(true);
+    }
   });
 });

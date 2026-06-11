@@ -1666,6 +1666,9 @@ export function CommandCenter() {
             {selectedIncidentPackage ? (
               <ActiveIncidentWorkspace
                 incidentPackage={selectedIncidentPackage}
+                incidentPackages={incidentPackages}
+                selectedIncidentId={selectedIncidentId}
+                onSelectIncident={setSelectedIncidentId}
                 timeline={timeline}
                 onApprove={(incidentId, action, actionIndex) => {
                   void handleApprove(incidentId, action, actionIndex);

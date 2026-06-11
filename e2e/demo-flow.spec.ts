@@ -390,9 +390,15 @@ test("venue context updates the selected marker and keeps venue orientation hidd
   await page.goto("/command");
 
   await expect(page.getByTestId("venue-orientation-section")).toHaveCount(0);
+  const schematic = page.getByTestId("venue-context-schematic");
+  await expect(schematic.locator('[data-venue-incident-marker="true"]')).toHaveCount(3);
   await expect(page.getByTestId("venue-anchor-section-112")).toHaveAttribute(
     "data-selected",
     "true",
+  );
+  await expect(page.getByTestId("venue-anchor-section-112")).toHaveAttribute(
+    "data-venue-marker-incident-id",
+    "incident-section-112",
   );
 
   await page.locator('[data-incident-id="incident-gate-b"]').click();
@@ -404,6 +410,25 @@ test("venue context updates the selected marker and keeps venue orientation hidd
     "data-selected",
     "false",
   );
+});
+
+test("clicking a venue context marker selects the matching incident", async ({ page }) => {
+  await page.goto("/command");
+
+  await page.getByTestId("venue-anchor-gate-b").click();
+  await expect(page.getByTestId("selected-incident-title")).toContainText("Gate B backed up");
+  await expect(page.getByTestId("venue-anchor-gate-b")).toHaveAttribute("data-selected", "true");
+  await expect(
+    page.locator('[data-incident-id="incident-gate-b"][data-testid="incident-card"]'),
+  ).toBeVisible();
+});
+
+test("venue reference dots are not incident markers", async ({ page }) => {
+  await page.goto("/command");
+
+  const schematic = page.getByTestId("venue-context-schematic");
+  await expect(schematic.locator('[data-venue-reference="true"]')).toHaveCount(5);
+  await expect(schematic.locator('[data-venue-reference="true"][role="button"]')).toHaveCount(0);
 });
 
 test("operations timeline remains visible and avoids forbidden wording", async ({ page }) => {

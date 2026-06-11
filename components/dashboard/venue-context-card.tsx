@@ -3,67 +3,137 @@
 import { useMemo } from "react";
 
 import {
-  buildVenueSchematicModel,
+  buildVenueIncidentMarkers,
   getActiveLabelPlacement,
+  VENUE_SCHEMATIC_REFERENCE_DOTS,
   VENUE_SCHEMATIC_VIEWBOX,
-  type VenueSchematicAnchor,
+  type VenueIncidentMarker,
 } from "@/lib/venue-schematic";
+import type { IncidentPackage, TimelineEntry } from "@/lib/types";
 
 type VenueContextCardProps = {
-  selectedLocationId?: string | null;
+  incidentPackages: IncidentPackage[];
+  selectedIncidentId: string | null;
+  onSelectIncident: (incidentId: string) => void;
+  timeline?: TimelineEntry[];
 };
 
-function SchematicAnchorDot({
-  anchor,
+function VenueReferenceDot({ x, y, id }: { x: number; y: number; id: string }) {
+  return (
+    <circle
+      cx={x}
+      cy={y}
+      r={0.7}
+      fill="#cbd5e1"
+      opacity={0.65}
+      data-testid={`venue-reference-dot-${id}`}
+      data-venue-reference="true"
+      pointerEvents="none"
+    />
+  );
+}
+
+function VenueIncidentMarkerDot({
+  marker,
   isSelected,
+  onSelect,
 }: {
-  anchor: VenueSchematicAnchor;
+  marker: VenueIncidentMarker;
   isSelected: boolean;
+  onSelect: (incidentId: string) => void;
 }) {
+  const handleActivate = () => onSelect(marker.incidentId);
+
   if (!isSelected) {
     return (
-      <g data-testid={`venue-anchor-${anchor.id}`} data-selected="false" aria-label={anchor.label}>
-        <circle cx={anchor.x} cy={anchor.y} r={1.2} fill="#94a3b8" />
+      <g
+        role="button"
+        tabIndex={0}
+        data-testid={`venue-anchor-${marker.locationId}`}
+        data-venue-incident-marker="true"
+        data-venue-marker-incident-id={marker.incidentId}
+        data-selected="false"
+        data-completed={marker.isCompleted ? "true" : "false"}
+        aria-label={marker.label}
+        className="cursor-pointer outline-none"
+        onClick={handleActivate}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            handleActivate();
+          }
+        }}
+      >
+        <circle
+          cx={marker.x}
+          cy={marker.y}
+          r={marker.isCompleted ? 1.6 : 2.2}
+          fill={marker.isCompleted ? "#94a3b8" : "#64748b"}
+          opacity={marker.isCompleted ? 0.75 : 0.95}
+        />
       </g>
     );
   }
 
-  const { rectX, rectY, labelX, labelY } = getActiveLabelPlacement(anchor);
+  const { rectX, rectY, labelX, labelY } = getActiveLabelPlacement(marker);
+  const accent = marker.isCompleted ? "#64748b" : "#ef4444";
+  const labelText = marker.isCompleted ? marker.shortLabel.toUpperCase() : "ACTIVE";
 
   return (
     <g
-      data-testid={`venue-anchor-${anchor.id}`}
+      role="button"
+      tabIndex={0}
+      data-testid={`venue-anchor-${marker.locationId}`}
+      data-venue-incident-marker="true"
+      data-venue-marker-incident-id={marker.incidentId}
       data-selected="true"
-      aria-label={anchor.label}
+      data-completed={marker.isCompleted ? "true" : "false"}
+      aria-label={marker.label}
+      className="cursor-pointer outline-none"
+      onClick={handleActivate}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          handleActivate();
+        }
+      }}
     >
-      <circle
-        cx={anchor.x}
-        cy={anchor.y}
-        r={6}
-        fill="none"
-        stroke="#ef4444"
-        strokeWidth={1.2}
-        opacity={0.28}
-        className="animate-pulse"
-      />
-      <circle cx={anchor.x} cy={anchor.y} r={3.4} fill="#ef4444" />
-      <rect x={rectX} y={rectY} width={36} height={7} rx={1.5} fill="#ef4444" />
+      {!marker.isCompleted ? (
+        <circle
+          cx={marker.x}
+          cy={marker.y}
+          r={6}
+          fill="none"
+          stroke={accent}
+          strokeWidth={1.2}
+          opacity={0.28}
+          className="animate-pulse"
+        />
+      ) : null}
+      <circle cx={marker.x} cy={marker.y} r={3.4} fill={accent} />
+      <rect x={rectX} y={rectY} width={36} height={7} rx={1.5} fill={accent} />
       <text
         x={labelX}
         y={labelY}
         textAnchor="middle"
         className="fill-white text-[3px] font-bold uppercase tracking-wider"
       >
-        ACTIVE
+        {labelText}
       </text>
     </g>
   );
 }
 
 export function VenueContextCard({
-  selectedLocationId = null,
+  incidentPackages,
+  selectedIncidentId,
+  onSelectIncident,
+  timeline,
 }: VenueContextCardProps) {
-  const model = useMemo(() => buildVenueSchematicModel(), []);
+  const markers = useMemo(
+    () => buildVenueIncidentMarkers(incidentPackages, timeline),
+    [incidentPackages, timeline],
+  );
   const viewBox = `${VENUE_SCHEMATIC_VIEWBOX.minX} ${VENUE_SCHEMATIC_VIEWBOX.minY} ${VENUE_SCHEMATIC_VIEWBOX.width} ${VENUE_SCHEMATIC_VIEWBOX.height}`;
 
   return (
@@ -112,7 +182,7 @@ export function VenueContextCard({
             stroke="#e2e8f0"
             strokeWidth="0.6"
           />
-          <circle cx="50" cy="32" r="1.4" fill="#94a3b8" />
+          <VenueReferenceDot x={50} y={32} id="center" />
 
           <text
             x="14"
@@ -144,11 +214,16 @@ export function VenueContextCard({
             D
           </text>
 
-          {model.anchors.map((anchor) => (
-            <SchematicAnchorDot
-              key={anchor.id}
-              anchor={anchor}
-              isSelected={anchor.id === selectedLocationId}
+          {VENUE_SCHEMATIC_REFERENCE_DOTS.map((dot) => (
+            <VenueReferenceDot key={dot.id} x={dot.x} y={dot.y} id={dot.id} />
+          ))}
+
+          {markers.map((marker) => (
+            <VenueIncidentMarkerDot
+              key={marker.incidentId}
+              marker={marker}
+              isSelected={marker.incidentId === selectedIncidentId}
+              onSelect={onSelectIncident}
             />
           ))}
         </svg>

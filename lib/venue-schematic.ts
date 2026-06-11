@@ -1,5 +1,6 @@
 import { getLocationRecord, locationRecords } from "@/lib/data";
-import type { IncidentPackage, LocationRecord, ZoneLayer } from "@/lib/types";
+import { isIncidentCompleted } from "@/lib/incident-completion";
+import type { IncidentPackage, LocationRecord, TimelineEntry, ZoneLayer } from "@/lib/types";
 
 export type VenueSchematicAnchor = {
   id: string;
@@ -14,6 +15,37 @@ export type VenueSchematicModel = {
   anchors: VenueSchematicAnchor[];
   zoneLayers: ZoneLayer[];
 };
+
+export type VenueIncidentMarker = {
+  incidentId: string;
+  locationId: string;
+  label: string;
+  shortLabel: string;
+  x: number;
+  y: number;
+  isCompleted: boolean;
+};
+
+/** Deterministic schematic coordinates for canonical venue locations. */
+export const VENUE_SCHEMATIC_LOCATION_COORDS: Record<string, { x: number; y: number }> = {
+  "screening-east": { x: 22, y: 20 },
+  "section-112": { x: 70, y: 45 },
+  "section-204": { x: 42, y: 44 },
+  "section-318": { x: 58, y: 30 },
+  "north-concourse": { x: 50, y: 22 },
+  "gate-b": { x: 13, y: 32 },
+  "west-concourse": { x: 84, y: 36 },
+  "elevator-4": { x: 87, y: 32 },
+};
+
+export const VENUE_SCHEMATIC_REFERENCE_DOTS = [
+  { id: "ref-a", x: 28, y: 18 },
+  { id: "ref-b", x: 72, y: 18 },
+  { id: "ref-c", x: 28, y: 48 },
+  { id: "ref-d", x: 72, y: 48 },
+] as const;
+
+export const VENUE_INCIDENT_MARKER_LIMIT = 3;
 
 const ORIENTATION_ANCHOR_TYPES = new Set<LocationRecord["type"]>([
   "gate",
@@ -68,7 +100,7 @@ export function normalizeSchematicCoords(
   };
 }
 
-export function isAnchorInsideViewBox(anchor: VenueSchematicAnchor): boolean {
+export function isAnchorInsideViewBox(anchor: { x: number; y: number }): boolean {
   const maxX = VENUE_SCHEMATIC_VIEWBOX.minX + VENUE_SCHEMATIC_VIEWBOX.width;
   const maxY = VENUE_SCHEMATIC_VIEWBOX.minY + VENUE_SCHEMATIC_VIEWBOX.height;
   const margin = 4;
@@ -88,7 +120,7 @@ export type ActiveLabelPlacement = {
 };
 
 /** Place ACTIVE label above/below marker based on anchor position in schematic space. */
-export function getActiveLabelPlacement(anchor: VenueSchematicAnchor): ActiveLabelPlacement {
+export function getActiveLabelPlacement(anchor: { x: number; y: number }): ActiveLabelPlacement {
   const VIEWBOX_MIN_X = VENUE_SCHEMATIC_VIEWBOX.minX;
   const VIEWBOX_MAX_X = VENUE_SCHEMATIC_VIEWBOX.minX + VENUE_SCHEMATIC_VIEWBOX.width;
   const VIEWBOX_MIN_Y = VENUE_SCHEMATIC_VIEWBOX.minY;
@@ -140,6 +172,50 @@ export function buildVenueSchematicModel(): VenueSchematicModel {
     anchors,
     zoneLayers: ZONE_LAYER_ORDER,
   };
+}
+
+export function getSchematicCoordsForLocation(
+  locationId: string,
+): { x: number; y: number } | undefined {
+  const explicit = VENUE_SCHEMATIC_LOCATION_COORDS[locationId];
+  if (explicit) {
+    return explicit;
+  }
+
+  const location = getLocationRecord(locationId);
+  if (!location) {
+    return undefined;
+  }
+
+  return normalizeSchematicCoords(location.mapX, location.mapY);
+}
+
+export function buildVenueIncidentMarkers(
+  incidentPackages: IncidentPackage[],
+  timeline?: TimelineEntry[],
+  maxMarkers: number = VENUE_INCIDENT_MARKER_LIMIT,
+): VenueIncidentMarker[] {
+  return incidentPackages.slice(0, maxMarkers).flatMap((incidentPackage) => {
+    const { incident } = incidentPackage;
+    const coords = getSchematicCoordsForLocation(incident.locationId);
+    if (!coords) {
+      return [];
+    }
+
+    const location = getLocationRecord(incident.locationId);
+
+    return [
+      {
+        incidentId: incident.id,
+        locationId: incident.locationId,
+        label: `${incident.title} · ${location?.displayName ?? incident.locationLabel}`,
+        shortLabel: location?.name ?? incident.locationLabel,
+        x: coords.x,
+        y: coords.y,
+        isCompleted: isIncidentCompleted({ incident, timeline }),
+      },
+    ];
+  });
 }
 
 export function getSchematicAnchorForLocation(

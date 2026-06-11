@@ -7,6 +7,9 @@ import type { IncidentPackage, TimelineEntry } from "@/lib/types";
 
 type ActiveIncidentWorkspaceProps = {
   incidentPackage: IncidentPackage;
+  incidentPackages: IncidentPackage[];
+  selectedIncidentId: string;
+  onSelectIncident: (incidentId: string) => void;
   timeline: TimelineEntry[];
   onApprove: (incidentId: string, action: string, actionIndex: number) => void;
 };
@@ -171,6 +174,9 @@ function WorkspaceSectionTitle({ title }: { title: string }) {
 
 export function ActiveIncidentWorkspace({
   incidentPackage,
+  incidentPackages,
+  selectedIncidentId,
+  onSelectIncident,
   timeline,
   onApprove,
 }: ActiveIncidentWorkspaceProps) {
@@ -249,7 +255,12 @@ export function ActiveIncidentWorkspace({
 
       <div className="mt-2 grid min-h-0 gap-2">
         <div className="workbench-workspace-grid">
-          <VenueContextCard selectedLocationId={incident.locationId} />
+          <VenueContextCard
+            incidentPackages={incidentPackages}
+            selectedIncidentId={selectedIncidentId}
+            onSelectIncident={onSelectIncident}
+            timeline={timeline}
+          />
 
           <div className="workbench-side-stack">
             <article className="ops-subpanel p-3">
