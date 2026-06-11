@@ -109,6 +109,41 @@ textarea:focus-visible {
   max-width: calc(100vw - 1.5rem);
 }
 
+.sentinel-exchange-history {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-height: 5.5rem;
+  overflow: hidden;
+  padding: 0 0.15rem;
+}
+
+.sentinel-exchange-pair {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  border-top: 1px solid rgb(139 92 246 / 0.12);
+  padding-top: 0.3rem;
+}
+
+.sentinel-exchange-pair:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.sentinel-exchange-line {
+  margin: 0;
+  text-align: left;
+  font-size: 0.65rem;
+  line-height: 1.25;
+  color: rgb(71 85 105);
+}
+
+.sentinel-exchange-label {
+  font-weight: 600;
+  color: rgb(91 33 182);
+}
+
 .sentinel-orb-button {
   padding: 0;
   font: inherit;

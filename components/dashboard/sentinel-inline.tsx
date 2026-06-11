@@ -23,6 +23,22 @@ export type SentinelActionTrace = {
   writebackStatus?: string | null;
 };
 
+export type SentinelExchange = {
+  question: string;
+  answer: string;
+  at: number;
+};
+
+const EXCHANGE_SNIPPET_MAX = 120;
+
+function truncateExchangeText(text: string, max = EXCHANGE_SNIPPET_MAX): string {
+  const normalized = text.replace(/\s+/g, " ").trim();
+  if (normalized.length <= max) {
+    return normalized;
+  }
+  return `${normalized.slice(0, max - 1).trimEnd()}…`;
+}
+
 type SentinelInlineProps = {
   available: boolean;
   open: boolean;
@@ -32,6 +48,7 @@ type SentinelInlineProps = {
   statusMessage: string | null;
   questionInput: string;
   answer: string | null;
+  exchanges: SentinelExchange[];
   evidence: EvidenceResult[];
   actionTrace: SentinelActionTrace | null;
   canApplyAction: boolean;
@@ -105,6 +122,7 @@ export function SentinelInline({
   statusMessage,
   questionInput,
   answer,
+  exchanges,
   canApplyAction,
   onToggle,
   onQuestionChange,
@@ -247,6 +265,30 @@ export function SentinelInline({
               >
                 Heard: {questionInput}
               </p>
+            ) : null}
+
+            {exchanges.length > 0 ? (
+              <div
+                className="sentinel-exchange-history w-full"
+                data-testid="sentinel-exchange-history"
+              >
+                {exchanges.map((exchange) => (
+                  <div
+                    key={exchange.at}
+                    className="sentinel-exchange-pair"
+                    data-testid="sentinel-exchange-pair"
+                  >
+                    <p className="sentinel-exchange-line">
+                      <span className="sentinel-exchange-label">You:</span>{" "}
+                      {truncateExchangeText(exchange.question)}
+                    </p>
+                    <p className="sentinel-exchange-line">
+                      <span className="sentinel-exchange-label">Sentinel:</span>{" "}
+                      {truncateExchangeText(exchange.answer)}
+                    </p>
+                  </div>
+                ))}
+              </div>
             ) : null}
 
           </div>

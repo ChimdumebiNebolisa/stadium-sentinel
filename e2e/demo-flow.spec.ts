@@ -732,6 +732,26 @@ test("Ask Sentinel panel does not show Type instead or visible typed input", asy
   await expect(page.getByTestId("sentinel-question-input")).toHaveAttribute("aria-hidden", "true");
 });
 
+test("Ask Sentinel keeps compact exchange history for follow-up questions", async ({
+  page,
+}) => {
+  await page.goto("/command");
+  await openSentinelPanel(page);
+
+  await askSentinel(page, "What should I do first?");
+  await expect(page.getByTestId("sentinel-exchange-history")).toBeVisible();
+  await expect(page.getByTestId("sentinel-exchange-pair")).toHaveCount(1);
+  await expect(page.getByTestId("sentinel-exchange-history")).toContainText(/You:/i);
+  await expect(page.getByTestId("sentinel-exchange-history")).toContainText(/Sentinel:/i);
+
+  await askSentinel(page, "Who is assigned to this incident?");
+  await expect(page.getByTestId("sentinel-exchange-pair")).toHaveCount(2);
+
+  const panelWidth = (await page.getByTestId("sentinel-panel").boundingBox())?.width ?? 0;
+  expect(panelWidth).toBeGreaterThan(0);
+  expect(panelWidth).toBeLessThanOrEqual(224);
+});
+
 test("Ask Sentinel sr-only input is fillable by Playwright for automated tests", async ({ page }) => {
   await page.goto("/command");
   await openSentinelPanel(page);

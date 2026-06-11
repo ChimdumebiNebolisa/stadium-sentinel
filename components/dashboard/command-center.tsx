@@ -263,6 +263,9 @@ export function CommandCenter() {
   const [sentinelOpen, setSentinelOpen] = useState(false);
   const [sentinelQuestion, setSentinelQuestion] = useState("");
   const [sentinelAnswer, setSentinelAnswer] = useState<string | null>(null);
+  const [sentinelExchanges, setSentinelExchanges] = useState<
+    Array<{ question: string; answer: string; at: number }>
+  >([]);
   const [sentinelEvidence, setSentinelEvidence] = useState<EvidenceResult[]>([]);
   const [sentinelStatusMessage, setSentinelStatusMessage] = useState<string | null>(
     null,
@@ -979,6 +982,20 @@ export function CommandCenter() {
     }
   }
 
+  function appendSentinelExchange(question: string, answer: string) {
+    const trimmedQuestion = question.trim();
+    const trimmedAnswer = answer.trim();
+    if (!trimmedQuestion || !trimmedAnswer) {
+      return;
+    }
+
+    setSentinelExchanges((current) =>
+      [...current, { question: trimmedQuestion, answer: trimmedAnswer, at: Date.now() }].slice(
+        -3,
+      ),
+    );
+  }
+
   function closeSentinel() {
     voiceSessionRef.current?.stop();
     stopSentinelSpeech();
@@ -986,6 +1003,7 @@ export function CommandCenter() {
     setSentinelOpen(false);
     updateSentinelUiState("idle");
     setSentinelPendingAction(null);
+    setSentinelExchanges([]);
   }
 
   function toggleSentinel() {
@@ -1361,6 +1379,7 @@ export function CommandCenter() {
 
       setSentinelAnswer(response.answer);
       setSentinelEvidence(response.evidence);
+      appendSentinelExchange(interpretedCommand, response.answer);
 
       const proposal = interpretSentinelCommand(
         interpretedCommand,
@@ -1406,6 +1425,7 @@ export function CommandCenter() {
       });
     } catch {
       const fallback = buildDefaultSentinelBrief(commandState);
+      appendSentinelExchange(interpretedCommand, fallback);
       setSentinelAnswer(fallback);
       setSentinelEvidence(selected.evidence);
       updateSentinelUiState("action_failed");
@@ -1466,6 +1486,7 @@ export function CommandCenter() {
               statusMessage={sentinelStatusMessage}
               questionInput={sentinelQuestion}
               answer={sentinelAnswer}
+              exchanges={sentinelExchanges}
               evidence={sentinelEvidence}
               actionTrace={sentinelActionTrace}
               canApplyAction={Boolean(sentinelPendingAction)}
