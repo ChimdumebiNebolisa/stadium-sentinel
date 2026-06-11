@@ -14,13 +14,12 @@ export function LandingHero() {
       <p className="landing-subtext">
         Stadium Sentinel brings guest services, security, facilities, and radio
         updates into one command file, then turns them into assigned incidents
-        with priorities, next actions, timelines, and report output.
+        with priorities, next actions, timelines, and report output.{" "}
+        {LANDING_PROOF_STATS.heroAttendance.text}
       </p>
-
-      <div className="landing-proof-callout landing-proof-callout-hero">
-        <p>{LANDING_PROOF_STATS.heroAttendance.text}</p>
-        <span className="landing-stat-source">{LANDING_PROOF_STATS.heroAttendance.source}</span>
-      </div>
+      <p className="landing-proof-line landing-proof-line-hero">
+        <span className="landing-proof-source">{LANDING_PROOF_STATS.heroAttendance.source}</span>
+      </p>
 
       <div className="landing-cta-row">
         <Link

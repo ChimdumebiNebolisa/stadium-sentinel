@@ -31,6 +31,8 @@ test("landing page advertises Sentinel and removes technical appendix", async ({
   await expect(page.locator(".landing-nav-logo")).toHaveCount(0);
   await expect(page.getByText("Source: Two Circles, 2025").first()).toBeVisible();
   await expect(page.getByText("Source: Microsoft Work Trend Index, 2023")).toBeVisible();
+  await expect(page.locator(".landing-proof-callout")).toHaveCount(0);
+  await expect(page.locator(".landing-proof-line, .landing-proof-source").first()).toBeVisible();
 });
 
 test("landing nav anchors point to real sections", async ({ page }) => {

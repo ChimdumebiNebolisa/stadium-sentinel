@@ -95,13 +95,9 @@ export function AskSentinelSection() {
         <p>
           Ask what happened, who is handling it, what changed, or what needs to happen next.
           Sentinel answers from live incident context and can open evidence, prepare dispatch,
-          or draft the incident report.
+          or draft the incident report. {LANDING_PROOF_STATS.searchFriction.text}{" "}
+          <span className="landing-proof-source">{LANDING_PROOF_STATS.searchFriction.source}</span>
         </p>
-      </div>
-
-      <div className="landing-proof-callout landing-proof-callout-agent">
-        <p>{LANDING_PROOF_STATS.searchFriction.text}</p>
-        <span className="landing-stat-source">{LANDING_PROOF_STATS.searchFriction.source}</span>
       </div>
 
       <div className="landing-agent-points">
@@ -125,10 +121,10 @@ export function AskSentinelSection() {
 export function CapabilityCardsSection() {
   return (
     <section className="landing-section landing-capability-section">
-      <div className="landing-proof-callout landing-proof-callout-problem">
-        <p>{LANDING_PROOF_STATS.staffingPressure.text}</p>
-        <span className="landing-stat-source">{LANDING_PROOF_STATS.staffingPressure.source}</span>
-      </div>
+      <p className="landing-proof-line landing-proof-line-capability">
+        {LANDING_PROOF_STATS.staffingPressure.text}{" "}
+        <span className="landing-proof-source">{LANDING_PROOF_STATS.staffingPressure.source}</span>
+      </p>
 
       <div className="landing-capability-grid">
         {CAPABILITY_CARDS.map((card) => {
