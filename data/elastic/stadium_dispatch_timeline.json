@@ -10,6 +10,16 @@
     "searchText": "gate b reported queue perimeter lane"
   },
   {
+    "id": "timeline-gate-b-suggested",
+    "incidentId": "incident-gate-b",
+    "timestamp": "2026-06-07T11:38:45.000Z",
+    "type": "suggested",
+    "message": "CF-2 assigned to open north overflow path and rebalance screening lanes.",
+    "actor": "Operations",
+    "source": "command_center",
+    "searchText": "gate b suggested cf-2 overflow path screening"
+  },
+  {
     "id": "timeline-elevator-4-reported",
     "incidentId": "incident-elevator-4",
     "timestamp": "2026-06-07T11:41:00.000Z",
@@ -20,6 +30,16 @@
     "searchText": "elevator 4 reported out of service east stand"
   },
   {
+    "id": "timeline-elevator-4-suggested",
+    "incidentId": "incident-elevator-4",
+    "timestamp": "2026-06-07T11:41:45.000Z",
+    "type": "suggested",
+    "message": "FAC-4 on scene; accessibility detour signage authorized.",
+    "actor": "Operations",
+    "source": "command_center",
+    "searchText": "elevator 4 suggested fac-4 detour signage"
+  },
+  {
     "id": "timeline-section-112-reported",
     "incidentId": "incident-section-112",
     "timestamp": "2026-06-07T11:42:00.000Z",
@@ -28,5 +48,105 @@
     "actor": "System",
     "source": "system",
     "searchText": "section 112 reported wheelchair access guest"
+  },
+  {
+    "id": "timeline-section-112-suggested",
+    "incidentId": "incident-section-112",
+    "timestamp": "2026-06-07T11:42:30.000Z",
+    "type": "suggested",
+    "message": "GS-1 dispatched for accessible escort to lower-bowl seating.",
+    "actor": "Operations",
+    "source": "command_center",
+    "searchText": "section 112 suggested gs-1 escort accessible"
+  },
+  {
+    "id": "timeline-restroom-outage-reported",
+    "incidentId": "incident-restroom-outage",
+    "timestamp": "2026-06-07T11:45:00.000Z",
+    "type": "reported",
+    "message": "West Concourse restroom bank reported out of service.",
+    "actor": "System",
+    "source": "system",
+    "searchText": "restroom outage reported west concourse"
+  },
+  {
+    "id": "timeline-aisle-spill-reported",
+    "incidentId": "incident-aisle-spill",
+    "timestamp": "2026-06-07T11:50:00.000Z",
+    "type": "reported",
+    "message": "Liquid spill near Section 204 aisle flagged as slip hazard.",
+    "actor": "System",
+    "source": "system",
+    "searchText": "aisle spill reported section 204 slip hazard"
+  },
+  {
+    "id": "timeline-aisle-spill-suggested",
+    "incidentId": "incident-aisle-spill",
+    "timestamp": "2026-06-07T11:50:30.000Z",
+    "type": "suggested",
+    "message": "FAC-2 dispatched with cones and absorbent kit; aisle isolated.",
+    "actor": "Operations",
+    "source": "command_center",
+    "searchText": "aisle spill suggested fac-2 cleanup cones"
+  },
+  {
+    "id": "timeline-lost-child-reported",
+    "incidentId": "incident-lost-child",
+    "timestamp": "2026-06-07T11:55:00.000Z",
+    "type": "reported",
+    "message": "Separated child report logged at east screening near North Gate entrance.",
+    "actor": "System",
+    "source": "system",
+    "searchText": "lost child reported east screening north gate"
+  },
+  {
+    "id": "timeline-lost-child-suggested",
+    "incidentId": "incident-lost-child",
+    "timestamp": "2026-06-07T11:55:30.000Z",
+    "type": "suggested",
+    "message": "Security dual-officer dispatch; hold guardian contact point.",
+    "actor": "Operations",
+    "source": "command_center",
+    "searchText": "lost child suggested security dispatch contact point"
+  },
+  {
+    "id": "timeline-north-concourse-reported",
+    "incidentId": "incident-north-concourse",
+    "timestamp": "2026-06-07T11:44:00.000Z",
+    "type": "reported",
+    "message": "Crowd density building on North Concourse near Section 300 entry.",
+    "actor": "System",
+    "source": "system",
+    "searchText": "north concourse reported crowding section 300"
+  },
+  {
+    "id": "timeline-north-concourse-suggested",
+    "incidentId": "incident-north-concourse",
+    "timestamp": "2026-06-07T11:44:45.000Z",
+    "type": "suggested",
+    "message": "CF-2 assigned to open relief corridor B and direct movement.",
+    "actor": "Operations",
+    "source": "command_center",
+    "searchText": "north concourse suggested cf-2 relief corridor"
+  },
+  {
+    "id": "timeline-medical-assist-reported",
+    "incidentId": "incident-medical-assist",
+    "timestamp": "2026-06-07T11:52:00.000Z",
+    "type": "reported",
+    "message": "Guest in Section 318 reporting dizziness; medical response requested.",
+    "actor": "System",
+    "source": "system",
+    "searchText": "medical assist reported section 318 dizziness"
+  },
+  {
+    "id": "timeline-medical-assist-suggested",
+    "incidentId": "incident-medical-assist",
+    "timestamp": "2026-06-07T11:52:30.000Z",
+    "type": "suggested",
+    "message": "GS-1 and first-aid medic en route; host staying with guest.",
+    "actor": "Operations",
+    "source": "command_center",
+    "searchText": "medical assist suggested gs-1 medic section 318"
   }
 ]

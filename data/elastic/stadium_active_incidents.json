@@ -11,7 +11,10 @@
     "assignedRole": "Guest Services",
     "status": "new",
     "reportedAt": "2026-06-07T11:42:00.000Z",
-    "evidenceIds": ["evidence-section-112-guest-report-1"],
+    "evidenceIds": [
+      "evidence-section-112-guest-report-1",
+      "evidence-section-112-host-note-1"
+    ],
     "guestAssistanceId": "assist-section-112-1",
     "searchText": "section 112 assist guest wheelchair access immediate guest services"
   },
@@ -58,7 +61,7 @@
     "assignedRole": "Facilities",
     "status": "new",
     "reportedAt": "2026-06-07T11:45:00.000Z",
-    "evidenceIds": [],
+    "evidenceIds": ["evidence-restroom-west-staff-note-1"],
     "facilityStatusId": "facility-restroom-west",
     "searchText": "restroom out of order west concourse moderate facilities"
   },
@@ -74,7 +77,10 @@
     "assignedRole": "Facilities",
     "status": "new",
     "reportedAt": "2026-06-07T11:50:00.000Z",
-    "evidenceIds": [],
+    "evidenceIds": [
+      "evidence-section-204-radio-1",
+      "evidence-section-204-staff-note-1"
+    ],
     "searchText": "spill aisle section 204 slip hazard high facilities cleanup"
   },
   {
@@ -89,7 +95,10 @@
     "assignedRole": "Security",
     "status": "new",
     "reportedAt": "2026-06-07T11:55:00.000Z",
-    "evidenceIds": [],
+    "evidenceIds": [
+      "evidence-lost-child-host-stand-1",
+      "evidence-lost-child-radio-1"
+    ],
     "guestAssistanceId": "assist-lost-child-1",
     "searchText": "lost child north gate immediate security family services"
   },
@@ -105,7 +114,10 @@
     "assignedRole": "Security / Crowd Flow",
     "status": "new",
     "reportedAt": "2026-06-07T11:44:00.000Z",
-    "evidenceIds": [],
+    "evidenceIds": [
+      "evidence-north-concourse-sensor-1",
+      "evidence-north-concourse-radio-1"
+    ],
     "searchText": "north concourse crowding high security crowd flow relief route"
   },
   {
@@ -120,7 +132,10 @@
     "assignedRole": "Guest Services",
     "status": "new",
     "reportedAt": "2026-06-07T11:52:00.000Z",
-    "evidenceIds": [],
+    "evidenceIds": [
+      "evidence-section-318-host-stand-1",
+      "evidence-section-318-radio-1"
+    ],
     "guestAssistanceId": "assist-medical-318-1",
     "searchText": "guest medical assist section 318 immediate guest services first aid"
   }

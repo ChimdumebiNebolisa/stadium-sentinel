@@ -2,6 +2,8 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 
+import { INCIDENT_DETAILS_SEED } from "@/lib/incident-details-seed";
+
 const ALLOWED_PRIORITIES = new Set([
   "Immediate",
   "High",
@@ -122,7 +124,46 @@ const SEED_FILES = [
   "stadium_policies.json",
   "stadium_radio_transcripts.json",
   "stadium_dispatch_timeline.json",
+  "stadium_evidence.json",
+  "stadium_locations.json",
 ] as const;
+
+const ELASTIC_INCIDENT_IDS = [
+  "incident-section-112",
+  "incident-elevator-4",
+  "incident-gate-b",
+  "incident-restroom-outage",
+  "incident-aisle-spill",
+  "incident-lost-child",
+  "incident-north-concourse",
+  "incident-medical-assist",
+] as const;
+
+function readCanonicalLocationIds(): Set<string> {
+  const filePath = path.join(process.cwd(), "data", "locations.json");
+  const locations = JSON.parse(readFileSync(filePath, "utf8")) as Array<{ id: string }>;
+  return new Set(locations.map((location) => location.id));
+}
+
+function collectLocationIds(documents: Array<Record<string, unknown>>): string[] {
+  const ids: string[] = [];
+  for (const document of documents) {
+    if (typeof document.locationId === "string") {
+      ids.push(document.locationId);
+    }
+    if (Array.isArray(document.locationIds)) {
+      for (const value of document.locationIds) {
+        if (typeof value === "string") {
+          ids.push(value);
+        }
+      }
+    }
+    if (typeof document.gateId === "string") {
+      ids.push(document.gateId);
+    }
+  }
+  return ids;
+}
 
 function readSeedFile(filename: string) {
   const filePath = path.join(process.cwd(), "data", "elastic", filename);
@@ -200,6 +241,66 @@ describe("elastic seed dataset", () => {
 
     for (const priority of collectPriorityFields(priorityDocs)) {
       expect(ALLOWED_PRIORITIES.has(priority)).toBe(true);
+    }
+  });
+
+  it("gives every active incident evidence index coverage or linked evidenceIds", () => {
+    const activeIncidents = readSeedFile("stadium_active_incidents.json");
+    const evidence = readSeedFile("stadium_evidence.json");
+    const evidenceIds = new Set(evidence.map((document) => document.id));
+
+    for (const incidentId of ELASTIC_INCIDENT_IDS) {
+      const incident = activeIncidents.find((document) => document.id === incidentId);
+      expect(incident, incidentId).toBeDefined();
+
+      const linkedIds = Array.isArray(incident?.evidenceIds)
+        ? incident.evidenceIds.filter((value): value is string => typeof value === "string")
+        : [];
+      expect(linkedIds.length).toBeGreaterThan(0);
+      for (const evidenceId of linkedIds) {
+        expect(evidenceIds.has(evidenceId), `missing evidence doc ${evidenceId}`).toBe(true);
+      }
+    }
+  });
+
+  it("covers dispatch timeline entries for all eight active incidents", () => {
+    const dispatchTimeline = readSeedFile("stadium_dispatch_timeline.json");
+
+    for (const incidentId of ELASTIC_INCIDENT_IDS) {
+      const entries = dispatchTimeline.filter(
+        (document) => document.incidentId === incidentId,
+      );
+      expect(entries.length, incidentId).toBeGreaterThan(0);
+    }
+  });
+
+  it("uses canonical location IDs across elastic cross-index seed files", () => {
+    const canonicalLocationIds = readCanonicalLocationIds();
+    const crossIndexFiles = [
+      "stadium_active_incidents.json",
+      "stadium_guest_assistance.json",
+      "stadium_evidence.json",
+      "stadium_gate_flow_logs.json",
+      "stadium_facility_status.json",
+      "stadium_locations.json",
+    ];
+
+    for (const filename of crossIndexFiles) {
+      const documents = readSeedFile(filename);
+      for (const locationId of collectLocationIds(documents)) {
+        expect(
+          canonicalLocationIds.has(locationId),
+          `${filename} references unknown locationId ${locationId}`,
+        ).toBe(true);
+      }
+    }
+  });
+
+  it("merges operational enrichment into all eight incident detail seeds", () => {
+    for (const incidentId of ELASTIC_INCIDENT_IDS) {
+      const details = INCIDENT_DETAILS_SEED[incidentId];
+      expect(details?.sourceRecords?.length).toBeGreaterThan(0);
+      expect(details?.mediaMetadata?.length).toBeGreaterThan(0);
     }
   });
 

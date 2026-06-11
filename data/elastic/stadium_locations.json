@@ -11,6 +11,17 @@
     "searchText": "gate b north entry perimeter security guest services queue spillback screening bypass"
   },
   {
+    "id": "screening-east",
+    "label": "East Screening",
+    "aliases": ["east screening", "screening east", "mag east"],
+    "zoneLayer": "Perimeter",
+    "defaultTeams": ["Security", "Screening"],
+    "operationalRisks": ["screening backlog", "bag check overflow", "lane closure"],
+    "accessibilityCritical": false,
+    "crowdFlowCritical": true,
+    "searchText": "east screening perimeter security screening backlog bag check overflow"
+  },
+  {
     "id": "elevator-4",
     "label": "Elevator 4",
     "aliases": ["elevator 4", "lift 4", "west concourse", "west elevator 4"],
@@ -22,6 +33,28 @@
     "searchText": "elevator 4 lift 4 concourse facilities accessibility accessible route failure reroute delay"
   },
   {
+    "id": "west-concourse",
+    "label": "West Concourse",
+    "aliases": ["west concourse", "concourse west", "main concourse west"],
+    "zoneLayer": "Concourse",
+    "defaultTeams": ["Operations", "Guest Services", "Security"],
+    "operationalRisks": ["pedestrian bottleneck", "wayfinding confusion", "stoppage near portals"],
+    "accessibilityCritical": true,
+    "crowdFlowCritical": true,
+    "searchText": "west concourse circulation operations guest services pedestrian bottleneck"
+  },
+  {
+    "id": "north-concourse",
+    "label": "North Concourse",
+    "aliases": ["north concourse", "concourse north", "north corridor"],
+    "zoneLayer": "Concourse",
+    "defaultTeams": ["Operations", "Guest Services", "Security"],
+    "operationalRisks": ["pedestrian bottleneck", "merge-point slowdown", "relief-path delay"],
+    "accessibilityCritical": true,
+    "crowdFlowCritical": true,
+    "searchText": "north concourse circulation crowd flow merge point relief corridor"
+  },
+  {
     "id": "section-112",
     "label": "Section 112",
     "aliases": ["section 112", "sec 112", "112", "lower bowl 112"],
@@ -31,5 +64,27 @@
     "accessibilityCritical": true,
     "crowdFlowCritical": true,
     "searchText": "section 112 sec 112 stands guest services accessibility lower bowl escort delay crowd compression"
+  },
+  {
+    "id": "section-204",
+    "label": "Section 204",
+    "aliases": ["section 204", "sec 204", "204"],
+    "zoneLayer": "Stands",
+    "defaultTeams": ["Guest Services", "Facilities", "Security"],
+    "operationalRisks": ["slip hazard", "aisle obstruction", "localized crowd compression"],
+    "accessibilityCritical": true,
+    "crowdFlowCritical": true,
+    "searchText": "section 204 sec 204 stands facilities slip hazard aisle spill cleanup"
+  },
+  {
+    "id": "section-318",
+    "label": "Section 318",
+    "aliases": ["section 318", "sec 318", "318"],
+    "zoneLayer": "Stands",
+    "defaultTeams": ["Guest Services", "Medical", "Security"],
+    "operationalRisks": ["medical assist delay", "escort delay", "aisle access constraint"],
+    "accessibilityCritical": true,
+    "crowdFlowCritical": false,
+    "searchText": "section 318 sec 318 stands guest services medical assist dizziness"
   }
 ]

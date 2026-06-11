@@ -192,6 +192,92 @@ export type ReportDraftSeed = {
   operatorNote?: string;
 };
 
+/** Upstream source record — operational context only, not a CRM entity. */
+export type SourceSystemRecord = {
+  sourceRecordId: string;
+  sourceSystemLabel: string;
+  recordType:
+    | "accessibility_request"
+    | "guest_services_case"
+    | "facilities_work_order"
+    | "crowd_flow_alert";
+  requesterRole?: string;
+  locationDescription: string;
+  contactPreference?: string;
+  accommodationNeed?: string;
+  relatedPriorRequestId?: string;
+  assignedDepartment: string;
+  statusHistory: Array<{
+    at: string;
+    status: string;
+    note: string;
+  }>;
+};
+
+export type CommandCenterNote = {
+  noteId: string;
+  at: string;
+  authorLabel: string;
+  noteType:
+    | "decision"
+    | "priority_change"
+    | "handoff"
+    | "escalation"
+    | "resolution";
+  text: string;
+};
+
+export type OperationsUpdate = {
+  updateId: string;
+  at: string;
+  team: string;
+  responderLabel?: string;
+  eta?: string;
+  currentStatus: string;
+  blocker?: string;
+  equipmentNeeded?: string;
+  completionNote?: string;
+};
+
+export type StaffFieldReport = {
+  reportId: string;
+  at: string;
+  reporterRole: string;
+  reportChannel: "radio" | "mobile" | "host_stand" | "supervisor";
+  location: string;
+  observedIssue: string;
+  crowdImpact?: string;
+  immediateNeed?: string;
+  uncertainty?: string;
+};
+
+export type MediaMetadata = {
+  mediaId: string;
+  mediaType: "cctv_clip" | "staff_photo" | "radio_transcript";
+  available: boolean;
+  sourceLabel: string;
+  timestamp: string;
+  description: string;
+  storageRef: string;
+};
+
+export type DispatchHandoffState = {
+  currentTeam: string;
+  handoffTo?: string;
+  handoffNote?: string;
+  dispatchHistory: Array<{
+    at: string;
+    action: string;
+    actorLabel: string;
+  }>;
+};
+
+export type SimilarPriorIncidentRef = {
+  incidentId: string;
+  title: string;
+  resolutionNote: string;
+};
+
 // Rich, incident-specific operational content. Additive and fully optional:
 // transformation passes it straight through and panels fall back to the
 // existing generic behavior whenever a field is absent.
@@ -205,6 +291,13 @@ export type IncidentDetails = {
   operationsTimeline?: OperationsTimelineEvent[];
   reportDraftSeed?: ReportDraftSeed;
   staffUpdateSeed?: string;
+  sourceRecords?: SourceSystemRecord[];
+  commandCenterNotes?: CommandCenterNote[];
+  operationsUpdates?: OperationsUpdate[];
+  staffFieldReports?: StaffFieldReport[];
+  mediaMetadata?: MediaMetadata[];
+  dispatchHandoff?: DispatchHandoffState;
+  similarPriorIncidentRef?: SimilarPriorIncidentRef;
 };
 
 export type RetrievalInput = {

@@ -1,3 +1,4 @@
+import { mergeOperationalEnrichment } from "@/lib/incident-operational-enrichment";
 import type { IncidentDetails } from "@/lib/types";
 
 /**
@@ -13,7 +14,7 @@ import type { IncidentDetails } from "@/lib/types";
  * no forbidden wording (Critical/Low/severity/confidence/score/Venue map/Seat map)
  * and priority labels stay Immediate/High/Moderate/Monitor.
  */
-export const INCIDENT_DETAILS_SEED: Record<string, IncidentDetails> = {
+const BASE_INCIDENT_DETAILS_SEED: Record<string, IncidentDetails> = {
   "incident-lost-child": {
     operatorSummary:
       "Security needs to hold the screening-side lane, confirm the guardian contact point, and keep the child within the controlled perimeter until handoff is confirmed.",
@@ -968,6 +969,9 @@ export const INCIDENT_DETAILS_SEED: Record<string, IncidentDetails> = {
       "Facilities to West Concourse: restroom bank out of service. Verify the service state, post direction to the nearest available restroom, and update guest-facing staff.",
   },
 };
+
+export const INCIDENT_DETAILS_SEED: Record<string, IncidentDetails> =
+  mergeOperationalEnrichment(BASE_INCIDENT_DETAILS_SEED);
 
 export function getIncidentDetails(incidentId: string): IncidentDetails | undefined {
   return INCIDENT_DETAILS_SEED[incidentId];

@@ -43,5 +43,95 @@
     "excerpt": "Guest report: a wheelchair assist is needed near Section 112 and the host is collecting details now.",
     "body": "The host confirmed the guest location near Section 112 and requested a mobility assist team with an accessible escort through the lower-bowl path.",
     "searchText": "section 112 guest report wheelchair assist host collecting details lower bowl accessible escort"
+  },
+  {
+    "id": "evidence-section-112-host-note-1",
+    "sourceType": "staff_note",
+    "locationIds": ["section-112"],
+    "incidentHints": ["accessibility-assist", "guest-assistance"],
+    "excerpt": "Staff note: GS-1 dispatched for wheelchair escort via accessible concourse path.",
+    "body": "Guest Services intake record GS-REQ-2026-0412 linked; host confirmed guest waiting at Section 112 stand.",
+    "searchText": "section 112 staff note guest services escort accessible concourse gs-1"
+  },
+  {
+    "id": "evidence-restroom-west-staff-note-1",
+    "sourceType": "staff_note",
+    "locationIds": ["west-concourse"],
+    "incidentHints": ["facility-outage"],
+    "excerpt": "Staff note: West Concourse restroom bank out of service; guests directed toward Section 210 alternate.",
+    "body": "Concourse attendant reported the closure and requested Facilities verification plus guest-facing direction to the nearest available restroom bank.",
+    "searchText": "west concourse restroom out of service alternate section 210 facilities"
+  },
+  {
+    "id": "evidence-section-204-radio-1",
+    "sourceType": "radio_log",
+    "locationIds": ["section-204"],
+    "incidentHints": ["facility-outage"],
+    "excerpt": "Radio: liquid spill aisle 204, need cones and cleanup crew at the aisle edge.",
+    "body": "Section usher reported a slip hazard near the Section 204 aisle and kept guests away while requesting Facilities cleanup support.",
+    "searchText": "section 204 radio spill aisle cones cleanup slip hazard facilities"
+  },
+  {
+    "id": "evidence-section-204-staff-note-1",
+    "sourceType": "staff_note",
+    "locationIds": ["section-204"],
+    "incidentHints": ["facility-outage"],
+    "excerpt": "Staff note: aisle isolated; FAC-2 en route with absorbent kit.",
+    "body": "Operations logged High priority spill response with aisle edge isolated pending dry-surface confirmation.",
+    "searchText": "section 204 staff note aisle isolated fac-2 cleanup absorbent"
+  },
+  {
+    "id": "evidence-lost-child-host-stand-1",
+    "sourceType": "guest_report",
+    "locationIds": ["screening-east"],
+    "incidentHints": ["accessibility-assist", "guest-assistance"],
+    "excerpt": "Guest report: guardian at east screening host stand reports separated child near North Gate entrance lanes.",
+    "body": "East screening host held the guardian at the contact point and logged Guest Services intake record GS-CASE-2026-0338 with incomplete child description.",
+    "searchText": "lost child east screening host stand guardian separated north gate entrance"
+  },
+  {
+    "id": "evidence-lost-child-radio-1",
+    "sourceType": "radio_log",
+    "locationIds": ["screening-east"],
+    "incidentHints": ["guest-assistance"],
+    "excerpt": "Radio: Security dual-officer dispatch to east screening lanes; hold guardian contact point.",
+    "body": "Perimeter supervisor noted active entry movement while Security officers were routed to anchor the search near the screening queue.",
+    "searchText": "lost child radio security east screening lanes guardian contact point"
+  },
+  {
+    "id": "evidence-north-concourse-sensor-1",
+    "sourceType": "staff_note",
+    "locationIds": ["north-concourse"],
+    "incidentHints": ["queue-congestion", "crowd-flow"],
+    "excerpt": "Sensor note: density rising near Section 300 entry on North Concourse; relief corridor B available.",
+    "body": "Gate-flow sensor feed linked to Crowd Flow alert CF-ALERT-2026-0201 with merge-point slowdown at the north concourse corridor.",
+    "searchText": "north concourse sensor density section 300 relief corridor crowd flow"
+  },
+  {
+    "id": "evidence-north-concourse-radio-1",
+    "sourceType": "radio_log",
+    "locationIds": ["north-concourse"],
+    "incidentHints": ["crowd-flow"],
+    "excerpt": "Radio: CF-2 assigned from Gate B standby to open relief path at north concourse merge.",
+    "body": "Crowd flow lead requested additional staff direction while density continued rising near the Section 300 entry split.",
+    "searchText": "north concourse radio cf-2 relief path merge point crowd direction"
+  },
+  {
+    "id": "evidence-section-318-host-stand-1",
+    "sourceType": "guest_report",
+    "locationIds": ["section-318"],
+    "incidentHints": ["accessibility-assist", "guest-assistance"],
+    "excerpt": "Guest report: guest in Section 318 reporting dizziness; host remaining with guest.",
+    "body": "Section host logged Guest Services intake record GS-CASE-2026-0344 and requested medic support while keeping the guest seated and accompanied.",
+    "searchText": "section 318 guest report dizziness host stand medical assist guest services"
+  },
+  {
+    "id": "evidence-section-318-radio-1",
+    "sourceType": "radio_log",
+    "locationIds": ["section-318"],
+    "incidentHints": ["guest-assistance"],
+    "excerpt": "Radio: GS-1 and first-aid medic en route to Section 318; keep section entry clear.",
+    "body": "Guest Services channel coordinated Immediate priority medical response with host stand accompaniment until handoff.",
+    "searchText": "section 318 radio gs-1 medic en route dizziness first aid"
   }
 ]
