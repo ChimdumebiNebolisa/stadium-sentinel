@@ -74,6 +74,8 @@ gcloud run deploy stadium-esql-mcp-bridge \
 
 Register the service MCP URL (`https://<bridge-service>/mcp`) as an `mcp_server` tool in Google Cloud Agent Platform.
 
+**Current production bridge (2026-06-11):** `https://stadium-esql-mcp-bridge-7mbr5u6dja-uc.a.run.app/mcp` (confirm with `gcloud run services describe stadium-esql-mcp-bridge --region us-central1`). Older `…726236175501…` hostnames may not match the active revision.
+
 ## Agent Platform wiring
 
 In an interaction or agent config, add:

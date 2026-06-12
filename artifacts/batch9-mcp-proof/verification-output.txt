@@ -1,0 +1,30 @@
+VERIFICATION_DATE=2026-06-12T13:05:39.925Z
+SENTINEL_BASE=https://stadium-sentinel-726236175501.us-central1.run.app
+=== Direct Stadium Sentinel /api/esql (read-only) ===
+DIRECT_ESQL_count_by_priority_STATUS=200
+DIRECT_ESQL_count_by_priority_PREVIEW={"took":11,"is_partial":false,"completion_time_in_millis":1781269540494,"documents_found":196,"values_loaded":196,"rows_emitted":419,"bytes_read":0,"read_nanos":0,"cpu_nanos":4988312,"start_time_in_millis":1781269540483,"expiration_time_in_millis":1781701540466,"columns":[{"name":"count","type":"long"},{"name":"priority","type":"text"}],"values":[[193,"Immediate"],[3,"High"]]}
+DIRECT_ESQL_count_by_team_STATUS=200
+DIRECT_ESQL_count_by_team_PREVIEW={"took":9,"is_partial":false,"completion_time_in_millis":1781269540610,"documents_found":196,"values_loaded":196,"rows_emitted":455,"bytes_read":0,"read_nanos":0,"cpu_nanos":4367130,"start_time_in_millis":1781269540601,"expiration_time_in_millis":1781701540466,"columns":[{"name":"count","type":"long"},{"name":"team","type":"text"}],"values":[[13,"Guest Services"],[146,"Guest Services Supervisor"],
+DIRECT_ESQL_recent_by_location_STATUS=200
+DIRECT_ESQL_recent_by_location_PREVIEW={"took":11,"is_partial":false,"completion_time_in_millis":1781269540680,"documents_found":60,"values_loaded":100,"rows_emitted":300,"bytes_read":0,"read_nanos":0,"cpu_nanos":5411482,"start_time_in_millis":1781269540669,"expiration_time_in_millis":1781701540666,"columns":[{"name":"timestamp","type":"date"},{"name":"incidentId","type":"text"},{"name":"title","type":"text"},{"name":"locationLabel","t
+DIRECT_ESQL_INVALID_STATUS=400
+DIRECT_ESQL_INVALID_BODY={"error":"Invalid ES|QL operation. Must be one of: count_by_priority, count_by_team, recent_by_location"}
+=== ES|QL MCP bridge (Path B) ===
+BRIDGE_MCP_URL=https://stadium-esql-mcp-bridge-7mbr5u6dja-uc.a.run.app/mcp
+BRIDGE_TOOLS_LIST_STATUS=200
+BRIDGE_TOOL_NAMES=stadium_incident_operations_esql
+BRIDGE_TOOLS_CALL_STATUS=200
+BRIDGE_TOOLS_CALL_PREVIEW={"took":9,"is_partial":false,"completion_time_in_millis":1781269544745,"documents_found":196,"values_loaded":196,"rows_emitted":419,"bytes_read":0,"read_nanos":0,"cpu_nanos":4154221,"start_time_in_millis":1781269544736,"expiration_time_in_millis":1781701544667,"columns":[{"name":"count","type":"long"},{"name":"priority","type":"text"}],"values":[[3,"High"],[193,"Immediate"]]}
+BRIDGE_DIRECT_PARITY=true
+=== Google Agent Platform → MCP bridge (optional) ===
+AGENT_INTERACTION_CREATE_STATUS=200
+AGENT_INTERACTION_ID=ChA1NjkxNDY0NjlhZmVkMzAzEAgaATAqBG1haW4
+AGENT_POLL_1_STATUS=completed
+AGENT_FINAL_STATUS=completed
+AGENT_HAS_ESQL_TOOL=true
+AGENT_HAS_COUNT_BY_PRIORITY=true
+AGENT_PLATFORM_RESULT=PASS
+=== Summary ===
+DIRECT_ESQL=PASS
+MCP_BRIDGE=PASS
+AGENT_PLATFORM=PASS
