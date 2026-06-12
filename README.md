@@ -1,127 +1,182 @@
 # Stadium Sentinel
 
-Stadium Sentinel is a Next.js incident operations command center for live soccer-stadium response workflows.
+Stadium Sentinel helps stadium staff understand and act on live incident updates during an event.
 
-It is not a map product, seat-map product, ticketing product, CRM dashboard, or analytics dashboard.
+## Problem It Solves
 
-## Commands
+Live event operations receive fragmented updates from guest services, security, facilities, and radio channels. Staff need to know what happened, who is handling it, what changed, and what needs to happen next — without hunting across disconnected tools.
+
+Stadium Sentinel turns live reports and command-center updates into operational incident context: a prioritized dispatch queue, enriched evidence, timelines, staff wording, and voice-guided next steps grounded in Elastic-backed operational memory.
+
+It is not a CRM, ticketing system, analytics dashboard, map product, seat-map product, or generic dashboard.
+
+## Demo
+
+**Live:** https://stadium-sentinel-726236175501.us-central1.run.app
+
+| Resource | Path |
+|----------|------|
+| Landing | [`artifacts/screenshot-landing.png`](artifacts/screenshot-landing.png) |
+| Command center | [`artifacts/screenshot-command.png`](artifacts/screenshot-command.png) |
+| Venue Context schematic | [`artifacts/venue-schematic-1440.png`](artifacts/venue-schematic-1440.png) |
+| Workbench layout | [`artifacts/workbench-1440-final.png`](artifacts/workbench-1440-final.png) |
+
+**Demo video:** _Add link when recorded._
+
+**Quick start:** Open the live URL → **Open operations intake** → **Connect operations data** → **Open command center** → **Pull latest reports**.
+
+## Features
+
+- **Elastic-backed incident pull** — connect operations data, bootstrap seed health, and pull current incident packages from operational memory
+- **Enriched operational context** — dispatch timeline, staff roster, evidence, and incident details assembled for each incident
+- **Dispatch queue** — priority-sorted incident cards (Immediate, High, Moderate, Monitor)
+- **Queue completion behavior** — completed incidents move below unresolved work and stay reviewable
+- **Venue Context schematic** — compact venue reference with incident markers mapped to real queue incidents
+- **Response checklist** — hold contact, confirm outcome, and dispatch actions per incident
+- **Utility drawer** — Evidence, Staff Update, Incident log, Report, and Source log panels
+- **Sentinel voice agent** — Ask Sentinel for natural incident Q&A from live context
+- **Guarded draft / review / submit** — staff updates, reports, next actions, and dispatch require explicit voice approval
+- **Approved write-back** — timeline and operational memory updates after operator approval
+- **Production Cloud Run deployment** — prebuilt image via Cloud Build with required `NEXT_PUBLIC_*` build args
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|------------|
+| Framework | Next.js 16 (App Router), React 19, TypeScript |
+| Styling | Tailwind CSS 4 |
+| Compute | Google Cloud Run |
+| Build / deploy | Cloud Build, Docker (standalone output) |
+| Operational memory | Elasticsearch (incidents, evidence, dispatch timeline, incident memory) |
+| Sentinel backend | Vertex AI (Gemini) when `AGENT_BACKEND_ENABLED=true` |
+| Unit tests | Vitest |
+| E2E tests | Playwright |
+
+## Architecture
+
+The app runtime uses **direct Elastic retrieval and write paths**. MCP is not part of the in-app voice or command loop. External MCP proof artifacts may exist separately under `artifacts/batch9-mcp-proof/` for appendix demos only.
+
+```mermaid
+flowchart LR
+  operator[Staff / command operator]
+  workbench[Command workbench]
+  pull[Pull latest reports]
+  elastic[Elastic operational memory]
+  sentinel[Sentinel API / Vertex Gemini]
+  drawers[Evidence timeline source log]
+  writeback[Approved write-back]
+
+  operator --> workbench
+  workbench --> pull
+  pull --> elastic
+  elastic --> workbench
+  operator --> sentinel
+  sentinel --> elastic
+  sentinel --> workbench
+  workbench --> drawers
+  operator --> writeback
+  writeback --> elastic
+  writeback --> drawers
+```
+
+## Setup
+
+### Install
+
+```bash
+npm ci
+cp .env.example .env.local
+```
+
+### Environment variables
+
+Copy `.env.example` to `.env.local`. Use placeholder names only — never commit secrets.
+
+**Build-time client flags** (inlined during `npm run build`):
+
+- `NEXT_PUBLIC_REAL_DEMO_FLOW`
+- `NEXT_PUBLIC_ENABLE_ELASTIC_PULL`
+- `NEXT_PUBLIC_ENABLE_SENTINEL_AGENT`
+- `NEXT_PUBLIC_ENABLE_SENTINEL_VOICE`
+- `NEXT_PUBLIC_SHOW_VENUE_ORIENTATION`
+- `NEXT_PUBLIC_SHOW_RADIO_TRANSCRIPT`
+
+**Runtime server** (Cloud Run or local server only):
+
+- `ELASTICSEARCH_URL`, `ELASTICSEARCH_API_KEY`
+- `AGENT_BACKEND_ENABLED`, `GOOGLE_CLOUD_PROJECT`, `GOOGLE_CLOUD_LOCATION`, `VERTEX_MODEL`
+- Optional index overrides — see `.env.example`
+
+Local Elastic seeding: `npm run index:elastic` (development setup only).
+
+### Development
 
 ```bash
 npm run dev
-npm run build
-npm run start
+```
+
+Open http://localhost:3000
+
+### Tests and build
+
+```bash
 npm test
 npm run test:e2e
-node scripts/verify-real-demo.mjs
+npm run build
+npm run verify:real-demo
 ```
 
-## Demo input
+### Deploy
 
-```text
-Gate B is backed up, Elevator 4 is down, and a guest near Section 112 needs wheelchair access.
-```
+See [docs/INGESTION_DEPLOY_CHECKLIST.md](docs/INGESTION_DEPLOY_CHECKLIST.md) and [docs/STADIUM_SENTINEL_FINAL_EXECUTION_PLAN.md](docs/STADIUM_SENTINEL_FINAL_EXECUTION_PLAN.md). Use Cloud Build with a prebuilt image tag — do not rely on `gcloud run deploy --source .` alone for production flags.
 
-## Current scope
+## How to Use
 
-- Deterministic parsing into exactly three incidents for the local fallback path
-- Priority-based incident queue with no numeric scoring
-- Active incident workspace with evidence, response checklist, operations timeline, and report draft
-- Elastic-seeded bootstrap and pull flow for the real demo
-- Sentinel question-and-answer route with deterministic fallback when backend services are unavailable
-- Approval-driven timeline write-back with local fallback
+1. Open the app (landing or `/command`).
+2. **Connect operations data** at `/demo/intake` if the command center is disconnected.
+3. Open **Command center** (`/command`).
+4. Click **Pull latest reports** to load Elastic-backed incidents.
+5. Select an incident from the dispatch queue.
+6. Review **Venue Context**, response checklist, team assignment, and operations timeline.
+7. Open drawer tabs: Evidence, Staff Update, Incident log, Report, Source log.
+8. Click **Ask Sentinel** for voice Q&A on the selected incident.
+9. Approve a drafted staff update, report, next action, or dispatch when prompted.
+10. Confirm timeline and source log updates after approval.
 
-## Product direction
+Demo script: [docs/real-demo-script.md](docs/real-demo-script.md)  
+Recording checklist: [docs/demo-recording-checklist.md](docs/demo-recording-checklist.md)
 
-- Stadium Sentinel is a soccer-stadium incident operations command center.
-- The main monitoring surface is the operations timeline.
-- Venue orientation is hidden by default for the real-demo build.
-- Local fallback remains available when Elastic or Vertex are not configured.
+## Key Technical Decisions
 
-## Retrieval and agent path
+- **Direct Elastic operational memory** — pull, context assembly, and approved write-back use Elasticsearch directly in the app runtime
+- **No in-app MCP claim** — MCP bridge and Agent Platform proof are external-only; see `artifacts/batch9-mcp-proof/` and [docs/ELASTIC_BUILDER_MCP_SETUP.md](docs/ELASTIC_BUILDER_MCP_SETUP.md)
+- **Voice-first Sentinel with guarded approval** — continuous listen loop; casual affirmations do not submit without a pending approval gate
+- **Completed incidents below active work** — resolved items remain selectable for review without blocking dispatch focus
+- **Media metadata only** — evidence references media IDs and descriptions; no media file storage or rendering pipeline
+- **Categorical priority only** — Immediate, High, Moderate, Monitor; no numeric scoring in product copy
 
-- `POST /api/ingest/bootstrap` seeds or verifies Elastic-backed operations data when configured.
-- `POST /api/ingest/pull` loads Elastic-backed incidents when available and falls back to the local demo batch otherwise.
-- `POST /api/sentinel` uses Gemini on Vertex only when `AGENT_BACKEND_ENABLED=true` and server credentials are available.
-- `POST /api/timeline/write` attempts Elastic write-back and still records a local approval result when Elastic is unavailable.
-- The in-app path uses direct Elastic retrieval. MCP is not used in the app runtime path unless you deploy the optional bridge described in [docs/ELASTIC_BUILDER_MCP_SETUP.md](docs/ELASTIC_BUILDER_MCP_SETUP.md).
+## Limitations
 
-## Environment strategy
+- **Browser voice** depends on Web Speech API and microphone permissions; behavior varies by browser
+- **Radio transcript panel** is off in production builds (`NEXT_PUBLIC_SHOW_RADIO_TRANSCRIPT=false`); related e2e tests are an optional path
+- **MCP is not an in-app runtime capability** unless explicitly implemented later; external proof is separate from `/command`
+- **Demo data** is synthetic operational seed data for hackathon and recording flows
+- **Manual mic smoke** is recommended before recording demos on production Cloud Run
 
-### Build-time client flags
+## License
 
-`NEXT_PUBLIC_*` values are inlined during `npm run build`. For Google Cloud Run, set them in Cloud Build or Docker build args before the image is built.
+MIT License
 
-- `NEXT_PUBLIC_REAL_DEMO_FLOW=true`
-- `NEXT_PUBLIC_ENABLE_ELASTIC_PULL=true`
-- `NEXT_PUBLIC_ENABLE_SENTINEL_AGENT=true`
-- `NEXT_PUBLIC_ENABLE_SENTINEL_VOICE=true` for a voice-first recording, otherwise `false`
-- `NEXT_PUBLIC_SHOW_VENUE_ORIENTATION=false`
-- `NEXT_PUBLIC_SHOW_RADIO_TRANSCRIPT=false`
+No separate `LICENSE` file is included in this repository at this time.
 
-Changing these after deploy requires a rebuild and a new Cloud Run revision.
+## Documentation
 
-### Runtime server environment
-
-Set these on the Cloud Run service. Do not expose them to the client.
-
-- `ELASTICSEARCH_URL`
-- `ELASTICSEARCH_API_KEY` or `ELASTIC_API_KEY`
-- `AGENT_BACKEND_ENABLED=true`
-- `GOOGLE_CLOUD_PROJECT`
-- `GOOGLE_CLOUD_LOCATION`
-- `VERTEX_MODEL`
-- `GOOGLE_APPLICATION_CREDENTIALS` only when you are not relying on the Cloud Run service account / ADC
-- `STADIUM_SENTINEL_BASE_URL` only when the optional MCP bridge is deployed
-
-Optional index overrides:
-
-- `ELASTICSEARCH_PLAYBOOKS_INDEX`
-- `ELASTICSEARCH_LOCATIONS_INDEX`
-- `ELASTICSEARCH_INCIDENT_EXAMPLES_INDEX`
-- `ELASTICSEARCH_EVIDENCE_INDEX`
-- `ELASTICSEARCH_ACTIVE_INCIDENTS_INDEX`
-- `ELASTICSEARCH_GUEST_ASSISTANCE_INDEX`
-- `ELASTICSEARCH_FACILITY_STATUS_INDEX`
-- `ELASTICSEARCH_GATE_FLOW_LOGS_INDEX`
-- `ELASTICSEARCH_STAFF_ROSTER_INDEX`
-- `ELASTICSEARCH_POLICIES_INDEX`
-- `ELASTICSEARCH_RADIO_TRANSCRIPTS_INDEX`
-- `ELASTICSEARCH_DISPATCH_TIMELINE_INDEX`
-- `ELASTICSEARCH_INCIDENT_MEMORY_INDEX`
-
-## Google Cloud Run deployment
-
-This project targets Google Cloud Run, not Vercel.
-
-### Container path
-
-- `next.config.ts` uses `output: "standalone"` for container deployment.
-- `Dockerfile` builds the app with explicit `NEXT_PUBLIC_*` build args and runs the standalone server on port `8080`.
-- `.dockerignore` excludes local secrets and untracked artifacts from the image build context.
-
-### Cloud Run checklist
-
-1. Build the image with the required `NEXT_PUBLIC_*` flags.
-2. Deploy the container to Cloud Run.
-3. Set runtime secrets and server env vars on the Cloud Run service.
-4. Use a Cloud Run service account with Vertex access when Sentinel backend is enabled.
-5. Open `/command`, connect operations data, pull latest reports, ask Sentinel, and approve one action.
-
-## Real-demo flow
-
-1. Landing CTA opens `/command`.
-2. When `NEXT_PUBLIC_REAL_DEMO_FLOW=true`, `/command` starts empty and disconnected.
-3. Connect operations data calls `POST /api/ingest/bootstrap`.
-4. Pull latest reports calls `POST /api/ingest/pull`.
-5. Ask Sentinel calls `POST /api/sentinel`.
-6. Approve action calls `POST /api/timeline/write`.
-7. Local fallback remains available if credentials are absent.
-
-No terminal command is required in the deployed demo. `npm run index:elastic` is for local setup only.
-
-## Supporting docs
-
-- [docs/real-demo-script.md](docs/real-demo-script.md)
-- [docs/devpost-talking-points.md](docs/devpost-talking-points.md)
-- [docs/INGESTION_DEPLOY_CHECKLIST.md](docs/INGESTION_DEPLOY_CHECKLIST.md)
-- [docs/ELASTIC_BUILDER_MCP_SETUP.md](docs/ELASTIC_BUILDER_MCP_SETUP.md)
+| Doc | Purpose |
+|-----|---------|
+| [docs/STADIUM_SENTINEL_FINAL_EXECUTION_PLAN.md](docs/STADIUM_SENTINEL_FINAL_EXECUTION_PLAN.md) | Source of truth for phases, batches, and guardrails |
+| [docs/INGESTION_DEPLOY_CHECKLIST.md](docs/INGESTION_DEPLOY_CHECKLIST.md) | Ingestion and Cloud Run deploy checklist |
+| [docs/real-demo-script.md](docs/real-demo-script.md) | Live demo narration |
+| [docs/demo-recording-checklist.md](docs/demo-recording-checklist.md) | Pre-recording smoke checklist |
+| [docs/devpost-talking-points.md](docs/devpost-talking-points.md) | Submission talking points |
+| [docs/ELASTIC_BUILDER_MCP_SETUP.md](docs/ELASTIC_BUILDER_MCP_SETUP.md) | External MCP setup only |
+| [artifacts/batch9-mcp-proof/README.md](artifacts/batch9-mcp-proof/README.md) | External MCP verification artifact |
