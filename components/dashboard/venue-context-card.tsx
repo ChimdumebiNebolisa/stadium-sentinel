@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 
+import { VenueSchematicArt } from "@/components/dashboard/venue-schematic-art";
 import {
   buildVenueIncidentMarkers,
   getActiveLabelPlacement,
@@ -23,9 +24,9 @@ function VenueReferenceDot({ x, y, id }: { x: number; y: number; id: string }) {
     <circle
       cx={x}
       cy={y}
-      r={0.7}
-      fill="#cbd5e1"
-      opacity={0.65}
+      r={0.55}
+      fill="#b8c5d6"
+      opacity={0.45}
       data-testid={`venue-reference-dot-${id}`}
       data-venue-reference="true"
       pointerEvents="none"
@@ -67,16 +68,27 @@ function VenueIncidentMarkerDot({
         <circle
           cx={marker.x}
           cy={marker.y}
-          r={marker.isCompleted ? 1.6 : 2.2}
-          fill={marker.isCompleted ? "#94a3b8" : "#64748b"}
-          opacity={marker.isCompleted ? 0.75 : 0.95}
+          r={3.1}
+          fill="none"
+          stroke={marker.isCompleted ? "#94a3b8" : "#94a3b8"}
+          strokeWidth={0.35}
+          opacity={0.55}
+        />
+        <circle
+          cx={marker.x}
+          cy={marker.y}
+          r={marker.isCompleted ? 1.5 : 2.1}
+          fill={marker.isCompleted ? "#94a3b8" : "#475569"}
+          stroke="#f8fafc"
+          strokeWidth={0.45}
+          opacity={marker.isCompleted ? 0.72 : 0.95}
         />
       </g>
     );
   }
 
   const { rectX, rectY, labelX, labelY } = getActiveLabelPlacement(marker);
-  const accent = marker.isCompleted ? "#64748b" : "#ef4444";
+  const accent = marker.isCompleted ? "#64748b" : "#dc2626";
   const labelText = marker.isCompleted ? marker.shortLabel.toUpperCase() : "ACTIVE";
 
   return (
@@ -90,6 +102,7 @@ function VenueIncidentMarkerDot({
       data-completed={marker.isCompleted ? "true" : "false"}
       aria-label={marker.label}
       className="cursor-pointer outline-none"
+      filter={marker.isCompleted ? undefined : "url(#venue-marker-glow)"}
       onClick={handleActivate}
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") {
@@ -102,16 +115,25 @@ function VenueIncidentMarkerDot({
         <circle
           cx={marker.x}
           cy={marker.y}
-          r={6}
+          r={6.2}
           fill="none"
           stroke={accent}
-          strokeWidth={1.2}
-          opacity={0.28}
+          strokeWidth={0.9}
+          opacity={0.3}
           className="animate-pulse"
         />
       ) : null}
-      <circle cx={marker.x} cy={marker.y} r={3.4} fill={accent} />
-      <rect x={rectX} y={rectY} width={36} height={7} rx={1.5} fill={accent} />
+      <circle cx={marker.x} cy={marker.y} r={3.5} fill={accent} stroke="#ffffff" strokeWidth={0.55} />
+      <rect
+        x={rectX}
+        y={rectY}
+        width={36}
+        height={7}
+        rx={1.8}
+        fill={accent}
+        stroke="rgba(255,255,255,0.35)"
+        strokeWidth={0.25}
+      />
       <text
         x={labelX}
         y={labelY}
@@ -131,8 +153,8 @@ export function VenueContextCard({
   timeline,
 }: VenueContextCardProps) {
   const markers = useMemo(
-    () => buildVenueIncidentMarkers(incidentPackages, timeline),
-    [incidentPackages, timeline],
+    () => buildVenueIncidentMarkers(incidentPackages, timeline, selectedIncidentId),
+    [incidentPackages, timeline, selectedIncidentId],
   );
   const viewBox = `${VENUE_SCHEMATIC_VIEWBOX.minX} ${VENUE_SCHEMATIC_VIEWBOX.minY} ${VENUE_SCHEMATIC_VIEWBOX.width} ${VENUE_SCHEMATIC_VIEWBOX.height}`;
 
@@ -158,61 +180,10 @@ export function VenueContextCard({
           role="img"
           aria-label="Venue context schematic"
           data-testid="venue-context-schematic"
+          className="venue-context-schematic"
         >
-          <path
-            d="M22,12 L78,12 A13,13 0 0,1 91,25 L91,39 A13,13 0 0,1 78,52 L22,52 A13,13 0 0,1 9,39 L9,25 A13,13 0 0,1 22,12 Z"
-            fill="#94a3b8"
-            stroke="#cbd5e1"
-            strokeWidth="0.6"
-            opacity="0.95"
-          />
-          <path
-            d="M26,20 L74,20 A9,9 0 0,1 83,29 L83,35 A9,9 0 0,1 74,44 L26,44 A9,9 0 0,1 17,35 L17,29 A9,9 0 0,1 26,20 Z"
-            fill="#cbd5e1"
-            stroke="#e2e8f0"
-            strokeWidth="0.6"
-          />
-          <rect
-            x="34"
-            y="26"
-            width="32"
-            height="12"
-            rx="2"
-            fill="#f8fafc"
-            stroke="#e2e8f0"
-            strokeWidth="0.6"
-          />
+          <VenueSchematicArt />
           <VenueReferenceDot x={50} y={32} id="center" />
-
-          <text
-            x="14"
-            y="32"
-            className="fill-white font-bold text-[3px] uppercase tracking-wider"
-            transform="rotate(-90 14,32)"
-          >
-            GATES A
-          </text>
-          <text
-            x="86"
-            y="32"
-            className="fill-white font-bold text-[3px] uppercase tracking-wider"
-            transform="rotate(90 86,32)"
-          >
-            GATES B
-          </text>
-
-          <text x="28" y="18" className="fill-white font-bold text-[3px]">
-            A
-          </text>
-          <text x="72" y="18" className="fill-white font-bold text-[3px]">
-            B
-          </text>
-          <text x="28" y="48" className="fill-white font-bold text-[3px]">
-            C
-          </text>
-          <text x="72" y="48" className="fill-white font-bold text-[3px]">
-            D
-          </text>
 
           {VENUE_SCHEMATIC_REFERENCE_DOTS.map((dot) => (
             <VenueReferenceDot key={dot.id} x={dot.x} y={dot.y} id={dot.id} />

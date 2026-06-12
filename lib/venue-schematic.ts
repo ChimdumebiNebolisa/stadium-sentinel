@@ -190,32 +190,85 @@ export function getSchematicCoordsForLocation(
   return normalizeSchematicCoords(location.mapX, location.mapY);
 }
 
+function toVenueIncidentMarker(
+  incidentPackage: IncidentPackage,
+  timeline?: TimelineEntry[],
+): VenueIncidentMarker | null {
+  const { incident } = incidentPackage;
+  const coords = getSchematicCoordsForLocation(incident.locationId);
+  if (!coords) {
+    return null;
+  }
+
+  const location = getLocationRecord(incident.locationId);
+
+  return {
+    incidentId: incident.id,
+    locationId: incident.locationId,
+    label: `${incident.title} · ${location?.displayName ?? incident.locationLabel}`,
+    shortLabel: location?.name ?? incident.locationLabel,
+    x: coords.x,
+    y: coords.y,
+    isCompleted: isIncidentCompleted({ incident, timeline }),
+  };
+}
+
 export function buildVenueIncidentMarkers(
   incidentPackages: IncidentPackage[],
   timeline?: TimelineEntry[],
+  selectedIncidentId?: string | null,
   maxMarkers: number = VENUE_INCIDENT_MARKER_LIMIT,
 ): VenueIncidentMarker[] {
-  return incidentPackages.slice(0, maxMarkers).flatMap((incidentPackage) => {
-    const { incident } = incidentPackage;
-    const coords = getSchematicCoordsForLocation(incident.locationId);
-    if (!coords) {
-      return [];
+  const markers: VenueIncidentMarker[] = [];
+  const seenIncidentIds = new Set<string>();
+
+  const pushPackage = (incidentPackage: IncidentPackage) => {
+    if (seenIncidentIds.has(incidentPackage.incident.id) || markers.length >= maxMarkers) {
+      return;
     }
 
-    const location = getLocationRecord(incident.locationId);
+    const marker = toVenueIncidentMarker(incidentPackage, timeline);
+    if (!marker) {
+      return;
+    }
 
-    return [
-      {
-        incidentId: incident.id,
-        locationId: incident.locationId,
-        label: `${incident.title} · ${location?.displayName ?? incident.locationLabel}`,
-        shortLabel: location?.name ?? incident.locationLabel,
-        x: coords.x,
-        y: coords.y,
-        isCompleted: isIncidentCompleted({ incident, timeline }),
-      },
-    ];
-  });
+    seenIncidentIds.add(marker.incidentId);
+    markers.push(marker);
+  };
+
+  const selectedPackage = selectedIncidentId
+    ? incidentPackages.find(({ incident }) => incident.id === selectedIncidentId)
+    : undefined;
+  const selectedHasCoords = selectedPackage
+    ? Boolean(getSchematicCoordsForLocation(selectedPackage.incident.locationId))
+    : false;
+
+  if (selectedPackage && selectedHasCoords) {
+    pushPackage(selectedPackage);
+  }
+
+  for (const incidentPackage of incidentPackages) {
+    if (markers.length >= maxMarkers) {
+      break;
+    }
+
+    if (isIncidentCompleted({ incident: incidentPackage.incident, timeline })) {
+      continue;
+    }
+
+    pushPackage(incidentPackage);
+  }
+
+  if (markers.length < maxMarkers) {
+    for (const incidentPackage of incidentPackages) {
+      if (markers.length >= maxMarkers) {
+        break;
+      }
+      pushPackage(incidentPackage);
+    }
+  }
+
+  return markers;
 }
 
 export function getSchematicAnchorForLocation(

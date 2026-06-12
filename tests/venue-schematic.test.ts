@@ -14,6 +14,11 @@ import {
   VENUE_SCHEMATIC_VIEWBOX,
 } from "@/lib/venue-schematic";
 import { buildDemoState } from "@/lib/demo";
+import {
+  DEMO_INCIDENT_POOL,
+  localStorageIncidentToPackage,
+} from "@/lib/demo-incident-pool";
+import { comparePriority } from "@/lib/priority";
 
 describe("venue schematic anchor model", () => {
   it("builds operational anchors from location records", () => {
@@ -101,15 +106,55 @@ describe("venue schematic anchor model", () => {
 
   it("builds exactly three incident markers from the demo dispatch queue", () => {
     const demo = buildDemoState();
-    const markers = buildVenueIncidentMarkers(demo.incidentPackages, demo.timeline);
+    const selectedId = demo.incidentPackages[0]?.incident.id;
+    const markers = buildVenueIncidentMarkers(
+      demo.incidentPackages,
+      demo.timeline,
+      selectedId,
+    );
 
     expect(markers).toHaveLength(VENUE_INCIDENT_MARKER_LIMIT);
     expect(markers.map((marker) => marker.incidentId)).toEqual(
-      demo.incidentPackages.slice(0, VENUE_INCIDENT_MARKER_LIMIT).map(({ incident }) => incident.id),
+      expect.arrayContaining([selectedId]),
     );
     expect(new Set(markers.map((marker) => marker.incidentId)).size).toBe(3);
     expect(markers.every((marker) => marker.incidentId.startsWith("incident-"))).toBe(true);
     expect(markers.every((marker) => marker.label.length > 0)).toBe(true);
+  });
+
+  it("includes the selected incident in markers when it has schematic coordinates", () => {
+    const packages = DEMO_INCIDENT_POOL.slice(0, 5)
+      .map(localStorageIncidentToPackage)
+      .sort((left, right) => comparePriority(left.incident, right.incident));
+
+    const markers = buildVenueIncidentMarkers(
+      packages,
+      undefined,
+      "incident-aisle-spill",
+    );
+
+    expect(markers).toHaveLength(VENUE_INCIDENT_MARKER_LIMIT);
+    expect(markers.some((marker) => marker.incidentId === "incident-aisle-spill")).toBe(true);
+    expect(markers.some((marker) => marker.locationId === "section-204")).toBe(true);
+    expect(new Set(markers.map((marker) => marker.incidentId)).size).toBe(3);
+  });
+
+  it("does not add a misleading marker when the selected incident has no schematic coordinates", () => {
+    const packages = DEMO_INCIDENT_POOL.slice(0, 4)
+      .map(localStorageIncidentToPackage)
+      .sort((left, right) => comparePriority(left.incident, right.incident));
+
+    const markers = buildVenueIncidentMarkers(
+      packages,
+      undefined,
+      "incident-freezer-alarm",
+    );
+
+    expect(markers).toHaveLength(VENUE_INCIDENT_MARKER_LIMIT);
+    expect(markers.some((marker) => marker.incidentId === "incident-freezer-alarm")).toBe(
+      false,
+    );
+    expect(new Set(markers.map((marker) => marker.incidentId)).size).toBe(3);
   });
 
   it("keeps incident markers inside the venue schematic viewBox", () => {

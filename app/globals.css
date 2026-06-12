@@ -420,8 +420,11 @@ textarea:focus-visible {
   justify-content: center;
   overflow: hidden;
   border-radius: 8px;
-  border: 1px solid rgba(7, 17, 28, 0.08);
-  background: linear-gradient(180deg, #f1f5f9 0%, #e8eef5 100%);
+  border: 1px solid rgba(7, 17, 28, 0.06);
+  background:
+    radial-gradient(ellipse 90% 70% at 50% 42%, rgba(255, 255, 255, 0.92) 0%, transparent 72%),
+    linear-gradient(180deg, #f8fafc 0%, #eef2f7 52%, #e5ebf3 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
   padding: 0.5rem;
 }
 
@@ -429,6 +432,19 @@ textarea:focus-visible {
   height: 100%;
   width: 100%;
   max-height: 100%;
+}
+
+.venue-context-schematic .venue-schematic-gate-label text {
+  fill: #334155;
+  font-size: 2.6px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.venue-context-schematic .venue-schematic-section-label text {
+  fill: #475569;
+  font-size: 2.8px;
+  font-weight: 700;
 }
 
 .evidence-file-list > article + article {
