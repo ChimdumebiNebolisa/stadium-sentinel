@@ -29,13 +29,13 @@ export type VenueIncidentMarker = {
 /** Deterministic schematic coordinates for canonical venue locations. */
 export const VENUE_SCHEMATIC_LOCATION_COORDS: Record<string, { x: number; y: number }> = {
   "screening-east": { x: 22, y: 20 },
-  "section-112": { x: 70, y: 45 },
+  "section-112": { x: 67, y: 45 },
   "section-204": { x: 42, y: 44 },
   "section-318": { x: 58, y: 30 },
   "north-concourse": { x: 50, y: 22 },
   "gate-b": { x: 13, y: 32 },
-  "west-concourse": { x: 84, y: 36 },
-  "elevator-4": { x: 87, y: 32 },
+  "west-concourse": { x: 80, y: 40 },
+  "elevator-4": { x: 83, y: 39 },
 };
 
 export const VENUE_SCHEMATIC_REFERENCE_DOTS = [

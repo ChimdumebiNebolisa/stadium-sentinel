@@ -90,18 +90,18 @@ export function VenueSchematicArt() {
           Gate A
         </text>
       </g>
-      <g className="venue-schematic-gate-label" transform="translate(78.5, 31.5)">
+      <g className="venue-schematic-gate-label" transform="translate(86.5, 23)">
         <rect
           x="0"
           y="-2.8"
-          width="11.5"
+          width="10.5"
           height="5.6"
           rx="1.2"
           fill="rgba(255,255,255,0.42)"
           stroke="rgba(255,255,255,0.62)"
           strokeWidth="0.3"
         />
-        <text x="5.75" y="0.9" textAnchor="middle">
+        <text x="5.25" y="0.9" textAnchor="middle">
           Gate B
         </text>
       </g>
