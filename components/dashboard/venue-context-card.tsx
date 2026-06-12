@@ -87,7 +87,7 @@ function VenueIncidentMarkerDot({
     );
   }
 
-  const { rectX, rectY, labelX, labelY } = getActiveLabelPlacement(marker);
+  const { rectX, rectY, labelX, labelY, rectW, rectH } = getActiveLabelPlacement(marker);
   const accent = marker.isCompleted ? "#64748b" : "#dc2626";
   const labelText = marker.isCompleted ? marker.shortLabel.toUpperCase() : "ACTIVE";
 
@@ -127,9 +127,9 @@ function VenueIncidentMarkerDot({
       <rect
         x={rectX}
         y={rectY}
-        width={36}
-        height={7}
-        rx={1.8}
+        width={rectW}
+        height={rectH}
+        rx={1.4}
         fill={accent}
         stroke="rgba(255,255,255,0.35)"
         strokeWidth={0.25}

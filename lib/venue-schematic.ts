@@ -28,15 +28,19 @@ export type VenueIncidentMarker = {
 
 /** Deterministic schematic coordinates for canonical venue locations. */
 export const VENUE_SCHEMATIC_LOCATION_COORDS: Record<string, { x: number; y: number }> = {
+  "gate-a": { x: 14, y: 31 },
+  "gate-b": { x: 79, y: 33 },
   "screening-east": { x: 22, y: 20 },
   "section-112": { x: 67, y: 45 },
   "section-204": { x: 42, y: 44 },
   "section-318": { x: 58, y: 30 },
   "north-concourse": { x: 50, y: 22 },
-  "gate-b": { x: 13, y: 32 },
   "west-concourse": { x: 80, y: 40 },
   "elevator-4": { x: 83, y: 39 },
 };
+
+export const ACTIVE_LABEL_RECT_W = 14;
+export const ACTIVE_LABEL_RECT_H = 5;
 
 export const VENUE_SCHEMATIC_REFERENCE_DOTS = [
   { id: "ref-a", x: 28, y: 18 },
@@ -117,41 +121,102 @@ export type ActiveLabelPlacement = {
   rectY: number;
   labelX: number;
   labelY: number;
+  rectW: number;
+  rectH: number;
 };
 
-/** Place ACTIVE label above/below marker based on anchor position in schematic space. */
+const PITCH_BOUNDS = { minX: 35, maxX: 65, minY: 27, maxY: 37 };
+
+function labelOverlapsPitch(rectX: number, rectY: number, rectW: number, rectH: number): boolean {
+  return (
+    rectX + rectW > PITCH_BOUNDS.minX &&
+    rectX < PITCH_BOUNDS.maxX &&
+    rectY + rectH > PITCH_BOUNDS.minY &&
+    rectY < PITCH_BOUNDS.maxY
+  );
+}
+
+function labelOverlapsGateLabels(rectX: number, rectY: number, rectW: number, rectH: number): boolean {
+  const overlapsGateA =
+    rectX < 24 && rectX + rectW > 8 && rectY + rectH > 26 && rectY < 36;
+  const overlapsGateB =
+    rectX + rectW > 78 && rectX < 94 && rectY + rectH > 16 && rectY < 28;
+  return overlapsGateA || overlapsGateB;
+}
+
+/** Place a compact ACTIVE label attached to the selected marker. */
 export function getActiveLabelPlacement(anchor: { x: number; y: number }): ActiveLabelPlacement {
   const VIEWBOX_MIN_X = VENUE_SCHEMATIC_VIEWBOX.minX;
   const VIEWBOX_MAX_X = VENUE_SCHEMATIC_VIEWBOX.minX + VENUE_SCHEMATIC_VIEWBOX.width;
   const VIEWBOX_MIN_Y = VENUE_SCHEMATIC_VIEWBOX.minY;
   const VIEWBOX_MAX_Y = VENUE_SCHEMATIC_VIEWBOX.minY + VENUE_SCHEMATIC_VIEWBOX.height;
-  const RECT_W = 36;
-  const RECT_H = 7;
-  const PAD = 1.5;
+  const RECT_W = ACTIVE_LABEL_RECT_W;
+  const RECT_H = ACTIVE_LABEL_RECT_H;
+  const PAD = 1.2;
+  const MARKER_PAD = 3.6;
   const midY = VIEWBOX_MIN_Y + VENUE_SCHEMATIC_VIEWBOX.height / 2;
 
-  const labelAbove = anchor.y >= midY;
-  const rawRectY = labelAbove ? anchor.y - 12 : anchor.y + 5;
+  const clampX = (rawX: number) =>
+    Math.max(VIEWBOX_MIN_X + PAD, Math.min(rawX, VIEWBOX_MAX_X - RECT_W - PAD));
+  const clampY = (rawY: number) =>
+    Math.max(VIEWBOX_MIN_Y + PAD, Math.min(rawY, VIEWBOX_MAX_Y - RECT_H - PAD));
 
-  const rectX = Math.max(
-    VIEWBOX_MIN_X + PAD,
-    Math.min(anchor.x - RECT_W / 2, VIEWBOX_MAX_X - RECT_W - PAD),
-  );
-  const rectY = Math.max(
-    VIEWBOX_MIN_Y + PAD,
-    Math.min(rawRectY, VIEWBOX_MAX_Y - RECT_H - PAD),
-  );
-
-  return {
-    rectX,
-    rectY,
-    labelX: rectX + RECT_W / 2,
-    labelY: rectY + 5,
+  const toPlacement = (rectX: number, rectY: number): ActiveLabelPlacement => {
+    const cx = clampX(rectX);
+    const cy = clampY(rectY);
+    return {
+      rectX: cx,
+      rectY: cy,
+      labelX: cx + RECT_W / 2,
+      labelY: cy + 3.5,
+      rectW: RECT_W,
+      rectH: RECT_H,
+    };
   };
+
+  const candidates: ActiveLabelPlacement[] = [
+    toPlacement(anchor.x - RECT_W / 2, anchor.y - MARKER_PAD - RECT_H),
+    toPlacement(anchor.x - RECT_W / 2, anchor.y + MARKER_PAD),
+    toPlacement(anchor.x - RECT_W - MARKER_PAD, anchor.y - RECT_H / 2),
+    toPlacement(anchor.x + MARKER_PAD, anchor.y - RECT_H / 2),
+  ];
+
+  const scorePlacement = (placement: ActiveLabelPlacement): number => {
+    let score = 0;
+    if (labelOverlapsPitch(placement.rectX, placement.rectY, RECT_W, RECT_H)) {
+      score -= 100;
+    }
+    if (labelOverlapsGateLabels(placement.rectX, placement.rectY, RECT_W, RECT_H)) {
+      score -= 80;
+    }
+    if (anchor.y >= midY && placement.rectY + RECT_H <= anchor.y) {
+      score += 8;
+    }
+    if (anchor.y < midY && placement.rectY >= anchor.y) {
+      score += 8;
+    }
+    if (anchor.x > VIEWBOX_MIN_X + VENUE_SCHEMATIC_VIEWBOX.width * 0.65) {
+      if (placement.rectX + RECT_W <= anchor.x) {
+        score += 6;
+      }
+    }
+    if (anchor.x < VIEWBOX_MIN_X + VENUE_SCHEMATIC_VIEWBOX.width * 0.35) {
+      if (placement.rectX >= anchor.x) {
+        score += 6;
+      }
+    }
+    score -= Math.hypot(placement.labelX - anchor.x, placement.labelY - anchor.y) * 0.4;
+    return score;
+  };
+
+  return candidates.sort((left, right) => scorePlacement(right) - scorePlacement(left))[0]!;
 }
 
 function toAnchor(location: LocationRecord): VenueSchematicAnchor {
-  const { x, y } = normalizeSchematicCoords(location.mapX, location.mapY);
+  const coords =
+    getSchematicCoordsForLocation(location.id) ??
+    normalizeSchematicCoords(location.mapX, location.mapY);
+  const { x, y } = coords;
   return {
     id: location.id,
     label: location.displayName,

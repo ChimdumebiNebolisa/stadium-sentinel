@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  ACTIVE_LABEL_RECT_H,
+  ACTIVE_LABEL_RECT_W,
   buildVenueIncidentMarkers,
   buildVenueSchematicModel,
   getActiveLabelPlacement,
@@ -83,16 +85,59 @@ describe("venue schematic anchor model", () => {
       const maxY = VENUE_SCHEMATIC_VIEWBOX.minY + VENUE_SCHEMATIC_VIEWBOX.height;
       expect(placement.rectX).toBeGreaterThanOrEqual(VENUE_SCHEMATIC_VIEWBOX.minX);
       expect(placement.rectY).toBeGreaterThanOrEqual(VENUE_SCHEMATIC_VIEWBOX.minY);
-      expect(placement.rectX + 36).toBeLessThanOrEqual(maxX);
-      expect(placement.rectY + 7).toBeLessThanOrEqual(maxY);
+      expect(placement.rectX + placement.rectW).toBeLessThanOrEqual(maxX);
+      expect(placement.rectY + placement.rectH).toBeLessThanOrEqual(maxY);
     }
   });
 
-  it("places low bowl anchors with labels above the marker", () => {
+  it("keeps low bowl anchor labels off the pitch and near the marker", () => {
     const anchor = getSchematicAnchorForLocation("section-112");
     expect(anchor).toBeDefined();
     const placement = getActiveLabelPlacement(anchor!);
-    expect(placement.rectY + 7).toBeLessThanOrEqual(anchor!.y);
+    expect(placement.rectY).toBeGreaterThanOrEqual(37.2);
+    expect(Math.hypot(placement.labelX - anchor!.x, placement.labelY - anchor!.y)).toBeLessThan(
+      14,
+    );
+  });
+
+  it("places gate-b on the right side of the schematic", () => {
+    const coords = getSchematicCoordsForLocation("gate-b");
+    expect(coords).toEqual(VENUE_SCHEMATIC_LOCATION_COORDS["gate-b"]);
+    expect(coords!.x).toBeGreaterThan(60);
+  });
+
+  it("places gate-a on the left side of the schematic", () => {
+    const coords = getSchematicCoordsForLocation("gate-a");
+    expect(coords).toEqual(VENUE_SCHEMATIC_LOCATION_COORDS["gate-a"]);
+    expect(coords!.x).toBeLessThan(30);
+  });
+
+  it("places selected gate-b incident marker on the right side", () => {
+    const demo = buildDemoState();
+    const markers = buildVenueIncidentMarkers(
+      demo.incidentPackages,
+      demo.timeline,
+      "incident-gate-b",
+    );
+    const gateBMarker = markers.find((marker) => marker.locationId === "gate-b");
+
+    expect(gateBMarker).toBeDefined();
+    expect(gateBMarker!.x).toBeGreaterThan(60);
+    expect(gateBMarker!.incidentId).toBe("incident-gate-b");
+  });
+
+  it("renders ACTIVE label as a compact marker label", () => {
+    const gateB = getSchematicCoordsForLocation("gate-b")!;
+    const placement = getActiveLabelPlacement(gateB);
+
+    expect(placement.rectW).toBe(ACTIVE_LABEL_RECT_W);
+    expect(placement.rectH).toBe(ACTIVE_LABEL_RECT_H);
+    expect(placement.rectW).toBeLessThanOrEqual(16);
+    expect(Math.abs(placement.labelX - gateB.x)).toBeLessThan(18);
+    expect(
+      placement.rectX + placement.rectW <=
+        VENUE_SCHEMATIC_VIEWBOX.minX + VENUE_SCHEMATIC_VIEWBOX.width,
+    ).toBe(true);
   });
 
   it("maps canonical venue locations to explicit schematic coordinates", () => {
