@@ -143,8 +143,8 @@ See [docs/INGESTION_DEPLOY_CHECKLIST.md](docs/INGESTION_DEPLOY_CHECKLIST.md) and
 9. Approve a drafted staff update, report, next action, or dispatch when prompted.
 10. Confirm timeline and source log updates after approval.
 
-Demo script: [docs/real-demo-script.md](docs/real-demo-script.md)  
-Recording checklist: [docs/demo-recording-checklist.md](docs/demo-recording-checklist.md)
+Demo script: [docs/real-demo-script.md](docs/real-demo-script.md)
+Legacy fallback recording checklist: [docs/demo-recording-checklist.md](docs/demo-recording-checklist.md)
 
 ## Key Technical Decisions
 
@@ -176,7 +176,7 @@ No separate `LICENSE` file is included in this repository at this time.
 | [docs/STADIUM_SENTINEL_FINAL_EXECUTION_PLAN.md](docs/STADIUM_SENTINEL_FINAL_EXECUTION_PLAN.md) | Source of truth for phases, batches, and guardrails |
 | [docs/INGESTION_DEPLOY_CHECKLIST.md](docs/INGESTION_DEPLOY_CHECKLIST.md) | Ingestion and Cloud Run deploy checklist |
 | [docs/real-demo-script.md](docs/real-demo-script.md) | Live demo narration |
-| [docs/demo-recording-checklist.md](docs/demo-recording-checklist.md) | Pre-recording smoke checklist |
+| [docs/demo-recording-checklist.md](docs/demo-recording-checklist.md) | Legacy local fallback recording checklist |
 | [docs/devpost-talking-points.md](docs/devpost-talking-points.md) | Submission talking points |
 | [docs/ELASTIC_BUILDER_MCP_SETUP.md](docs/ELASTIC_BUILDER_MCP_SETUP.md) | External MCP setup only |
 | [artifacts/batch9-mcp-proof/README.md](artifacts/batch9-mcp-proof/README.md) | External MCP verification artifact |

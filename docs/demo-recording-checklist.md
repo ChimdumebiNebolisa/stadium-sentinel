@@ -1,10 +1,10 @@
-# Stadium Sentinel — Demo Recording Checklist
+# Stadium Sentinel — Legacy Fallback Recording Checklist
 
-> **Snapshot / fallback demo.** This script documents the completed Pass 1 local recording demo. It remains valid for offline rehearsal and CI-style walkthroughs. For the **active Rapid Agent Hackathon forward plan**, see [`docs/real-demo-restructure-plan.md`](real-demo-restructure-plan.md). Do not delete this checklist — it preserves the recording snapshot concept.
+> **Legacy local fallback demo.** This script documents the completed Pass 1 local recording flow. It remains valid for offline rehearsal and CI-style walkthroughs. For the current Cloud Run real-demo path, use [`docs/real-demo-script.md`](real-demo-script.md). Do not delete this checklist; it preserves the recording snapshot concept.
 
 Use this script for a **typed-Sentinel-only** screen recording. No voice layer, live ingestion, venue orientation, Elastic, or backend credentials are required.
 
-**Branch:** `codex/ui-polish-command-center-fit`
+**Branch:** current demo branch or `main` after default-branch cleanup
 **Last hardened:** 3.5.1 (`a6317ae`) · **Last polished:** 3.5.2 (`64173a6`)
 
 ---
