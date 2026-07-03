@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 
+import { DemoStatusIndicator } from "@/components/dashboard/demo-status-indicator";
 import { RadioTranscriptPanel } from "@/components/dashboard/radio-transcript-panel";
 import {
   isRealDemoFlowEnabled,
@@ -90,6 +91,7 @@ export function CommandBar({
         </div>
 
         <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+          <DemoStatusIndicator />
           {mounted && realDemoFlow && !operationsConnected ? (
             <button
               type="button"

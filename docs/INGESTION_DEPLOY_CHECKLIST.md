@@ -73,6 +73,7 @@ No terminal command is required in the deployed demo.
 
 ## Credentialed smoke checklist
 
+- `GET /api/demo/status`
 - `GET /api/ingest/status`
 - `POST /api/ingest/bootstrap`
 - `POST /api/ingest/pull`

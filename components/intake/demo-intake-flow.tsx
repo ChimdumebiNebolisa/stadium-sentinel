@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { DemoStatusIndicator } from "@/components/dashboard/demo-status-indicator";
 import { isRealDemoFlowEnabled } from "@/lib/feature-flags";
 import { fetchIngestBootstrap } from "@/lib/ingest-bootstrap-client";
 import {
@@ -122,6 +123,7 @@ export function DemoIntakeFlow() {
               Loads current incidents, policies, roster, and radio transcripts when
               Elastic is available.
             </p>
+            <DemoStatusIndicator className="mt-3" />
 
             <div className="mt-6 flex flex-wrap items-center gap-3">
               {!operationsConnected ? (
