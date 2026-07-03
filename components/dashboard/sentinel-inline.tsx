@@ -140,8 +140,6 @@ export function SentinelInline({
 
   const isListening = state === "listening";
   const isSpeaking = state === "speaking";
-  const isThinking =
-    state === "thinking" || state === "transcribing" || state === "action_executing";
   const voiceControlLabel = getVoiceControlLabel(state);
   const responseLine =
     statusMessage && (isSpeaking || state === "idle" || isListening)

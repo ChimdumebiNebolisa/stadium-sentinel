@@ -9,7 +9,7 @@ export async function POST(request: Request) {
   
   try {
     body = (await request.json()) as { operation?: string };
-  } catch (_e) {
+  } catch {
     // Syntax error in JSON is handled as missing operation.
   }
 

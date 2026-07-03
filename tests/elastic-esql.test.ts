@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { executeBoundedEsql } from "@/lib/elastic/esql";
 import * as client from "@/lib/elastic/client";
+import type { BoundedEsqlOperation } from "@/lib/types";
 
 vi.mock("@/lib/elastic/client", () => ({
   getElasticConfig: vi.fn(),
@@ -55,6 +56,8 @@ describe("Elastic ES|QL Operations", () => {
     });
 
     // We pass an invalid operation as type coercion to test real runtime boundary
-    await expect(executeBoundedEsql("DROP TABLE memory" as any)).rejects.toThrow("Unsupported ES|QL operation");
+    await expect(
+      executeBoundedEsql("DROP TABLE memory" as unknown as BoundedEsqlOperation),
+    ).rejects.toThrow("Unsupported ES|QL operation");
   });
 });

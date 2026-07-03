@@ -4,7 +4,7 @@
 
 Use this script for a **typed-Sentinel-only** screen recording. No voice layer, live ingestion, venue orientation, Elastic, or backend credentials are required.
 
-**Branch:** current demo branch or `main` after default-branch cleanup
+**Branch:** `main`
 **Last hardened:** 3.5.1 (`a6317ae`) · **Last polished:** 3.5.2 (`64173a6`)
 
 ---

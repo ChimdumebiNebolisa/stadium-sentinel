@@ -387,8 +387,6 @@ export function extractTranscriptIncidents(input: {
     }))
     .filter((snippet) => snippet.line.length > 0);
 
-  const addedCount = addedIds.length;
-  const matchedCount = matchedIncidentIds.length;
   const extractionStatus =
     extractedIncidentIds.length === 0 ? ("empty" as const) : ("extracted" as const);
 

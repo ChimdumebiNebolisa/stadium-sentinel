@@ -54,6 +54,8 @@ This folder is **external proof only**. It does not change `/command`, landing c
 
 ## Commands run (no secrets)
 
+> Branch note: `main` is now the canonical branch. The historical push command below records the old `codex/ui-polish-command-center-fit` branch used for Batch 9; that Codex branch is obsolete and should not be used for new work.
+
 ```bash
 # Pre-push verification (repo root)
 npm test

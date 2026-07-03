@@ -783,7 +783,7 @@ function answerRadio(ctx: SentinelContext): string {
   return ctx.dispatchMessage;
 }
 
-function answerUnresolved(state: CommandState, ctx: SentinelContext): string {
+function answerUnresolved(state: CommandState): string {
   const selected = state.selectedIncidentPackage;
   if (!selected) {
     return "Select an incident to check open response steps.";
@@ -907,7 +907,7 @@ export function answerSentinelQuestion(
     case "radio":
       return { answer: answerRadio(ctx) };
     case "unresolved":
-      return { answer: answerUnresolved(state, ctx) };
+      return { answer: answerUnresolved(state) };
     case "summary":
       return { answer: answerSummary(state, ctx) };
     case "ask-staff":
