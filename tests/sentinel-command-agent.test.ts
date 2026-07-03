@@ -85,7 +85,6 @@ function buildMatchedTranscriptState() {
 }
 
 function buildMixedTranscriptState() {
-  const demo = buildDemoState();
   const extraction = extractTranscriptIncidents({
     text: `${TRANSCRIPT_PRESETS[0]!.text}\n${TRANSCRIPT_PRESETS[1]!.text}`,
     activeIncidentIds: getCanonicalActiveIncidentIds(),

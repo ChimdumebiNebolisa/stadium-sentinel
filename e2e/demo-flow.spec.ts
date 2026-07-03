@@ -1,5 +1,15 @@
 import { expect, test, type Page } from "@playwright/test";
 
+type SpeechCall = { type: "speak" | "cancel"; text?: string };
+type MockSpeechUtterance = {
+  text: string;
+  onend: (() => void) | null;
+};
+type SentinelSpeechWindow = Window & {
+  __sentinelSpeech: SpeechCall[];
+  SpeechSynthesisUtterance: new (text: string) => MockSpeechUtterance;
+};
+
 async function openWorkspace(
   page: Page,
   panel: "Evidence" | "Incident log" | "Report" | "Source log",
@@ -462,14 +472,14 @@ async function installMockSpeechSynthesis(
 ) {
   const fireOnEnd = options?.fireOnEnd ?? true;
   await page.addInitScript((shouldFireOnEnd: boolean) => {
-    const calls: { type: "speak" | "cancel"; text?: string }[] = [];
-    (window as any).__sentinelSpeech = calls;
+    const calls: SpeechCall[] = [];
+    (window as SentinelSpeechWindow).__sentinelSpeech = calls;
 
     Object.defineProperty(window, "speechSynthesis", {
       writable: true,
       configurable: true,
       value: {
-        speak: (utterance: any) => {
+        speak: (utterance: MockSpeechUtterance) => {
           calls.push({ type: "speak", text: utterance.text });
           if (shouldFireOnEnd) {
             queueMicrotask(() => utterance.onend?.());
@@ -481,7 +491,7 @@ async function installMockSpeechSynthesis(
       },
     });
 
-    (window as any).SpeechSynthesisUtterance = class {
+    (window as SentinelSpeechWindow).SpeechSynthesisUtterance = class {
       rate = 1;
       pitch = 1;
       onend: (() => void) | null = null;
@@ -497,7 +507,7 @@ async function waitForSentinelListening(page: Page) {
 }
 
 async function getSpeechCalls(page: Page) {
-  return page.evaluate(() => (window as any).__sentinelSpeech as { type: string; text?: string }[]);
+  return page.evaluate(() => (window as SentinelSpeechWindow).__sentinelSpeech);
 }
 
 // ─── Two-way voice (talk-back) tests ──────────────────────────────────────────

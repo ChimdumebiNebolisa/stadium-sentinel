@@ -244,7 +244,7 @@ function shuffle<T>(array: T[]): T[] {
 function pickBatch(pool: DemoStoredIncident[]): DemoStoredIncident[] {
   const count = 3 + Math.floor(Math.random() * 3); // 3, 4, or 5
   const shuffled = shuffle(pool);
-  let selected = shuffled.slice(0, count);
+  const selected = shuffled.slice(0, count);
 
   const hasImmediate = selected.some((i) => i.priority === "Immediate");
   if (!hasImmediate) {

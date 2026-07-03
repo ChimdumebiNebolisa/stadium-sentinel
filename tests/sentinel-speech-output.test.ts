@@ -9,6 +9,19 @@ import {
 } from "@/lib/sentinel-speech-output";
 import type { IncidentPackage } from "@/lib/types";
 
+type MockSpeechSynthesis = SpeechSynthesis & {
+  speak: ReturnType<typeof vi.fn>;
+  cancel: ReturnType<typeof vi.fn>;
+};
+
+function getSpeechSynthesisMock(win: Window & { speechSynthesis?: SpeechSynthesis }) {
+  const speechSynthesis = win.speechSynthesis as MockSpeechSynthesis | undefined;
+  if (!speechSynthesis) {
+    throw new Error("Expected speechSynthesis to be available");
+  }
+  return speechSynthesis;
+}
+
 // ─── Shared fixture ─────────────────────────────────────────────────────────
 
 function makeWindow(opts: { hasSynthesis?: boolean; hasUtterance?: boolean } = {}) {
@@ -96,7 +109,7 @@ describe("stopSentinelSpeech", () => {
   it("calls speechSynthesis.cancel()", () => {
     const win = makeWindow();
     stopSentinelSpeech(win);
-    expect((win.speechSynthesis as any).cancel).toHaveBeenCalledOnce();
+    expect(getSpeechSynthesisMock(win).cancel).toHaveBeenCalledOnce();
   });
 
   it("does not throw when speechSynthesis is absent", () => {
@@ -111,8 +124,8 @@ describe("speakSentinelResponse", () => {
   it("cancels previous utterance then speaks", () => {
     const win = makeWindow();
     speakSentinelResponse("Test", win);
-    expect((win.speechSynthesis as any).cancel).toHaveBeenCalled();
-    expect((win.speechSynthesis as any).speak).toHaveBeenCalled();
+    expect(getSpeechSynthesisMock(win).cancel).toHaveBeenCalled();
+    expect(getSpeechSynthesisMock(win).speak).toHaveBeenCalled();
   });
 
   it("returns true when speech is spoken", () => {
@@ -128,15 +141,16 @@ describe("speakSentinelResponse", () => {
   it("returns false for an empty string", () => {
     const win = makeWindow();
     expect(speakSentinelResponse("   ", win)).toBe(false);
-    expect((win.speechSynthesis as any).speak).not.toHaveBeenCalled();
+    expect(getSpeechSynthesisMock(win).speak).not.toHaveBeenCalled();
   });
 
   it("cancels in-progress speech before a new call (cancel-then-speak pattern)", () => {
     const win = makeWindow();
     const cancel = vi.fn();
     const speak = vi.fn();
-    (win.speechSynthesis as any).cancel = cancel;
-    (win.speechSynthesis as any).speak = speak;
+    const speechSynthesis = getSpeechSynthesisMock(win);
+    speechSynthesis.cancel = cancel;
+    speechSynthesis.speak = speak;
 
     speakSentinelResponse("First command", win);
     speakSentinelResponse("Second command", win);
