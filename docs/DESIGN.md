@@ -95,7 +95,7 @@ Shortest-distance and least-time paths are different results; the engine never b
 - Algorithm: Dinic (level graph + blocking flow) over arcs in deterministic construction order. Capacities are integers-plus-fractions represented exactly as doubles; all additions/subtractions preserve integrality because inputs are finite decimals summed in fixed order.
 - Min-cut: after termination, nodes reachable from the super-source in the residual graph form side A; crossing saturated arcs form the reported cut set, mapped back to `edge` references (with direction) or `nodeCapacity` references (split arcs).
 - Per-exit throughput shares come from the final flow assignment.
-- Criticality: for every open exit and for every arc carrying positive baseline flow (removing a zero-flow arc cannot reduce max-flow — argued and tested), rerun max-flow without that element and record `deltaMaxFlow`. Arc evaluations are capped (default top 32 by baseline flow) for performance; the cap is recorded in output when hit.
+- Criticality: for every open exit and for every edge carrying positive baseline flow (removing a zero-flow edge cannot reduce max-flow — argued and tested), rerun max-flow without that element (an edge exclusion removes both of its directions) and record `deltaMaxFlow`. Candidates are evaluated exits-first then edge-id ascending, capped at `criticalityArcLimit` (default 32); the cap is recorded in output when hit.
 
 **Known-answer tests** pin exact max-flow values and exact cut sets on hand-built fixtures (series, parallel, asymmetric, node-split cases).
 
@@ -128,7 +128,7 @@ Metrics per directed arc (and per closed-constrained node):
 |---|---|
 | `totalFlow` | people discharged by the arc over the simulation |
 | `utilization` | `totalFlow / (capacityPerMinute · clearanceMinutes)` |
-| `saturationSeconds` | Σ steps where `waitingBucket ≥ sendable` (demand met or exceeded supply) |
+| `saturationSeconds` | Σ steps where waiting demand strictly exceeded the arc's discharge allowance |
 | `peakQueue` | max queued count waiting to enter the arc |
 | `removalImpact` | `baselineMaxFlow − maxFlow(without arc)` (positive-flow arcs only) |
 | `minCutMembership` | boolean, from §3.3 |
