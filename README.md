@@ -62,4 +62,4 @@ Add `--json` to any command for byte-stable structured output.
 
 ## License
 
-MIT.
+[MIT](LICENSE) — Copyright (c) 2026 Chimdumebi Nebolisa.
