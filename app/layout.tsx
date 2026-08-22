@@ -15,8 +15,9 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Stadium Sentinel",
-  description: "Incident operations command center for live soccer stadium response workflows.",
+  title: "Stadium Sentinel — Venue Flow Analysis",
+  description:
+    "Deterministic venue-flow and evacuation scenario analysis for stadiums and large venues. Local, reproducible, no AI or external services.",
 };
 
 export default function RootLayout({
