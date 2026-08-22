@@ -1,0 +1,60 @@
+{
+  "schemaVersion": "1",
+  "id": "harborline-park",
+  "name": "Harborline Park",
+  "description": "SYNTHETIC demonstration venue. All names, numbers, and geometry are fictional and exist to exercise the analysis engine: 6 seating sections (7,500 people), a 4-node concourse ring, 4 gates, one deliberate east-tunnel bottleneck (300 people/min serving ~4,200 people on the east side), stairs, ramp, checkpoint, and a refuge area.",
+  "config": {},
+  "nodes": [
+    { "id": "sec-nw", "label": "Section NW", "type": "section", "occupancy": 1200, "x": 22, "y": 32 },
+    { "id": "sec-ne", "label": "Section NE", "type": "section", "occupancy": 1400, "x": 78, "y": 32 },
+    { "id": "sec-w", "label": "Section West", "type": "section", "occupancy": 1000, "x": 14, "y": 48 },
+    { "id": "sec-e", "label": "Section East", "type": "section", "occupancy": 1500, "x": 86, "y": 50 },
+    { "id": "sec-sw", "label": "Section SW", "type": "section", "occupancy": 1100, "x": 28, "y": 66 },
+    { "id": "sec-se", "label": "Section SE", "type": "section", "occupancy": 1300, "x": 70, "y": 64 },
+
+    { "id": "con-north", "label": "North Concourse", "type": "concourse", "x": 50, "y": 18 },
+    { "id": "con-east", "label": "East Concourse", "type": "concourse", "capacity": 2000, "x": 82, "y": 38 },
+    { "id": "con-south", "label": "South Concourse", "type": "concourse", "x": 50, "y": 74 },
+    { "id": "con-west", "label": "West Concourse", "type": "concourse", "x": 16, "y": 36 },
+
+    { "id": "stair-ne", "label": "Stairwell NE", "type": "stairwell", "x": 76, "y": 24 },
+    { "id": "ramp-s", "label": "South Ramp", "type": "ramp", "x": 60, "y": 72 },
+    { "id": "chk-main", "label": "West Checkpoint", "type": "checkpoint", "x": 10, "y": 42 },
+    { "id": "refuge-east", "label": "East Refuge Area", "type": "refuge", "capacity": 400, "x": 90, "y": 30 },
+
+    { "id": "gate-north", "label": "North Gate", "type": "gate", "x": 50, "y": 4 },
+    { "id": "gate-east", "label": "East Gate", "type": "gate", "x": 96, "y": 54 },
+    { "id": "gate-south", "label": "South Gate", "type": "gate", "x": 50, "y": 92 },
+    { "id": "gate-west", "label": "West Gate", "type": "gate", "x": 4, "y": 46 }
+  ],
+  "edges": [
+    { "id": "e-ring-ne", "from": "con-north", "to": "con-east", "distanceMeters": 55, "capacityPerMinute": 700 },
+    { "id": "e-ring-es", "from": "con-east", "to": "con-south", "distanceMeters": 60, "capacityPerMinute": 700 },
+    { "id": "e-ring-sw", "from": "con-south", "to": "con-west", "distanceMeters": 60, "capacityPerMinute": 700 },
+    { "id": "e-ring-wn", "from": "con-west", "to": "con-north", "distanceMeters": 55, "capacityPerMinute": 700 },
+
+    { "id": "e-spoke-nw-n", "from": "sec-nw", "to": "con-north", "distanceMeters": 22, "capacityPerMinute": 500 },
+    { "id": "e-spoke-nw-w", "from": "sec-nw", "to": "con-west", "distanceMeters": 18, "capacityPerMinute": 400 },
+    { "id": "e-spoke-ne-n", "from": "sec-ne", "to": "con-north", "distanceMeters": 24, "capacityPerMinute": 500 },
+    { "id": "e-spoke-ne-e", "from": "sec-ne", "to": "con-east", "distanceMeters": 16, "capacityPerMinute": 450 },
+    { "id": "e-spoke-w", "from": "sec-w", "to": "con-west", "distanceMeters": 16, "capacityPerMinute": 350 },
+    { "id": "e-spoke-e", "from": "sec-e", "to": "con-east", "distanceMeters": 10, "capacityPerMinute": 350 },
+    { "id": "e-spoke-sw-s", "from": "sec-sw", "to": "con-south", "distanceMeters": 26, "capacityPerMinute": 500 },
+    { "id": "e-spoke-sw-w", "from": "sec-sw", "to": "con-west", "distanceMeters": 22, "capacityPerMinute": 400 },
+    { "id": "e-spoke-se-s", "from": "sec-se", "to": "con-south", "distanceMeters": 28, "capacityPerMinute": 500 },
+    { "id": "e-spoke-se-e", "from": "sec-se", "to": "con-east", "distanceMeters": 20, "capacityPerMinute": 450 },
+
+    { "id": "e-stair-ne-1", "from": "sec-ne", "to": "stair-ne", "distanceMeters": 10, "capacityPerMinute": 300, "stepFree": false },
+    { "id": "e-stair-ne-2", "from": "stair-ne", "to": "con-north", "distanceMeters": 16, "capacityPerMinute": 300, "stepFree": false },
+    { "id": "e-ramp-s-1", "from": "sec-se", "to": "ramp-s", "distanceMeters": 14, "capacityPerMinute": 300 },
+    { "id": "e-ramp-s-2", "from": "ramp-s", "to": "con-south", "distanceMeters": 16, "capacityPerMinute": 300 },
+
+    { "id": "e-gate-n", "from": "con-north", "to": "gate-north", "travelTimeSeconds": 20, "capacityPerMinute": 1200 },
+    { "id": "e-gate-s", "from": "con-south", "to": "gate-south", "travelTimeSeconds": 20, "capacityPerMinute": 1200 },
+    { "id": "e-chk-w1", "from": "con-west", "to": "chk-main", "distanceMeters": 8, "capacityPerMinute": 800 },
+    { "id": "e-chk-w2", "from": "chk-main", "to": "gate-west", "distanceMeters": 9, "capacityPerMinute": 800 },
+    { "id": "e-tunnel-east", "from": "con-east", "to": "gate-east", "distanceMeters": 30, "capacityPerMinute": 300 },
+
+    { "id": "e-refuge", "from": "con-east", "to": "refuge-east", "distanceMeters": 6, "capacityPerMinute": 200 }
+  ]
+}

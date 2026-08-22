@@ -1,0 +1,9 @@
+{
+  "schemaVersion": "1",
+  "id": "east-tunnel-closed",
+  "name": "Close East Gate tunnel",
+  "description": "SYNTHETIC demonstration scenario: the east tunnel connector is removed, forcing the east-side sections to reroute around the concourse ring.",
+  "operations": [
+    { "op": "disableEdge", "edgeId": "e-tunnel-east" }
+  ]
+}

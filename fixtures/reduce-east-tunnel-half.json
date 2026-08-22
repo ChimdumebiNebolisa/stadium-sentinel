@@ -1,0 +1,9 @@
+{
+  "schemaVersion": "1",
+  "id": "reduce-east-tunnel-half",
+  "name": "East tunnel at half capacity",
+  "description": "SYNTHETIC demonstration scenario: the east tunnel connector operates at 50% capacity. Maximum theoretical flow may be preserved via the concourse ring while simulated clearance degrades through queueing.",
+  "operations": [
+    { "op": "scaleEdgeCapacity", "edgeId": "e-tunnel-east", "factor": 0.5 }
+  ]
+}
